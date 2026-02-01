@@ -6,7 +6,8 @@ import CommitsPanel from './components/CommitsPanel';
 import BranchTreePanel from './components/BranchTreePanel';
 import CommitFilesPanel from './components/CommitFilesPanel';
 import FileDiffPanel from './components/FileDiffPanel';
-import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff } from './types';
+import ChangesPanel from './components/ChangesPanel';
+import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus } from './types';
 
 const App: React.FC = () => {
   const [repositories, setRepositories] = useState<Map<string, RepositoryInfo>>(new Map());
@@ -21,18 +22,28 @@ const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   
   // Right panel state management
-  const [rightPanelView, setRightPanelView] = useState<'branches' | 'commitFiles' | 'fileDiff'>('branches');
+  const [rightPanelView, setRightPanelView] = useState<'branches' | 'commitFiles' | 'fileDiff' | 'changes'>('branches');
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null);
   const [commitFiles, setCommitFiles] = useState<CommitFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<CommitFile | null>(null);
   const [fileDiff, setFileDiff] = useState<FileDiff | null>(null);
 
+  // Load theme from localStorage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      setIsDarkTheme(true);
+    }
+  }, []);
+
   // Toggle dark theme
   useEffect(() => {
     if (isDarkTheme) {
       document.body.classList.add('dark-theme');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.body.classList.remove('dark-theme');
+      localStorage.setItem('theme', 'light');
     }
   }, [isDarkTheme]);
 
@@ -69,6 +80,30 @@ const App: React.FC = () => {
     };
     loadLastFolder();
   }, []);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+O - Open folder
+      if (e.ctrlKey && e.key === 'o') {
+        e.preventDefault();
+        handleOpenFolder();
+      }
+      // Ctrl+R - Refresh
+      if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        handleRefresh();
+      }
+      // Ctrl+T - Toggle theme
+      if (e.ctrlKey && e.key === 't') {
+        e.preventDefault();
+        toggleTheme();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [repositories, selectedRepo]);
 
   const handleOpenFolder = async () => {
     try {
@@ -306,6 +341,39 @@ const App: React.FC = () => {
     setFileDiff(null);
   };
 
+  const handleShowChanges = () => {
+    setRightPanelView('changes');
+  };
+
+  const handleChangesRefresh = async () => {
+    if (!selectedRepo) return;
+    
+    try {
+      const info = await window.electronAPI.getRepositoryInfo(selectedRepo);
+      updateRepoInfo(selectedRepo, info);
+      await refreshSelectedRepoPanels(selectedRepo, info);
+    } catch (error) {
+      console.error('Error refreshing after changes:', error);
+    }
+  };
+
+  const handleChangedFileClick = async (file: FileStatus) => {
+    if (!selectedRepo) return;
+    
+    setLoading(true);
+    
+    try {
+      const diff = await window.electronAPI.getWorkingFileDiff(selectedRepo, file.path, file.staged);
+      setFileDiff(diff);
+      setRightPanelView('fileDiff');
+    } catch (error) {
+      console.error('Error loading file diff:', error);
+      message.error('Failed to load file diff');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="app-container">
       <Button 
@@ -353,9 +421,33 @@ const App: React.FC = () => {
           </div>
         ) : (
           <div className="content-area">
-            <CommitsPanel commits={commits} onCommitClick={handleCommitClick} />
+            <div className="left-panel">
+              <div style={{ marginBottom: '8px' }}>
+                <Button 
+                  type={rightPanelView === 'changes' ? 'primary' : 'default'}
+                  onClick={handleShowChanges}
+                  style={{ marginRight: '8px' }}
+                >
+                  Changes
+                </Button>
+                <Button 
+                  type={rightPanelView === 'branches' ? 'primary' : 'default'}
+                  onClick={handleBackToBranches}
+                >
+                  Branches
+                </Button>
+              </div>
+              <CommitsPanel commits={commits} onCommitClick={handleCommitClick} />
+            </div>
             {rightPanelView === 'branches' && (
               <BranchTreePanel repoPath={selectedRepo} branches={branches} currentBranch={currentBranch} />
+            )}
+            {rightPanelView === 'changes' && (
+              <ChangesPanel 
+                repoPath={selectedRepo} 
+                onRefresh={handleChangesRefresh}
+                onFileClick={handleChangedFileClick}
+              />
             )}
             {rightPanelView === 'commitFiles' && (
               <CommitFilesPanel 
@@ -368,7 +460,7 @@ const App: React.FC = () => {
             {rightPanelView === 'fileDiff' && (
               <FileDiffPanel 
                 diff={fileDiff}
-                onBack={handleBackToFiles}
+                onBack={selectedCommit ? handleBackToFiles : () => setRightPanelView('changes')}
               />
             )}
           </div>

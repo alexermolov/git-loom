@@ -76,6 +76,13 @@ export interface CommitDetail {
   refs: string[];
 }
 
+export interface FileStatus {
+  path: string;
+  status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked';
+  staged: boolean;
+  oldPath?: string;
+}
+
 export async function getCommitDetails(repoPath: string, branch?: string, maxCount: number = 200): Promise<CommitDetail[]> {
   const git: SimpleGit = simpleGit(repoPath);
 
@@ -561,3 +568,143 @@ export async function getFileDiff(repoPath: string, commitHash: string, filePath
     throw error;
   }
 }
+
+// Get status of working directory and staging area
+export async function getStatus(repoPath: string): Promise<FileStatus[]> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    const status: StatusResult = await git.status();
+    const files: FileStatus[] = [];
+
+    // Staged files
+    for (const file of status.staged) {
+      files.push({
+        path: file,
+        status: 'added',
+        staged: true,
+      });
+    }
+
+    // Modified files (not staged)
+    for (const file of status.modified) {
+      if (!status.staged.includes(file)) {
+        files.push({
+          path: file,
+          status: 'modified',
+          staged: false,
+        });
+      }
+    }
+
+    // Created files (untracked)
+    for (const file of status.not_added) {
+      files.push({
+        path: file,
+        status: 'untracked',
+        staged: false,
+      });
+    }
+
+    // Deleted files
+    for (const file of status.deleted) {
+      files.push({
+        path: file,
+        status: 'deleted',
+        staged: status.staged.includes(file),
+      });
+    }
+
+    // Renamed files
+    for (const rename of status.renamed) {
+      const fileData = typeof rename === 'string' 
+        ? { from: rename, to: rename } 
+        : rename;
+      
+      files.push({
+        path: fileData.to,
+        status: 'renamed',
+        staged: true,
+        oldPath: fileData.from,
+      });
+    }
+
+    return files;
+  } catch (error) {
+    console.error('Error getting status:', error);
+    throw error;
+  }
+}
+
+// Stage files
+export async function stageFiles(repoPath: string, filePaths: string[]): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    await git.add(filePaths);
+  } catch (error) {
+    console.error('Error staging files:', error);
+    throw error;
+  }
+}
+
+// Unstage files
+export async function unstageFiles(repoPath: string, filePaths: string[]): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    await git.reset(['HEAD', '--', ...filePaths]);
+  } catch (error) {
+    console.error('Error unstaging files:', error);
+    throw error;
+  }
+}
+
+// Create commit
+export async function createCommit(repoPath: string, message: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    await git.commit(message);
+  } catch (error) {
+    console.error('Error creating commit:', error);
+    throw error;
+  }
+}
+
+// Get diff for a working directory file
+export async function getWorkingFileDiff(repoPath: string, filePath: string, staged: boolean): Promise<FileDiff> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    // Get the diff for the specific file
+    // If staged, compare staged version with HEAD
+    // If unstaged, compare working directory with staged (or HEAD if not staged)
+    const args = staged ? ['--cached', '--', filePath] : ['--', filePath];
+    const diff = await git.diff(args);
+    
+    // Count additions and deletions
+    const lines = diff.split('\n');
+    let additions = 0;
+    let deletions = 0;
+    
+    for (const line of lines) {
+      if (line.startsWith('+') && !line.startsWith('+++')) {
+        additions++;
+      } else if (line.startsWith('-') && !line.startsWith('---')) {
+        deletions++;
+      }
+    }
+
+    return {
+      path: filePath,
+      diff,
+      additions,
+      deletions,
+    };
+  } catch (error) {
+    console.error('Error getting working file diff:', error);
+    throw error;
+  }
+}
+

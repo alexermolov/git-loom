@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -172,6 +172,58 @@ function setupIpcHandlers() {
       return diff;
     } catch (error) {
       console.error('Error getting file diff:', error);
+      throw error;
+    }
+  });
+
+  // Get status
+  ipcMain.handle('git:getStatus', async (_event, repoPath: string) => {
+    try {
+      const status = await getStatus(repoPath);
+      return status;
+    } catch (error) {
+      console.error('Error getting status:', error);
+      throw error;
+    }
+  });
+
+  // Stage files
+  ipcMain.handle('git:stageFiles', async (_event, repoPath: string, filePaths: string[]) => {
+    try {
+      await stageFiles(repoPath, filePaths);
+    } catch (error) {
+      console.error('Error staging files:', error);
+      throw error;
+    }
+  });
+
+  // Unstage files
+  ipcMain.handle('git:unstageFiles', async (_event, repoPath: string, filePaths: string[]) => {
+    try {
+      await unstageFiles(repoPath, filePaths);
+    } catch (error) {
+      console.error('Error unstaging files:', error);
+      throw error;
+    }
+  });
+
+  // Create commit
+  ipcMain.handle('git:createCommit', async (_event, repoPath: string, message: string) => {
+    try {
+      await createCommit(repoPath, message);
+    } catch (error) {
+      console.error('Error creating commit:', error);
+      throw error;
+    }
+  });
+
+  // Get working file diff
+  ipcMain.handle('git:getWorkingFileDiff', async (_event, repoPath: string, filePath: string, staged: boolean) => {
+    try {
+      const diff = await getWorkingFileDiff(repoPath, filePath, staged);
+      return diff;
+    } catch (error) {
+      console.error('Error getting working file diff:', error);
       throw error;
     }
   });

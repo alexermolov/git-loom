@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Spin, Badge, Tooltip, Input } from 'antd';
-import { FolderOpenOutlined, BranchesOutlined, ArrowUpOutlined, ArrowDownOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Button, Spin, Badge, Tooltip, Input, Tag } from 'antd';
+import { FolderOpenOutlined, BranchesOutlined, ArrowUpOutlined, ArrowDownOutlined, ReloadOutlined, SearchOutlined, FileTextOutlined, PlusOutlined, MinusOutlined, EditOutlined } from '@ant-design/icons';
 import { RepositoryInfo } from '../types';
 
 interface SidebarProps {
@@ -143,6 +143,39 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div className="repository-branch">
                   <BranchesOutlined /> {repo.currentBranch}
                 </div>
+              </div>
+              
+              {/* File status indicators */}
+              {(repo.status.modified.length > 0 || repo.status.created.length > 0 || repo.status.deleted.length > 0) && (
+                <div style={{ display: 'flex', gap: 4, marginBottom: 6, flexWrap: 'wrap' }}>
+                  {repo.status.modified.length > 0 && (
+                    <Tooltip title={`${repo.status.modified.length} modified file${repo.status.modified.length > 1 ? 's' : ''}`}>
+                      <Tag color="orange" style={{ fontSize: 11, margin: 0, padding: '0 4px', display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <EditOutlined style={{ fontSize: 10 }} />
+                        M: {repo.status.modified.length}
+                      </Tag>
+                    </Tooltip>
+                  )}
+                  {repo.status.created.length > 0 && (
+                    <Tooltip title={`${repo.status.created.length} added file${repo.status.created.length > 1 ? 's' : ''}`}>
+                      <Tag color="green" style={{ fontSize: 11, margin: 0, padding: '0 4px', display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <PlusOutlined style={{ fontSize: 10 }} />
+                        A: {repo.status.created.length}
+                      </Tag>
+                    </Tooltip>
+                  )}
+                  {repo.status.deleted.length > 0 && (
+                    <Tooltip title={`${repo.status.deleted.length} deleted file${repo.status.deleted.length > 1 ? 's' : ''}`}>
+                      <Tag color="red" style={{ fontSize: 11, margin: 0, padding: '0 4px', display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <MinusOutlined style={{ fontSize: 10 }} />
+                        D: {repo.status.deleted.length}
+                      </Tag>
+                    </Tooltip>
+                  )}
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <Tooltip
                     title={

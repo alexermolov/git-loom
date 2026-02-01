@@ -11,6 +11,11 @@ export interface ElectronAPI {
   getCommitDetails: (repoPath: string, branch?: string, maxCount?: number) => Promise<CommitDetail[]>;
   getCommitFiles: (repoPath: string, commitHash: string) => Promise<CommitFile[]>;
   getFileDiff: (repoPath: string, commitHash: string, filePath: string) => Promise<FileDiff>;
+  getStatus: (repoPath: string) => Promise<FileStatus[]>;
+  stageFiles: (repoPath: string, filePaths: string[]) => Promise<void>;
+  unstageFiles: (repoPath: string, filePaths: string[]) => Promise<void>;
+  createCommit: (repoPath: string, message: string) => Promise<void>;
+  getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => Promise<FileDiff>;
 }
 
 export interface GitGraphRow {
@@ -74,6 +79,13 @@ export interface FileDiff {
   diff: string;
   additions: number;
   deletions: number;
+}
+
+export interface FileStatus {
+  path: string;
+  status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked';
+  staged: boolean;
+  oldPath?: string;
 }
 
 declare global {
