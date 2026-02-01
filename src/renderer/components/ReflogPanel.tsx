@@ -317,7 +317,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
                 />
                 
                 <div>
-                  <div style={{ marginBottom: 4, fontSize: 12, color: '#8c8c8c' }}>Action Types:</div>
+                  <div className="reflog-filter-label">Action Types:</div>
                   <Checkbox.Group
                     value={selectedActionTypes}
                     onChange={setSelectedActionTypes}
@@ -339,7 +339,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
                 </div>
 
                 <div>
-                  <div style={{ marginBottom: 4, fontSize: 12, color: '#8c8c8c' }}>Date Range:</div>
+                  <div className="reflog-filter-label">Date Range:</div>
                   <RangePicker
                     value={dateRange}
                     onChange={setDateRange}
@@ -358,7 +358,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
                   >
                     Clear Filters
                   </Button>
-                  <div style={{ fontSize: 12, color: '#8c8c8c' }}>
+                  <div className="reflog-entry-count">
                     Showing {filteredEntries.length} of {reflogEntries.length} entries
                   </div>
                 </Space>
@@ -371,7 +371,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
       <div className="reflog-panel-content">
         {filteredEntries.length === 0 ? (
           <div className="reflog-empty">
-            <ClockCircleOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
+            <ClockCircleOutlined className="reflog-empty-icon" />
             <p>{reflogEntries.length === 0 ? 'No reflog entries found' : 'No entries match the current filters'}</p>
             {reflogEntries.length > 0 && (
               <Button onClick={clearFilters} size="small">Clear Filters</Button>
@@ -555,6 +555,22 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
           justify-content: center;
           height: 100%;
           color: var(--text-secondary);
+        }
+
+        .reflog-empty-icon {
+          font-size: 48px;
+          color: var(--text-tertiary);
+        }
+
+        .reflog-filter-label {
+          margin-bottom: 4px;
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+
+        .reflog-entry-count {
+          font-size: 12px;
+          color: var(--text-tertiary);
         }
 
         .reflog-empty p {

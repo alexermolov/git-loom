@@ -643,52 +643,142 @@ body.dark-theme .ant-tooltip-arrow-content {
   border-color: var(--border-color) !important;
 }
 
-/* Status badges styling */
-.repository-item .ant-tag {
-  user-select: none;
-  cursor: default;
-  font-weight: 600;
-  line-height: 16px;
+body.dark-theme .ant-checkbox-wrapper {
+  color: var(--text-primary) !important;
 }
 
-body.dark-theme .ant-input {
+body.dark-theme .ant-checkbox-inner {
   background-color: var(--bg-hover) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+}
+
+body.dark-theme .ant-collapse {
+  background: transparent !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .ant-collapse-item {
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .ant-collapse-header {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-collapse-content {
+  background: transparent !important;
   border-color: var(--border-color) !important;
   color: var(--text-primary) !important;
 }
 
-body.dark-theme .ant-input::placeholder {
-  color: var(--text-tertiary) !important;
-}
-
-body.dark-theme .ant-input:hover,
-body.dark-theme .ant-input:focus {
-  border-color: var(--accent-color) !important;
-  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
-}
-
-body.dark-theme .ant-input-affix-wrapper {
+body.dark-theme .ant-picker {
   background-color: var(--bg-hover) !important;
   border-color: var(--border-color) !important;
 }
 
-body.dark-theme .ant-input-affix-wrapper:hover,
-body.dark-theme .ant-input-affix-wrapper:focus-within {
+body.dark-theme .ant-picker-input > input {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-picker:hover {
   border-color: var(--accent-color) !important;
 }
 
-body.dark-theme .ant-tooltip {
-  color: var(--text-primary);
+body.dark-theme .ant-picker-panel-container {
+  background: var(--bg-primary) !important;
 }
 
-body.dark-theme .ant-tooltip-inner {
-  background-color: var(--bg-primary) !important;
+body.dark-theme .ant-picker-panel {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .ant-picker-header {
+  color: var(--text-primary) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .ant-picker-content th {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .ant-picker-cell {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-picker-cell-in-view {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-range-start):not(.ant-picker-cell-range-end) .ant-picker-cell-inner {
+  background: var(--bg-hover) !important;
+}
+
+body.dark-theme .ant-picker-cell-selected .ant-picker-cell-inner {
+  background: var(--accent-color) !important;
+}
+
+body.dark-theme .ant-picker-today-btn {
+  color: var(--accent-color) !important;
+}
+
+body.dark-theme .ant-picker-header-view button {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-picker-header-view button:hover {
+  color: var(--accent-color) !important;
+}
+
+body.dark-theme .ant-dropdown {
+  background: var(--bg-primary) !important;
+}
+
+body.dark-theme .ant-dropdown-menu {
+  background: var(--bg-primary) !important;
   border: 1px solid var(--border-color) !important;
+}
+
+body.dark-theme .ant-dropdown-menu-item {
   color: var(--text-primary) !important;
 }
 
-body.dark-theme .ant-tooltip-arrow-content {
-  background-color: var(--bg-primary) !important;
+body.dark-theme .ant-dropdown-menu-item:hover {
+  background: var(--bg-hover) !important;
+}
+
+body.dark-theme .ant-dropdown-menu-item-divider {
+  background: var(--border-color) !important;
+}
+
+body.dark-theme .ant-modal {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-modal-content {
+  background: var(--bg-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+body.dark-theme .ant-modal-header {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .ant-modal-title {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-modal-body {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-modal-footer {
   border-color: var(--border-color) !important;
 }
 
