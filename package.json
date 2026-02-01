@@ -1,7 +1,7 @@
 {
-  "name": "git-repository-viewer",
+  "name": "gitloom",
   "version": "1.0.0",
-  "description": "Desktop application for viewing and managing Git repositories",
+  "description": "GitLoom - A powerful desktop application for weaving through Git history and managing repositories",
   "main": "dist/main/main.js",
   "scripts": {
     "dev": "concurrently \"npm run dev:main\" \"npm run dev:renderer\"",
@@ -15,9 +15,11 @@
   },
   "keywords": [
     "git",
+    "gitloom",
     "repository",
-    "viewer",
-    "electron"
+    "version-control",
+    "electron",
+    "desktop"
   ],
   "author": "",
   "license": "MIT",

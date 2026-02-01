@@ -26,7 +26,7 @@ git --version   # должно показать версию git
 
 ### Шаг 2: Установка зависимостей
 ```powershell
-cd d:\github_my\simple-git
+cd d:\github_my\gitloom
 npm install
 ```
 ⏱️ Займет около 2 минут
@@ -143,7 +143,7 @@ rm -rf dist          # Удалить сборку
 ## Структура проекта (для любопытных)
 
 ```
-simple-git/
+gitloom/
 ├── src/
 │   ├── main/           # Backend (Node.js + Git)
 │   └── renderer/       # Frontend (React UI)

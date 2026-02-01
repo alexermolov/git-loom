@@ -158,30 +158,40 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
   const stagedSelected = stagedFiles.filter(f => selectedFiles.has(f.path));
 
   return (
-    <div style={{ padding: '16px', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ marginBottom: '16px' }}>
-        <h3>Changes</h3>
-        <Button onClick={loadStatus} loading={loading} style={{ marginRight: '8px' }}>
+    <div style={{ 
+      padding: '12px', 
+      height: '100%', 
+      display: 'flex', 
+      flexDirection: 'column',
+      backgroundColor: '#1e1e1e',
+      color: '#d4d4d4'
+    }}>
+      <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ margin: 0, color: '#d4d4d4', fontSize: '16px' }}>Changes</h3>
+        <Button onClick={loadStatus} loading={loading} size="small">
           Refresh
         </Button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', marginBottom: '16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', marginBottom: '12px' }}>
         {/* Staged Files */}
-        <div style={{ marginBottom: '16px' }}>
+        <div style={{ marginBottom: '12px' }}>
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
-            marginBottom: '8px' 
+            marginBottom: '8px',
+            padding: '4px 8px',
+            backgroundColor: '#252526',
+            borderRadius: '4px'
           }}>
-            <Space>
+            <Space size="small">
               <Checkbox
                 checked={stagedFiles.length > 0 && stagedSelected.length === stagedFiles.length}
                 indeterminate={stagedSelected.length > 0 && stagedSelected.length < stagedFiles.length}
                 onChange={(e) => handleSelectAll(true, e.target.checked)}
               />
-              <strong>Staged Changes ({stagedFiles.length})</strong>
+              <strong style={{ color: '#d4d4d4', fontSize: '13px' }}>Staged Changes ({stagedFiles.length})</strong>
             </Space>
             {stagedSelected.length > 0 && (
               <Button
@@ -196,10 +206,17 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
           <List
             size="small"
             bordered
+            style={{ backgroundColor: '#2d2d30', borderColor: '#3e3e42' }}
             dataSource={stagedFiles}
             renderItem={(file) => (
               <List.Item
-                style={{ padding: '8px 12px', cursor: onFileClick ? 'pointer' : 'default' }}
+                style={{ 
+                  padding: '6px 10px', 
+                  cursor: onFileClick ? 'pointer' : 'default',
+                  backgroundColor: '#2d2d30',
+                  borderColor: '#3e3e42',
+                  color: '#d4d4d4'
+                }}
                 onClick={() => onFileClick && onFileClick(file)}
                 actions={[
                   <Button
@@ -214,7 +231,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                   </Button>
                 ]}
               >
-                <Space>
+                <Space size="small">
                   <Checkbox
                     checked={selectedFiles.has(file.path)}
                     onChange={(e) => {
@@ -223,10 +240,10 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                     }}
                   />
                   {getStatusIcon(file.status)}
-                  <span>{file.path}</span>
+                  <span style={{ color: '#d4d4d4', fontSize: '13px' }}>{file.path}</span>
                   {getStatusTag(file.status)}
                   {file.oldPath && (
-                    <span style={{ fontSize: '12px', color: '#888' }}>
+                    <span style={{ fontSize: '11px', color: '#858585' }}>
                       (from {file.oldPath})
                     </span>
                   )}
@@ -237,7 +254,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
           />
         </div>
 
-        <Divider />
+        <Divider style={{ margin: '12px 0', borderColor: '#3e3e42' }} />
 
         {/* Unstaged Files */}
         <div>
@@ -245,15 +262,18 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
             display: 'flex', 
             justifyContent: 'space-between', 
             alignItems: 'center',
-            marginBottom: '8px' 
+            marginBottom: '8px',
+            padding: '4px 8px',
+            backgroundColor: '#252526',
+            borderRadius: '4px'
           }}>
-            <Space>
+            <Space size="small">
               <Checkbox
                 checked={unstagedFiles.length > 0 && unstagedSelected.length === unstagedFiles.length}
                 indeterminate={unstagedSelected.length > 0 && unstagedSelected.length < unstagedFiles.length}
                 onChange={(e) => handleSelectAll(false, e.target.checked)}
               />
-              <strong>Changes ({unstagedFiles.length})</strong>
+              <strong style={{ color: '#d4d4d4', fontSize: '13px' }}>Changes ({unstagedFiles.length})</strong>
             </Space>
             {unstagedSelected.length > 0 && (
               <Button
@@ -268,10 +288,17 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
           <List
             size="small"
             bordered
+            style={{ backgroundColor: '#2d2d30', borderColor: '#3e3e42' }}
             dataSource={unstagedFiles}
             renderItem={(file) => (
               <List.Item
-                style={{ padding: '8px 12px', cursor: onFileClick ? 'pointer' : 'default' }}
+                style={{ 
+                  padding: '6px 10px', 
+                  cursor: onFileClick ? 'pointer' : 'default',
+                  backgroundColor: '#2d2d30',
+                  borderColor: '#3e3e42',
+                  color: '#d4d4d4'
+                }}
                 onClick={() => onFileClick && onFileClick(file)}
                 actions={[
                   <Button
@@ -286,7 +313,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                   </Button>
                 ]}
               >
-                <Space>
+                <Space size="small">
                   <Checkbox
                     checked={selectedFiles.has(file.path)}
                     onChange={(e) => {
@@ -295,7 +322,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                     }}
                   />
                   {getStatusIcon(file.status)}
-                  <span>{file.path}</span>
+                  <span style={{ color: '#d4d4d4', fontSize: '13px' }}>{file.path}</span>
                   {getStatusTag(file.status)}
                 </Space>
               </List.Item>
@@ -306,19 +333,31 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
       </div>
 
       {/* Commit Section */}
-      <div style={{ borderTop: '1px solid #d9d9d9', paddingTop: '16px' }}>
-        <TextArea
+      <div style={{ 
+        borderTop: '1px solid #3e3e42', 
+        paddingTop: '12px',
+        backgroundColor: '#252526',
+        padding: '12px',
+        borderRadius: '4px'
+      }}>
+        <Input
           placeholder="Commit message..."
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
-          rows={3}
-          style={{ marginBottom: '8px' }}
+          style={{ 
+            marginBottom: '8px',
+            backgroundColor: '#1e1e1e',
+            borderColor: '#3e3e42',
+            color: '#d4d4d4'
+          }}
+          onPressEnter={handleCommit}
         />
         <Button
           type="primary"
           icon={<CheckOutlined />}
           onClick={handleCommit}
           disabled={stagedFiles.length === 0 || !commitMessage.trim()}
+          size="small"
           block
         >
           Commit ({stagedFiles.length} file{stagedFiles.length !== 1 ? 's' : ''})

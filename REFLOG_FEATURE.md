@@ -1,7 +1,7 @@
 # Git Reflog Feature Documentation
 
 ## Overview
-Added a comprehensive Git Reflog viewer to the Simple Git application. The reflog (reference log) shows the history of HEAD and branch references, allowing you to track all changes and recover from mistakes.
+Added a comprehensive Git Reflog viewer to GitLoom. The reflog (reference log) shows the history of HEAD and branch references, allowing you to track all changes and recover from mistakes.
 
 ## Features
 

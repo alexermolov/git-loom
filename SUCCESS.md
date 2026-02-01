@@ -33,7 +33,7 @@
 ## 📂 Структура проекта
 
 ```
-simple-git/
+gitloom/
 ├── src/
 │   ├── main/                    # Backend (Node.js + Electron)
 │   │   ├── main.ts             # Главный процесс Electron
@@ -66,7 +66,7 @@ simple-git/
 ### Вариант 1: Production запуск (рекомендуется)
 
 ```powershell
-cd d:\github_my\simple-git
+cd d:\github_my\gitloom
 
 # 1. Установить зависимости (если еще не установлены)
 npm install
