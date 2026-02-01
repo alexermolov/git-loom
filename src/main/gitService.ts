@@ -83,6 +83,16 @@ export interface FileStatus {
   oldPath?: string;
 }
 
+export interface ReflogEntry {
+  selector: string;
+  hash: string;
+  refName: string;
+  action: string;
+  message: string;
+  date: string;
+  author: string;
+}
+
 export async function getCommitDetails(repoPath: string, branch?: string, maxCount: number = 200): Promise<CommitDetail[]> {
   const git: SimpleGit = simpleGit(repoPath);
 
@@ -226,6 +236,77 @@ export async function pushRepository(repoPath: string): Promise<void> {
   }
 
   await git.push(['-u', 'origin', currentBranch]);
+}
+
+export async function checkoutBranch(repoPath: string, branchName: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  // Check if there are uncommitted changes
+  const status = await git.status();
+  if (status.files.length > 0) {
+    throw new Error('Cannot checkout: you have uncommitted changes. Please commit or stash them first.');
+  }
+
+  // Remove 'remotes/' prefix if present
+  let targetBranch = branchName;
+  if (branchName.startsWith('remotes/')) {
+    targetBranch = branchName.replace('remotes/', '');
+  }
+
+  // For remote branches like origin/branch-name, create a local tracking branch
+  if (targetBranch.includes('/')) {
+    const parts = targetBranch.split('/');
+    const localBranchName = parts[parts.length - 1];
+    
+    // Check if local branch already exists
+    const branches = await git.branch();
+    if (branches.all.includes(localBranchName)) {
+      // Local branch exists, just checkout
+      await git.checkout(localBranchName);
+    } else {
+      // Create new local branch tracking the remote
+      await git.checkout(['-b', localBranchName, '--track', branchName.startsWith('remotes/') ? branchName.substring(8) : branchName]);
+    }
+  } else {
+    // Local branch, just checkout
+    await git.checkout(targetBranch);
+  }
+}
+
+export async function mergeBranch(repoPath: string, branchName: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  // Check if there are uncommitted changes
+  const status = await git.status();
+  if (status.files.length > 0) {
+    throw new Error('Cannot merge: you have uncommitted changes. Please commit or stash them first.');
+  }
+
+  const branchSummary = await git.branch();
+  const currentBranch = branchSummary.current;
+
+  if (!currentBranch) {
+    throw new Error('Cannot merge: no current branch');
+  }
+
+  if (branchName === currentBranch) {
+    throw new Error('Cannot merge: branch is already the current branch');
+  }
+
+  // Remove 'remotes/' prefix if present for merge command
+  let targetBranch = branchName;
+  if (branchName.startsWith('remotes/')) {
+    targetBranch = branchName.replace('remotes/', '');
+  }
+
+  try {
+    await git.merge([targetBranch]);
+  } catch (error: any) {
+    if (error.message && error.message.includes('CONFLICT')) {
+      throw new Error('Merge conflict detected. Please resolve conflicts manually.');
+    }
+    throw error;
+  }
 }
 
 // Scan folder for all git repositories
@@ -708,3 +789,82 @@ export async function getWorkingFileDiff(repoPath: string, filePath: string, sta
   }
 }
 
+// Get reflog entries
+export async function getReflog(repoPath: string, ref: string = 'HEAD', maxCount: number = 100): Promise<ReflogEntry[]> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    // Format: %gD|%H|%gn|%gs|%ci|%cn
+    // %gD - reflog selector (HEAD@{0})
+    // %H - commit hash
+    // %gn - reflog ref name
+    // %gs - reflog subject (action message)
+    // %ci - committer date ISO
+    // %cn - committer name
+    const args = [
+      'reflog',
+      ref,
+      `--max-count=${maxCount}`,
+      '--format=%gD|%H|%gn|%gs|%ci|%cn',
+      '--date=iso',
+    ];
+
+    const output = await git.raw(args);
+    const lines = output
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+
+    const entries: ReflogEntry[] = [];
+
+    for (const line of lines) {
+      const parts = line.split('|');
+      if (parts.length < 6) continue;
+
+      const [selector, hash, refName, subject, date, author] = parts;
+      
+      // Parse action from subject (e.g., "commit: message" or "checkout: moving from X to Y")
+      const actionMatch = subject.match(/^(\w+):/);
+      const action = actionMatch ? actionMatch[1] : 'unknown';
+      
+      entries.push({
+        selector,
+        hash,
+        refName: refName || ref,
+        action,
+        message: subject,
+        date,
+        author,
+      });
+    }
+
+    return entries;
+  } catch (error) {
+    console.error('Error getting reflog:', error);
+    throw error;
+  }
+}
+
+// Reset to a specific commit
+export async function resetToCommit(repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard' = 'mixed'): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    await git.reset([`--${mode}`, commitHash]);
+  } catch (error) {
+    console.error('Error resetting to commit:', error);
+    throw error;
+  }
+}
+
+// Cherry-pick a commit
+export async function cherryPickCommit(repoPath: string, commitHash: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    await git.raw(['cherry-pick', commitHash]);
+  } catch (error) {
+    console.error('Error cherry-picking commit:', error);
+    throw error;
+  }
+}

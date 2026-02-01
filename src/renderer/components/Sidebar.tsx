@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Button, Spin, Badge, Tooltip, Input, Tag } from 'antd';
-import { FolderOpenOutlined, BranchesOutlined, ArrowUpOutlined, ArrowDownOutlined, ReloadOutlined, SearchOutlined, FileTextOutlined, PlusOutlined, MinusOutlined, EditOutlined } from '@ant-design/icons';
+import { FolderOpenOutlined, BranchesOutlined, ArrowUpOutlined, ArrowDownOutlined, ReloadOutlined, SearchOutlined, FileTextOutlined, PlusOutlined, MinusOutlined, EditOutlined, MenuFoldOutlined, MenuUnfoldOutlined, BulbOutlined, BulbFilled } from '@ant-design/icons';
 import { RepositoryInfo } from '../types';
 
 interface SidebarProps {
@@ -14,6 +14,8 @@ interface SidebarProps {
   repoOps?: Record<string, 'pull' | 'push' | undefined>;
   scanning: boolean;
   refreshing?: boolean;
+  isDarkTheme?: boolean;
+  onToggleTheme?: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -27,8 +29,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   repoOps = {},
   scanning,
   refreshing = false,
+  isDarkTheme = false,
+  onToggleTheme,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [collapsed, setCollapsed] = useState(false);
 
   // Filter repositories based on search query
   const filteredRepositories = repositories.filter(repo => 
@@ -80,43 +85,67 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className="sidebar">
+    <div className="sidebar" style={{ width: collapsed ? '48px' : '300px', transition: 'width 0.3s' }}>
       <div className="sidebar-header">
-        <Button
-          type="primary"
-          icon={<FolderOpenOutlined />}
-          onClick={onOpenFolder}
-          loading={scanning}
-          block
-          style={{ marginBottom: 8 }}
-        >
-          {scanning ? 'Scanning...' : 'Open Folder'}
-        </Button>
-        {repositories.length > 0 && (
-          <>
-            <Tooltip title="Refresh all repositories">
-              <Button
-                icon={<ReloadOutlined spin={refreshing} />}
-                onClick={onRefresh}
-                disabled={scanning || refreshing}
-                block
-                style={{ marginBottom: 8 }}
-              >
-                {refreshing ? 'Refreshing...' : 'Refresh'}
-              </Button>
-            </Tooltip>
-            <Input
-              placeholder="Search repositories..."
-              prefix={<SearchOutlined />}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              allowClear
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <Tooltip title={collapsed ? 'Expand panel' : 'Collapse panel'}>
+            <Button
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              size="small"
             />
+          </Tooltip>
+          {!collapsed && onToggleTheme && (
+            <Tooltip title={`Switch to ${isDarkTheme ? 'light' : 'dark'} theme`}>
+              <Button
+                icon={isDarkTheme ? <BulbFilled /> : <BulbOutlined />}
+                onClick={onToggleTheme}
+                size="small"
+                style={{ color: isDarkTheme ? '#ffd700' : '#666' }}
+              />
+            </Tooltip>
+          )}
+        </div>
+        {!collapsed && (
+          <>
+            <Button
+              type="primary"
+              icon={<FolderOpenOutlined />}
+              onClick={onOpenFolder}
+              loading={scanning}
+              block
+              style={{ marginBottom: 8 }}
+            >
+              {scanning ? 'Scanning...' : 'Open Folder'}
+            </Button>
+            {repositories.length > 0 && (
+              <>
+                <Tooltip title="Refresh all repositories">
+                  <Button
+                    icon={<ReloadOutlined spin={refreshing} />}
+                    onClick={onRefresh}
+                    disabled={scanning || refreshing}
+                    block
+                    style={{ marginBottom: 8 }}
+                  >
+                    {refreshing ? 'Refreshing...' : 'Refresh'}
+                  </Button>
+                </Tooltip>
+                <Input
+                  placeholder="Search repositories..."
+                  prefix={<SearchOutlined />}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  allowClear
+                />
+              </>
+            )}
           </>
         )}
       </div>
 
-      <div className="sidebar-content">
+      {!collapsed && (
+        <div className="sidebar-content">
         {scanning ? (
           <div style={{ padding: 20, textAlign: 'center' }}>
             <Spin tip="Scanning for repositories..." />
@@ -236,7 +265,8 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           ))
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

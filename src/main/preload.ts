@@ -18,5 +18,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   unstageFiles: (repoPath: string, filePaths: string[]) => ipcRenderer.invoke('git:unstageFiles', repoPath, filePaths),
   createCommit: (repoPath: string, message: string) => ipcRenderer.invoke('git:createCommit', repoPath, message),
   getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => ipcRenderer.invoke('git:getWorkingFileDiff', repoPath, filePath, staged),
+  checkoutBranch: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:checkoutBranch', repoPath, branchName),
+  mergeBranch: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:mergeBranch', repoPath, branchName),
+  getReflog: (repoPath: string, ref?: string, maxCount?: number) => ipcRenderer.invoke('git:getReflog', repoPath, ref, maxCount),
+  resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => ipcRenderer.invoke('git:resetToCommit', repoPath, commitHash, mode),
+  cherryPickCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:cherryPickCommit', repoPath, commitHash),
 });
 

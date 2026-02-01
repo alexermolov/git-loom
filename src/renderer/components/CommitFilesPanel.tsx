@@ -6,8 +6,8 @@ import { CommitFile } from '../types';
 interface CommitFilesPanelProps {
   files: CommitFile[];
   commitHash: string;
-  onBack: () => void;
-  onFileClick: (file: CommitFile) => void;
+  onBack?: () => void;
+  onFileClick?: (file: CommitFile) => void;
 }
 
 const CommitFilesPanel: React.FC<CommitFilesPanelProps> = ({ files, commitHash, onBack, onFileClick }) => {
@@ -44,11 +44,6 @@ const CommitFilesPanel: React.FC<CommitFilesPanelProps> = ({ files, commitHash, 
   if (!files || files.length === 0) {
     return (
       <div className="commit-files-panel">
-        <div style={{ marginBottom: 16 }}>
-          <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
-            Back to Branches
-          </Button>
-        </div>
         <Empty description="No files changed in this commit" />
       </div>
     );
@@ -56,23 +51,7 @@ const CommitFilesPanel: React.FC<CommitFilesPanelProps> = ({ files, commitHash, 
 
   return (
     <div className="commit-files-panel">
-      <div style={{ 
-        marginBottom: 16, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        paddingBottom: 12,
-        borderBottom: '1px solid var(--border-light)'
-      }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
-          Back to Branches
-        </Button>
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
-          Commit: {commitHash.substring(0, 8)}
-        </div>
-      </div>
-
-      <div style={{ fontWeight: 600, fontSize: 16, marginBottom: 16, color: 'var(--text-primary)' }}>
+      <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 12, color: 'var(--text-primary)', padding: '0 16px' }}>
         Changed Files ({files.length})
       </div>
 
@@ -81,7 +60,7 @@ const CommitFilesPanel: React.FC<CommitFilesPanelProps> = ({ files, commitHash, 
         renderItem={file => (
           <List.Item 
             className="commit-file-item"
-            onClick={() => onFileClick(file)}
+            onClick={() => onFileClick && onFileClick(file)}
             style={{ 
               cursor: 'pointer',
               padding: '12px 16px',

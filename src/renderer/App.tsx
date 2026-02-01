@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Button, message, Spin, Switch } from 'antd';
 import { FolderOpenOutlined, BulbOutlined, BulbFilled } from '@ant-design/icons';
 import Sidebar from './components/Sidebar';
-import CommitsPanel from './components/CommitsPanel';
-import BranchTreePanel from './components/BranchTreePanel';
-import CommitFilesPanel from './components/CommitFilesPanel';
+import IconSidebar, { ViewType } from './components/IconSidebar';
+import MiddlePanel from './components/MiddlePanel';
 import FileDiffPanel from './components/FileDiffPanel';
-import ChangesPanel from './components/ChangesPanel';
-import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus } from './types';
+import GitGraphView from './components/GitGraphView';
+import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry } from './types';
 
 const App: React.FC = () => {
   const [repositories, setRepositories] = useState<Map<string, RepositoryInfo>>(new Map());
@@ -21,12 +20,14 @@ const App: React.FC = () => {
   const [repoOps, setRepoOps] = useState<Record<string, 'pull' | 'push' | undefined>>({});
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   
-  // Right panel state management
-  const [rightPanelView, setRightPanelView] = useState<'branches' | 'commitFiles' | 'fileDiff' | 'changes'>('branches');
+  // New three-panel state management
+  const [activeView, setActiveView] = useState<ViewType>('graph');
+  const [mainPanelView, setMainPanelView] = useState<'graph' | 'diff'>('graph');
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null);
   const [commitFiles, setCommitFiles] = useState<CommitFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<CommitFile | null>(null);
   const [fileDiff, setFileDiff] = useState<FileDiff | null>(null);
+  const [showingCommitFiles, setShowingCommitFiles] = useState(false);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -198,11 +199,13 @@ const App: React.FC = () => {
   const handleSelectRepository = async (repoPath: string) => {
     setSelectedRepo(repoPath);
     setLoading(true);
-    setRightPanelView('branches');
+    setActiveView('graph');
+    setMainPanelView('graph');
     setSelectedCommit(null);
     setCommitFiles([]);
     setSelectedFile(null);
     setFileDiff(null);
+    setShowingCommitFiles(false);
 
     try {
       const repo = repositories.get(repoPath);
@@ -300,7 +303,7 @@ const App: React.FC = () => {
     try {
       const files = await window.electronAPI.getCommitFiles(selectedRepo, commit.hash);
       setCommitFiles(files);
-      setRightPanelView('commitFiles');
+      setShowingCommitFiles(true);
     } catch (error) {
       console.error('Error loading commit files:', error);
       message.error('Failed to load commit files');
@@ -318,7 +321,7 @@ const App: React.FC = () => {
     try {
       const diff = await window.electronAPI.getFileDiff(selectedRepo, selectedCommit.hash, file.path);
       setFileDiff(diff);
-      setRightPanelView('fileDiff');
+      setMainPanelView('diff');
     } catch (error) {
       console.error('Error loading file diff:', error);
       message.error('Failed to load file diff');
@@ -327,22 +330,56 @@ const App: React.FC = () => {
     }
   };
 
-  const handleBackToBranches = () => {
-    setRightPanelView('branches');
-    setSelectedCommit(null);
+  const handleBackToCommits = () => {
+    setShowingCommitFiles(false);
     setCommitFiles([]);
-    setSelectedFile(null);
-    setFileDiff(null);
+    setSelectedCommit(null);
   };
 
-  const handleBackToFiles = () => {
-    setRightPanelView('commitFiles');
-    setSelectedFile(null);
-    setFileDiff(null);
+  const handleReflogEntryClick = async (entry: ReflogEntry) => {
+    if (!selectedRepo) return;
+    
+    setLoading(true);
+    
+    try {
+      // Load commit details for the reflog entry
+      const files = await window.electronAPI.getCommitFiles(selectedRepo, entry.hash);
+      setCommitFiles(files);
+      
+      // Create a CommitInfo object from ReflogEntry for consistency
+      const commitInfo: CommitInfo = {
+        hash: entry.hash,
+        date: entry.date,
+        message: entry.message,
+        author: entry.author,
+        refs: entry.refName,
+      };
+      
+      setSelectedCommit(commitInfo);
+      setShowingCommitFiles(true);
+    } catch (error) {
+      console.error('Error loading reflog entry details:', error);
+      message.error('Failed to load reflog entry details');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleShowChanges = () => {
-    setRightPanelView('changes');
+  const handleViewChange = (view: ViewType) => {
+    setActiveView(view);
+    
+    // Reset commit files view when switching views
+    if (view !== 'commits') {
+      setShowingCommitFiles(false);
+      setCommitFiles([]);
+      setSelectedCommit(null);
+    }
+    
+    // Show graph when graph view is selected
+    if (view === 'graph') {
+      setMainPanelView('graph');
+      setFileDiff(null);
+    }
   };
 
   const handleChangesRefresh = async () => {
@@ -365,7 +402,7 @@ const App: React.FC = () => {
     try {
       const diff = await window.electronAPI.getWorkingFileDiff(selectedRepo, file.path, file.staged);
       setFileDiff(diff);
-      setRightPanelView('fileDiff');
+      setMainPanelView('diff');
     } catch (error) {
       console.error('Error loading file diff:', error);
       message.error('Failed to load file diff');
@@ -374,19 +411,60 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCheckoutBranch = async (branchName: string) => {
+    if (!selectedRepo) return;
+    
+    setLoading(true);
+    
+    try {
+      const info = await window.electronAPI.checkoutBranch(selectedRepo, branchName);
+      updateRepoInfo(selectedRepo, info);
+      await refreshSelectedRepoPanels(selectedRepo, info);
+      message.success(`Checked out branch: ${branchName}`);
+    } catch (error: any) {
+      console.error('Error checking out branch:', error);
+      message.error(error?.message ? `Checkout failed: ${error.message}` : 'Failed to checkout branch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMergeBranch = async (branchName: string) => {
+    if (!selectedRepo) return;
+    
+    setLoading(true);
+    
+    try {
+      const info = await window.electronAPI.mergeBranch(selectedRepo, branchName);
+      updateRepoInfo(selectedRepo, info);
+      await refreshSelectedRepoPanels(selectedRepo, info);
+      message.success(`Merged branch: ${branchName}`);
+    } catch (error: any) {
+      console.error('Error merging branch:', error);
+      message.error(error?.message ? `Merge failed: ${error.message}` : 'Failed to merge branch');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderMainPanel = () => {
+    if (mainPanelView === 'diff' && fileDiff) {
+      return <FileDiffPanel diff={fileDiff} onBack={() => setMainPanelView('graph')} />;
+    }
+    
+    if (selectedRepo && branches.length > 0) {
+      return <GitGraphView repoPath={selectedRepo} branches={branches} />;
+    }
+    
+    return (
+      <div className="empty-state">
+        <h3>Select a repository to view the Git Graph</h3>
+      </div>
+    );
+  };
+
   return (
     <div className="app-container">
-      <Button 
-        className="theme-toggle"
-        icon={isDarkTheme ? <BulbFilled /> : <BulbOutlined />}
-        onClick={toggleTheme}
-        type="text"
-        size="large"
-        style={{ color: isDarkTheme ? '#ffd700' : '#666', left: 16, right: 'auto', top: 16, position: 'fixed' }}
-      >
-        {isDarkTheme ? 'Light' : 'Dark'}
-      </Button>
-      
       <Sidebar
         repositories={Array.from(repositories.values())}
         selectedRepo={selectedRepo}
@@ -398,10 +476,12 @@ const App: React.FC = () => {
         repoOps={repoOps}
         scanning={scanningRepos}
         refreshing={refreshing}
+        isDarkTheme={isDarkTheme}
+        onToggleTheme={toggleTheme}
       />
       
-      <div className="main-content">
-        {!selectedRepo ? (
+      {!selectedRepo ? (
+        <div className="main-content">
           <div className="empty-state">
             <FolderOpenOutlined style={{ fontSize: 64, marginBottom: 16 }} />
             <h2>No Repository Selected</h2>
@@ -415,57 +495,44 @@ const App: React.FC = () => {
               Open Folder
             </Button>
           </div>
-        ) : loading ? (
+        </div>
+      ) : loading ? (
+        <div className="main-content">
           <div className="loading-state">
             <Spin size="large" tip="Loading repository data..." />
           </div>
-        ) : (
-          <div className="content-area">
-            <div className="left-panel">
-              <div style={{ marginBottom: '8px' }}>
-                <Button 
-                  type={rightPanelView === 'changes' ? 'primary' : 'default'}
-                  onClick={handleShowChanges}
-                  style={{ marginRight: '8px' }}
-                >
-                  Changes
-                </Button>
-                <Button 
-                  type={rightPanelView === 'branches' ? 'primary' : 'default'}
-                  onClick={handleBackToBranches}
-                >
-                  Branches
-                </Button>
-              </div>
-              <CommitsPanel commits={commits} onCommitClick={handleCommitClick} />
-            </div>
-            {rightPanelView === 'branches' && (
-              <BranchTreePanel repoPath={selectedRepo} branches={branches} currentBranch={currentBranch} />
-            )}
-            {rightPanelView === 'changes' && (
-              <ChangesPanel 
-                repoPath={selectedRepo} 
-                onRefresh={handleChangesRefresh}
-                onFileClick={handleChangedFileClick}
-              />
-            )}
-            {rightPanelView === 'commitFiles' && (
-              <CommitFilesPanel 
-                files={commitFiles} 
-                commitHash={selectedCommit?.hash || ''}
-                onBack={handleBackToBranches}
-                onFileClick={handleFileClick}
-              />
-            )}
-            {rightPanelView === 'fileDiff' && (
-              <FileDiffPanel 
-                diff={fileDiff}
-                onBack={selectedCommit ? handleBackToFiles : () => setRightPanelView('changes')}
-              />
-            )}
+        </div>
+      ) : (
+        <>
+          <IconSidebar 
+            activeView={activeView} 
+            onViewChange={handleViewChange}
+          />
+          
+          <MiddlePanel
+            view={activeView}
+            repoPath={selectedRepo}
+            commits={commits}
+            onCommitClick={handleCommitClick}
+            onChangesRefresh={handleChangesRefresh}
+            onChangedFileClick={handleChangedFileClick}
+            branches={branches}
+            currentBranch={currentBranch}
+            onCheckoutBranch={handleCheckoutBranch}
+            onMergeBranch={handleMergeBranch}
+            commitFiles={commitFiles}
+            selectedCommitHash={selectedCommit?.hash}
+            onFileClick={handleFileClick}
+            onReflogEntryClick={handleReflogEntryClick}
+            showingCommitFiles={showingCommitFiles}
+            onBackToCommits={handleBackToCommits}
+          />
+          
+          <div className="main-panel">
+            {renderMainPanel()}
           </div>
-        )}
-      </div>
+        </>
+      )}
     </div>
   );
 };

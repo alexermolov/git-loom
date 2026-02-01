@@ -1,18 +1,87 @@
-import React, { useState } from 'react';
-import { Empty, Tree, Segmented } from 'antd';
-import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, UnorderedListOutlined, PartitionOutlined } from '@ant-design/icons';
+import React from 'react';
+import { Empty, Tree, Dropdown, Modal } from 'antd';
+import type { MenuProps } from 'antd';
+import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, MergeCellsOutlined, SwapOutlined } from '@ant-design/icons';
 import { BranchInfo } from '../types';
 import type { DataNode } from 'antd/es/tree';
-import GitGraphView from './GitGraphView';
 
 interface BranchTreePanelProps {
   repoPath: string;
   branches: BranchInfo[];
   currentBranch: string;
+  onCheckoutBranch?: (branchName: string) => void;
+  onMergeBranch?: (branchName: string) => void;
 }
 
-const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, currentBranch }) => {
-  const [viewMode, setViewMode] = useState<'list' | 'graph'>('list');
+const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, currentBranch, onCheckoutBranch, onMergeBranch }) => {
+  const handleBranchAction = (action: 'checkout' | 'merge', branchName: string, displayName: string) => {
+    const isCurrent = branchName === currentBranch;
+    
+    if (action === 'checkout') {
+      if (isCurrent) {
+        Modal.info({
+          title: 'Branch Already Active',
+          content: `You are already on branch "${displayName}".`,
+        });
+        return;
+      }
+      
+      Modal.confirm({
+        title: 'Checkout Branch',
+        content: `Switch to branch "${displayName}"?`,
+        okText: 'Checkout',
+        cancelText: 'Cancel',
+        onOk: () => {
+          onCheckoutBranch?.(branchName);
+        },
+      });
+    } else if (action === 'merge') {
+      if (isCurrent) {
+        Modal.info({
+          title: 'Cannot Merge',
+          content: `Cannot merge branch "${displayName}" into itself.`,
+        });
+        return;
+      }
+      
+      Modal.confirm({
+        title: 'Merge Branch',
+        content: `Merge branch "${displayName}" into current branch "${currentBranch}"?`,
+        okText: 'Merge',
+        cancelText: 'Cancel',
+        onOk: () => {
+          onMergeBranch?.(branchName);
+        },
+      });
+    }
+  };
+
+  const getContextMenu = (branch: BranchInfo): MenuProps => {
+    const isCurrent = branch.name === currentBranch;
+    const isRemote = branch.name.startsWith('remotes/');
+    const displayName = branch.name.startsWith('remotes/') 
+      ? branch.name.replace('remotes/', '') 
+      : branch.name;
+    
+    return {
+      items: [
+        {
+          key: 'checkout',
+          label: isCurrent ? 'Current Branch' : 'Checkout',
+          icon: <SwapOutlined />,
+          disabled: isCurrent,
+          onClick: () => handleBranchAction('checkout', branch.name, displayName),
+        },
+        {
+          key: 'merge',
+          label: 'Merge into Current',
+          icon: <MergeCellsOutlined />,
+          disabled: isCurrent,
+          onClick: () => handleBranchAction('merge', branch.name, displayName),
+        },
+      ],
+    };
+  };
 
   const convertToAntdTree = (branch: BranchInfo): DataNode => {
     const isCurrent = branch.name === currentBranch;
@@ -25,21 +94,23 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
     
     // Create title with status icons
     const title = (
-      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {isCurrent && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
-        <span style={{ 
-          fontWeight: isCurrent ? 600 : 400,
-          color: isCurrent ? '#1890ff' : isRemote ? '#8c8c8c' : 'inherit'
-        }}>
-          {displayName}
-        </span>
-        {branch.lastCommitDate && (
-          <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 4 }}>
-            <ClockCircleOutlined style={{ marginRight: 4 }} />
-            {new Date(branch.lastCommitDate).toLocaleDateString()}
+      <Dropdown menu={getContextMenu(branch)} trigger={['contextMenu']}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'context-menu' }}>
+          {isCurrent && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+          <span style={{ 
+            fontWeight: isCurrent ? 600 : 400,
+            color: isCurrent ? '#1890ff' : isRemote ? '#8c8c8c' : 'inherit'
+          }}>
+            {displayName}
           </span>
-        )}
-      </span>
+          {branch.lastCommitDate && (
+            <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 4 }}>
+              <ClockCircleOutlined style={{ marginRight: 4 }} />
+              {new Date(branch.lastCommitDate).toLocaleDateString()}
+            </span>
+          )}
+        </span>
+      </Dropdown>
     );
 
     return {
@@ -86,14 +157,14 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
   }
 
   return (
-    <div className="branch-tree-panel">
+    <div className="branch-tree-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
       <div style={{ 
         marginBottom: 16, 
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
         background: 'var(--bg-primary)',
-        color: 'var(--text-primary)'
+        color: 'var(--text-primary)',
+        flexShrink: 0
       }}>
         <div style={{ 
           fontWeight: 600, 
@@ -106,18 +177,9 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
           <BranchesOutlined />
           Git Branches
         </div>
-        <Segmented
-          value={viewMode}
-          onChange={(val) => setViewMode(val as 'list' | 'graph')}
-          options={[
-            { label: 'List', value: 'list', icon: <UnorderedListOutlined /> },
-            { label: 'Graph', value: 'graph', icon: <PartitionOutlined /> },
-          ]}
-          style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-        />
       </div>
       
-      {viewMode === 'list' ? (
+      <div style={{ flex: 1, overflow: 'auto' }}>
         <Tree
           showIcon
           defaultExpandAll
@@ -125,9 +187,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
           selectable={false}
           style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
         />
-      ) : (
-        <GitGraphView repoPath={repoPath} branches={branches} />
-      )}
+      </div>
     </div>
   );
 };

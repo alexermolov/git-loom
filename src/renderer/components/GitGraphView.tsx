@@ -172,7 +172,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
           placeholder="Filter by branch"
         />
       </div>
-      <div className="git-graph-container-gitgraph" style={{ overflowY: 'auto', overflowX: 'auto', maxHeight: 'calc(100vh - 250px)', background: 'var(--graph-bg)' }}>
+      <div className="git-graph-container-gitgraph">
         <Gitgraph options={{ template: customTemplate }}>
           {buildGraph}
         </Gitgraph>

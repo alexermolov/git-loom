@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -224,6 +224,61 @@ function setupIpcHandlers() {
       return diff;
     } catch (error) {
       console.error('Error getting working file diff:', error);
+      throw error;
+    }
+  });
+
+  // Checkout branch
+  ipcMain.handle('git:checkoutBranch', async (_event, repoPath: string, branchName: string) => {
+    try {
+      await checkoutBranch(repoPath, branchName);
+      const info = await getRepositoryInfo(repoPath);
+      return info;
+    } catch (error) {
+      console.error('Error checking out branch:', error);
+      throw error;
+    }
+  });
+
+  // Merge branch
+  ipcMain.handle('git:mergeBranch', async (_event, repoPath: string, branchName: string) => {
+    try {
+      await mergeBranch(repoPath, branchName);
+      const info = await getRepositoryInfo(repoPath);
+      return info;
+    } catch (error) {
+      console.error('Error merging branch:', error);
+      throw error;
+    }
+  });
+
+  // Get reflog
+  ipcMain.handle('git:getReflog', async (_event, repoPath: string, ref?: string, maxCount?: number) => {
+    try {
+      const reflog = await getReflog(repoPath, ref, maxCount);
+      return reflog;
+    } catch (error) {
+      console.error('Error getting reflog:', error);
+      throw error;
+    }
+  });
+
+  // Reset to commit
+  ipcMain.handle('git:resetToCommit', async (_event, repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => {
+    try {
+      await resetToCommit(repoPath, commitHash, mode);
+    } catch (error) {
+      console.error('Error resetting to commit:', error);
+      throw error;
+    }
+  });
+
+  // Cherry-pick commit
+  ipcMain.handle('git:cherryPickCommit', async (_event, repoPath: string, commitHash: string) => {
+    try {
+      await cherryPickCommit(repoPath, commitHash);
+    } catch (error) {
+      console.error('Error cherry-picking commit:', error);
       throw error;
     }
   });

@@ -16,6 +16,11 @@ export interface ElectronAPI {
   unstageFiles: (repoPath: string, filePaths: string[]) => Promise<void>;
   createCommit: (repoPath: string, message: string) => Promise<void>;
   getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => Promise<FileDiff>;
+  checkoutBranch: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
+  mergeBranch: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
+  getReflog: (repoPath: string, ref?: string, maxCount?: number) => Promise<ReflogEntry[]>;
+  resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<void>;
+  cherryPickCommit: (repoPath: string, commitHash: string) => Promise<void>;
 }
 
 export interface GitGraphRow {
@@ -86,6 +91,16 @@ export interface FileStatus {
   status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked';
   staged: boolean;
   oldPath?: string;
+}
+
+export interface ReflogEntry {
+  selector: string;
+  hash: string;
+  refName: string;
+  action: string;
+  message: string;
+  date: string;
+  author: string;
 }
 
 declare global {

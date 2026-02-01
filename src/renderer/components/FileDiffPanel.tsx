@@ -76,10 +76,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack }) => {
         marginBottom: 16,
         paddingBottom: 12,
         borderBottom: '1px solid var(--border-light)',
-        position: 'sticky',
-        top: 0,
-        backgroundColor: 'var(--bg-primary)',
-        zIndex: 10,
       }}>
         <Button icon={<ArrowLeftOutlined />} onClick={onBack} style={{ marginBottom: 12 }}>
           Back to Files
