@@ -139,20 +139,19 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
             </div>
             <div className="middle-panel-info">
               <Empty description="File tree view - coming soon" />
-            reflog':
+            </div>
+          </div>
+        );
+
+      case 'reflog':
         return (
           <div className="middle-panel-content">
             <div className="middle-panel-header">
               <div className="middle-panel-title">Reflog</div>
             </div>
-            <ReflogPanel
-              repoPath={repoPath}
-              onEntryClick={onReflogEntryClick}
-            />
-          </div>
-        );
-
-      case '</div>
+            <div className="middle-panel-info">
+              <Empty description="Reflog view is shown in the main panel" />
+            </div>
           </div>
         );
 

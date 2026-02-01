@@ -6,6 +6,7 @@ import IconSidebar, { ViewType } from './components/IconSidebar';
 import MiddlePanel from './components/MiddlePanel';
 import FileDiffPanel from './components/FileDiffPanel';
 import GitGraphView from './components/GitGraphView';
+import ReflogPanel from './components/ReflogPanel';
 import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry } from './types';
 
 const App: React.FC = () => {
@@ -450,6 +451,18 @@ const App: React.FC = () => {
   const renderMainPanel = () => {
     if (mainPanelView === 'diff' && fileDiff) {
       return <FileDiffPanel diff={fileDiff} onBack={() => setMainPanelView('graph')} />;
+    }
+    
+    // Show reflog in main panel when reflog view is active
+    if (activeView === 'reflog' && selectedRepo) {
+      return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <ReflogPanel
+            repoPath={selectedRepo}
+            onEntryClick={handleReflogEntryClick}
+          />
+        </div>
+      );
     }
     
     if (selectedRepo && branches.length > 0) {

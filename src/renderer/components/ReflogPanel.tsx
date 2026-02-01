@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Tree, Button, Dropdown, Space, Tag, Tooltip, Modal, message, Select, Input, DatePicker, Checkbox, Timeline, Collapse, Segmented } from 'antd';
+import { Button, Dropdown, Space, Tag, Tooltip, Modal, message, Select, Input, DatePicker, Checkbox, Timeline, Collapse } from 'antd';
 import {
   ClockCircleOutlined,
   ReloadOutlined,
@@ -16,7 +16,6 @@ import {
   ClearOutlined,
   PullRequestOutlined,
 } from '@ant-design/icons';
-import type { DataNode } from 'antd/es/tree';
 import { ReflogEntry } from '../types';
 import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -27,10 +26,6 @@ const { Option } = Select;
 const { RangePicker } = DatePicker;
 const { Panel } = Collapse;
 
-interface ReflogDataNode extends DataNode {
-  data?: ReflogEntry;
-}
-
 interface ReflogPanelProps {
   repoPath: string;
   onEntryClick?: (entry: ReflogEntry) => void;
@@ -40,7 +35,6 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
   const [reflogEntries, setReflogEntries] = useState<ReflogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRef, setSelectedRef] = useState<string>('HEAD');
-  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const [resetModalVisible, setResetModalVisible] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<ReflogEntry | null>(null);
   const [resetMode, setResetMode] = useState<'soft' | 'mixed' | 'hard'>('mixed');
@@ -49,7 +43,6 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
   const [searchText, setSearchText] = useState('');
   const [selectedActionTypes, setSelectedActionTypes] = useState<string[]>([]);
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
-  const [viewMode, setViewMode] = useState<'tree' | 'timeline'>('tree');
 
   useEffect(() => {
     loadReflog();
@@ -62,11 +55,6 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
     try {
       const entries = await window.electronAPI.getReflog(repoPath, selectedRef, 100);
       setReflogEntries(entries);
-      
-      // Auto expand first level
-      if (entries.length > 0) {
-        setExpandedKeys([entries[0].selector]);
-      }
     } catch (error) {
       console.error('Error loading reflog:', error);
       message.error('Failed to load reflog');
@@ -249,41 +237,6 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
     },
   ];
 
-  const convertToTreeData = (entries: ReflogEntry[]): ReflogDataNode[] => {
-    return entries.map((entry, index) => ({
-      key: entry.selector,
-      title: (
-        <div className="reflog-entry">
-          <div className="reflog-entry-header">
-            <Space size="small">
-              {getActionIcon(entry.action)}
-              <Tag color={getActionColor(entry.action)}>{entry.action.toUpperCase()}</Tag>
-              <span className="reflog-hash">{entry.hash.substring(0, 7)}</span>
-              <span className="reflog-selector">{entry.selector}</span>
-            </Space>
-            <Dropdown menu={{ items: getMenuItems(entry) }} trigger={['click']}>
-              <Button
-                type="text"
-                size="small"
-                icon={<MoreOutlined />}
-                onClick={(e) => e.stopPropagation()}
-              />
-            </Dropdown>
-          </div>
-          <div className="reflog-entry-message">{entry.message}</div>
-          <div className="reflog-entry-footer">
-            <Space size="small">
-              <span className="reflog-author">{entry.author}</span>
-              <span className="reflog-date">{formatDate(entry.date)}</span>
-            </Space>
-          </div>
-        </div>
-      ),
-      isLeaf: true,
-      data: entry,
-    }));
-  };
-
   // Filter entries based on search, action types, and date range
   const filteredEntries = useMemo(() => {
     return reflogEntries.filter(entry => {
@@ -315,44 +268,29 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
     });
   }, [reflogEntries, searchText, selectedActionTypes, dateRange]);
 
-  const treeData = convertToTreeData(filteredEntries);
-
   return (
     <div className="reflog-panel">
       <div className="reflog-panel-header">
         <Space direction="vertical" style={{ width: '100%' }} size="small">
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Space>
-              <Select
-                value={selectedRef}
-                onChange={setSelectedRef}
-                style={{ width: 150 }}
-                size="small"
-              >
-                <Option value="HEAD">HEAD</Option>
-                <Option value="HEAD@{upstream}">Upstream</Option>
-                <Option value="--all">All Refs</Option>
-              </Select>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={loadReflog}
-                loading={loading}
-                size="small"
-              >
-                Refresh
-              </Button>
-            </Space>
-            <Space>
-              <Segmented
-                value={viewMode}
-                onChange={(value) => setViewMode(value as 'tree' | 'timeline')}
-                options={[
-                  { label: 'Tree', value: 'tree', icon: <BranchesOutlined /> },
-                  { label: 'Timeline', value: 'timeline', icon: <ClockCircleOutlined /> },
-                ]}
-                size="small"
-              />
-            </Space>
+          <Space wrap>
+            <Select
+              value={selectedRef}
+              onChange={setSelectedRef}
+              style={{ minWidth: 150 }}
+              size="small"
+            >
+              <Option value="HEAD">HEAD</Option>
+              <Option value="HEAD@{upstream}">Upstream</Option>
+              <Option value="--all">All Refs</Option>
+            </Select>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadReflog}
+              loading={loading}
+              size="small"
+            >
+              Refresh
+            </Button>
           </Space>
 
           <Collapse ghost size="small">
@@ -439,20 +377,6 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
               <Button onClick={clearFilters} size="small">Clear Filters</Button>
             )}
           </div>
-        ) : viewMode === 'tree' ? (
-          <Tree
-            treeData={treeData}
-            expandedKeys={expandedKeys}
-            onExpand={setExpandedKeys}
-            selectable={true}
-            onSelect={(selectedKeys, info) => {
-              const node = info.node as ReflogDataNode;
-              if (node.data && onEntryClick) {
-                onEntryClick(node.data);
-              }
-            }}
-            className="reflog-tree"
-          />
         ) : (
           <Timeline
             mode="left"
@@ -603,6 +527,8 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
           color: var(--text-primary);
           margin: 6px 0;
           line-height: 1.5;
+          word-wrap: break-word;
+          word-break: break-word;
         }
 
         .reflog-entry-footer {
@@ -647,6 +573,9 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
           border-radius: 4px;
           background: var(--bg-primary);
           transition: all 0.2s;
+          width: 100%;
+          max-width: 600px;
+          box-sizing: border-box;
         }
 
         .timeline-entry:hover {
@@ -666,6 +595,8 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
           font-size: 13px;
           color: var(--text-primary);
           margin: 6px 0;
+          word-wrap: break-word;
+          word-break: break-word;
         }
 
         .timeline-entry-author {
@@ -675,16 +606,59 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
         }
 
         /* Dark theme support */
-        .dark-theme .reflog-panel {
+        body.dark-theme .reflog-panel {
           --bg-primary: #1f1f1f;
-          --bg-secondary: #2d2d2d;
-          --bg-hover: #2d2d2d;
-          --bg-code: #2d2d2d;
-          --border-color: #404040;
+          --bg-secondary: #121212;
+          --bg-hover: #2a2a2a;
+          --bg-code: #2a2a2a;
+          --border-color: #3a3a3a;
           --text-primary: #e0e0e0;
           --text-secondary: #a0a0a0;
           --text-tertiary: #707070;
-          --primary-color: #1890ff;
+          --primary-color: #4a9eff;
+        }
+
+        body.dark-theme .reflog-entry,
+        body.dark-theme .timeline-entry {
+          background: #1f1f1f;
+          border-color: #3a3a3a;
+        }
+
+        body.dark-theme .reflog-entry:hover,
+        body.dark-theme .timeline-entry:hover {
+          background: #2a2a2a;
+          border-color: #4a9eff;
+        }
+
+        body.dark-theme .reflog-hash {
+          background: #2a2a2a;
+          color: #a0a0a0;
+        }
+
+        body.dark-theme .reflog-panel-header {
+          background: #121212;
+          border-bottom-color: #3a3a3a;
+        }
+
+        body.dark-theme .ant-timeline-item-label {
+          color: #a0a0a0 !important;
+        }
+
+        body.dark-theme .ant-timeline-item-tail {
+          background-color: #3a3a3a !important;
+        }
+
+        body.dark-theme .ant-timeline-item-head {
+          background-color: transparent !important;
+        }
+
+        body.dark-theme .ant-timeline .anticon {
+          color: inherit !important;
+          background: transparent !important;
+        }
+
+        body.dark-theme .ant-timeline-item-head-custom {
+          background: transparent !important;
         }
 
         /* Light theme */
