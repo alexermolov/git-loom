@@ -32,6 +32,14 @@ export interface ElectronAPI {
   getStashFiles: (repoPath: string, index: number) => Promise<CommitFile[]>;
   createBranchFromStash: (repoPath: string, index: number, branchName: string) => Promise<void>;
   clearAllStashes: (repoPath: string) => Promise<void>;
+  // Conflict resolution
+  getConflictedFiles: (repoPath: string) => Promise<string[]>;
+  getFileConflicts: (repoPath: string, filePath: string) => Promise<ConflictFile>;
+  resolveConflict: (repoPath: string, filePath: string, resolution: 'ours' | 'theirs' | 'both', conflictIndex?: number) => Promise<void>;
+  resolveConflictManual: (repoPath: string, filePath: string, content: string) => Promise<void>;
+  launchMergeTool: (repoPath: string, filePath: string) => Promise<void>;
+  abortMerge: (repoPath: string) => Promise<void>;
+  continueMerge: (repoPath: string) => Promise<void>;
 }
 
 export interface GitGraphRow {
@@ -121,6 +129,20 @@ export interface StashEntry {
   branch: string;
   date: string;
   author: string;
+}
+
+export interface ConflictMarker {
+  startLine: number;
+  endLine: number;
+  currentContent: string;
+  incomingContent: string;
+  baseContent?: string;
+}
+
+export interface ConflictFile {
+  path: string;
+  conflicts: ConflictMarker[];
+  content: string;
 }
 
 declare global {

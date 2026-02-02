@@ -7,8 +7,8 @@ import MiddlePanel from './components/MiddlePanel';
 import FileDiffPanel from './components/FileDiffPanel';
 import GitGraphView from './components/GitGraphView';
 import ReflogPanel from './components/ReflogPanel';
-import StashPanel from './components/StashPanel';
-import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry } from './types';
+import StashDetailsPanel from './components/StashDetailsPanel';
+import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry, StashEntry } from './types';
 
 const App: React.FC = () => {
   const [repositories, setRepositories] = useState<Map<string, RepositoryInfo>>(new Map());
@@ -32,6 +32,8 @@ const App: React.FC = () => {
   const [fileDiff, setFileDiff] = useState<FileDiff | null>(null);
   const [showingCommitFiles, setShowingCommitFiles] = useState(false);
   const [middlePanelWidth, setMiddlePanelWidth] = useState(350);
+  const [conflictCount, setConflictCount] = useState(0);
+  const [selectedStash, setSelectedStash] = useState<StashEntry | null>(null);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -244,6 +246,9 @@ const App: React.FC = () => {
       setCommits(commitsData);
       setBranches(branchesData);
       setCurrentBranch(repo.currentBranch);
+      
+      // Load conflict count
+      await loadConflictCount(repoPath);
     } catch (error) {
       console.error('Error loading repository data:', error);
       message.error('Failed to load repository data');
@@ -271,8 +276,21 @@ const App: React.FC = () => {
       ]);
       setCommits(commitsData);
       setBranches(branchesData);
+      
+      // Update conflict count
+      await loadConflictCount(repoPath);
     } catch (error) {
       console.error('Error refreshing selected repository panels:', error);
+    }
+  };
+
+  const loadConflictCount = async (repoPath: string) => {
+    try {
+      const conflictedFiles = await window.electronAPI.getConflictedFiles(repoPath);
+      setConflictCount(conflictedFiles.length);
+    } catch (error) {
+      // Ignore errors, conflicts might not exist
+      setConflictCount(0);
     }
   };
 
@@ -389,6 +407,11 @@ const App: React.FC = () => {
       setSelectedCommit(null);
     }
     
+    // Reset stash selection when leaving stash view
+    if (view !== 'stash') {
+      setSelectedStash(null);
+    }
+    
     // Reset right panel state and show appropriate view for the mode
     if (view === 'graph') {
       setMainPanelView('graph');
@@ -475,15 +498,65 @@ const App: React.FC = () => {
       updateRepoInfo(selectedRepo, info);
       await refreshSelectedRepoPanels(selectedRepo, info);
       message.success(`Merged branch: ${branchName}`);
+      
+      // Check if merge created conflicts
+      const conflictedFiles = await window.electronAPI.getConflictedFiles(selectedRepo);
+      if (conflictedFiles.length > 0) {
+        message.warning(`Merge created ${conflictedFiles.length} conflict(s). Please resolve them.`);
+        setActiveView('conflicts');
+      }
     } catch (error: any) {
       console.error('Error merging branch:', error);
       message.error(error?.message ? `Merge failed: ${error.message}` : 'Failed to merge branch');
+      
+      // Check for conflicts even on error
+      if (selectedRepo) {
+        await loadConflictCount(selectedRepo);
+      }
     }
+  };
+
+  const handleConflictFileClick = async (filePath: string) => {
+    if (!selectedRepo) return;
+    
+    try {
+      // Get working file diff to show in the right panel
+      const diff = await window.electronAPI.getWorkingFileDiff(selectedRepo, filePath, false);
+      setFileDiff(diff);
+      setMainPanelView('diff');
+    } catch (error) {
+      console.error('Error loading conflict file diff:', error);
+      message.error('Failed to load file diff');
+    }
+  };
+
+  const handleConflictsRefresh = async () => {
+    if (!selectedRepo) return;
+    
+    try {
+      const info = await window.electronAPI.getRepositoryInfo(selectedRepo);
+      updateRepoInfo(selectedRepo, info);
+      await refreshSelectedRepoPanels(selectedRepo, info);
+    } catch (error) {
+      console.error('Error refreshing after conflict resolution:', error);
+    }
+  };
+
+  const handleStashSelect = (stash: StashEntry) => {
+    setSelectedStash(stash);
   };
 
   const renderMainPanel = () => {
     if (mainPanelView === 'diff' && fileDiff) {
-      return <FileDiffPanel diff={fileDiff} onBack={() => setMainPanelView('graph')} />;
+      return (
+        <FileDiffPanel 
+          diff={fileDiff} 
+          onBack={() => setMainPanelView('graph')} 
+          repoPath={selectedRepo}
+          filePath={fileDiff.path}
+          onRefresh={handleConflictsRefresh}
+        />
+      );
     }
     
     // Show reflog in main panel when reflog view is active
@@ -498,13 +571,13 @@ const App: React.FC = () => {
       );
     }
     
-    // Show stash panel when stash view is active
+    // Show stash details when stash is selected and view is active
     if (activeView === 'stash' && selectedRepo) {
       return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <StashPanel
+          <StashDetailsPanel
             repoPath={selectedRepo}
-            onRefresh={() => handleRefresh()}
+            selectedStash={selectedStash}
           />
         </div>
       );
@@ -592,6 +665,7 @@ const App: React.FC = () => {
           <IconSidebar 
             activeView={activeView} 
             onViewChange={handleViewChange}
+            conflictCount={conflictCount}
           />
           
           <MiddlePanel
@@ -610,6 +684,11 @@ const App: React.FC = () => {
             selectedCommitHash={selectedCommit?.hash}
             onFileClick={handleFileClick}
             onReflogEntryClick={handleReflogEntryClick}
+            onStashRefresh={handleChangesRefresh}
+            onStashSelect={handleStashSelect}
+            selectedStashIndex={selectedStash?.index ?? null}
+            onConflictFileClick={handleConflictFileClick}
+            onConflictsRefresh={handleConflictsRefresh}
             showingCommitFiles={showingCommitFiles}
             onBackToCommits={handleBackToCommits}
             width={middlePanelWidth}

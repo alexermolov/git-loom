@@ -12,37 +12,39 @@ import {
   Empty,
 } from "antd";
 import {
-  SaveOutlined,
-  FileTextOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  ClearOutlined,
+  ImportOutlined,
+  ExportOutlined,
   BranchesOutlined,
   DeleteOutlined,
-  ExportOutlined,
-  ImportOutlined,
-  ClearOutlined,
-  ReloadOutlined,
-  PlusOutlined,
 } from "@ant-design/icons";
-import { StashEntry, CommitFile } from "../types";
+import { StashEntry } from "../types";
 
 const { TextArea } = Input;
 
-interface StashPanelProps {
+interface StashListPanelProps {
   repoPath: string | null;
   onRefresh?: () => void;
+  onStashSelect?: (stash: StashEntry) => void;
+  selectedStashIndex?: number | null;
 }
 
-const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
+const StashListPanel: React.FC<StashListPanelProps> = ({
+  repoPath,
+  onRefresh,
+  onStashSelect,
+  selectedStashIndex,
+}) => {
   const [stashes, setStashes] = useState<StashEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedStash, setSelectedStash] = useState<StashEntry | null>(null);
-  const [stashDiff, setStashDiff] = useState<string>("");
-  const [stashFiles, setStashFiles] = useState<CommitFile[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showBranchModal, setShowBranchModal] = useState(false);
   const [stashMessage, setStashMessage] = useState("");
   const [branchName, setBranchName] = useState("");
   const [includeUntracked, setIncludeUntracked] = useState(false);
-  const [loadingDiff, setLoadingDiff] = useState(false);
+  const [selectedStashForBranch, setSelectedStashForBranch] = useState<StashEntry | null>(null);
 
   useEffect(() => {
     if (repoPath) {
@@ -57,14 +59,6 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
     try {
       const stashList = await window.electronAPI.getStashList(repoPath);
       setStashes(stashList);
-      if (
-        selectedStash &&
-        !stashList.find((s) => s.index === selectedStash.index)
-      ) {
-        setSelectedStash(null);
-        setStashDiff("");
-        setStashFiles([]);
-      }
     } catch (error: any) {
       message.error(`Failed to load stashes: ${error.message}`);
     } finally {
@@ -92,23 +86,6 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
       message.error(`Failed to create stash: ${error.message}`);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSelectStash = async (stash: StashEntry) => {
-    setSelectedStash(stash);
-    setLoadingDiff(true);
-    try {
-      const [diff, files] = await Promise.all([
-        window.electronAPI.getStashDiff(repoPath!, stash.index),
-        window.electronAPI.getStashFiles(repoPath!, stash.index),
-      ]);
-      setStashDiff(diff);
-      setStashFiles(files);
-    } catch (error: any) {
-      message.error(`Failed to load stash details: ${error.message}`);
-    } finally {
-      setLoadingDiff(false);
     }
   };
 
@@ -159,18 +136,19 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
   };
 
   const handleCreateBranch = async () => {
-    if (!repoPath || !selectedStash || !branchName.trim()) return;
+    if (!repoPath || !selectedStashForBranch || !branchName.trim()) return;
 
     setLoading(true);
     try {
       await window.electronAPI.createBranchFromStash(
         repoPath,
-        selectedStash.index,
+        selectedStashForBranch.index,
         branchName.trim(),
       );
       message.success(`Branch "${branchName}" created from stash`);
       setBranchName("");
       setShowBranchModal(false);
+      setSelectedStashForBranch(null);
       await loadStashes();
       onRefresh?.();
     } catch (error: any) {
@@ -187,9 +165,6 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
     try {
       await window.electronAPI.clearAllStashes(repoPath);
       message.success("All stashes cleared");
-      setSelectedStash(null);
-      setStashDiff("");
-      setStashFiles([]);
       await loadStashes();
     } catch (error: any) {
       message.error(`Failed to clear stashes: ${error.message}`);
@@ -216,13 +191,13 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
   };
 
   const renderStashItem = (stash: StashEntry) => {
-    const isSelected = selectedStash?.index === stash.index;
+    const isSelected = selectedStashIndex === stash.index;
 
     return (
       <List.Item
         key={stash.index}
         className={`stash-item ${isSelected ? "selected" : ""}`}
-        onClick={() => handleSelectStash(stash)}
+        onClick={() => onStashSelect?.(stash)}
         style={{
           cursor: "pointer",
           backgroundColor: isSelected ? "var(--hover-bg)" : "transparent",
@@ -310,6 +285,7 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
                   icon={<BranchesOutlined />}
                   onClick={(e) => {
                     e.stopPropagation();
+                    setSelectedStashForBranch(stash);
                     setShowBranchModal(true);
                   }}
                 >
@@ -345,212 +321,93 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
   };
 
   return (
-    <div style={{ display: "flex", height: "100%", overflow: "hidden" }}>
-      {/* Left Panel - Stash List */}
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+      }}
+    >
       <div
         style={{
-          width: "400px",
-          borderRight: "1px solid var(--border-color)",
+          padding: "12px 16px",
+          borderBottom: "1px solid var(--border-color)",
           display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
+          justifyContent: "space-between",
+          alignItems: "center",
         }}
       >
-        <div
-          style={{
-            padding: "12px 16px",
-            borderBottom: "1px solid var(--border-color)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>
-            Stashes ({stashes.length})
-          </h3>
-          <Space>
-            <Tooltip title="Create new stash">
-              <Button
-                type="primary"
-                size="small"
-                icon={<PlusOutlined />}
-                onClick={() => setShowCreateModal(true)}
-                disabled={!repoPath}
-              >
-                New
-              </Button>
-            </Tooltip>
-
-            <Tooltip title="Refresh stashes">
-              <Button
-                size="small"
-                icon={<ReloadOutlined />}
-                onClick={loadStashes}
-                loading={loading}
-                disabled={!repoPath}
-              />
-            </Tooltip>
-
-            {stashes.length > 0 && (
-              <Popconfirm
-                title="Clear all stashes?"
-                description="This will permanently delete all stashes."
-                onConfirm={handleClearAllStashes}
-                okText="Clear All"
-                cancelText="Cancel"
-                okButtonProps={{ danger: true }}
-              >
-                <Tooltip title="Clear all stashes">
-                  <Button
-                    size="small"
-                    danger
-                    icon={<ClearOutlined />}
-                    disabled={!repoPath}
-                  />
-                </Tooltip>
-              </Popconfirm>
-            )}
-          </Space>
-        </div>
-
-        <div style={{ flex: 1, overflow: "auto" }}>
-          {stashes.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No stashes"
-              style={{ marginTop: "60px" }}
+        <span style={{ fontSize: "14px", fontWeight: 600 }}>
+          {stashes.length} stash{stashes.length !== 1 ? "es" : ""}
+        </span>
+        <Space>
+          <Tooltip title="Create new stash">
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => setShowCreateModal(true)}
+              disabled={!repoPath}
             >
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setShowCreateModal(true)}
-                disabled={!repoPath}
-              >
-                Create Stash
-              </Button>
-            </Empty>
-          ) : (
-            <List
-              dataSource={stashes}
-              renderItem={renderStashItem}
+              New
+            </Button>
+          </Tooltip>
+
+          <Tooltip title="Refresh stashes">
+            <Button
+              size="small"
+              icon={<ReloadOutlined />}
+              onClick={loadStashes}
               loading={loading}
+              disabled={!repoPath}
             />
+          </Tooltip>
+
+          {stashes.length > 0 && (
+            <Popconfirm
+              title="Clear all stashes?"
+              description="This will permanently delete all stashes."
+              onConfirm={handleClearAllStashes}
+              okText="Clear All"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Clear all stashes">
+                <Button
+                  size="small"
+                  danger
+                  icon={<ClearOutlined />}
+                  disabled={!repoPath}
+                />
+              </Tooltip>
+            </Popconfirm>
           )}
-        </div>
+        </Space>
       </div>
 
-      {/* Right Panel - Stash Details */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {selectedStash ? (
-          <>
-            <div
-              style={{
-                padding: "12px 16px",
-                borderBottom: "1px solid var(--border-color)",
-                backgroundColor: "var(--bg-secondary)",
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: "14px", fontWeight: 600 }}>
-                Stash Details: {selectedStash.message}
-              </h3>
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "var(--text-secondary)",
-                  marginTop: "4px",
-                }}
-              >
-                {stashFiles.length} file{stashFiles.length !== 1 ? "s" : ""}{" "}
-                changed
-              </div>
-            </div>
-
-            {/* Files Changed */}
-            {stashFiles.length > 0 && (
-              <div
-                style={{
-                  padding: "12px 16px",
-                  borderBottom: "1px solid var(--border-color)",
-                  maxHeight: "200px",
-                  overflow: "auto",
-                }}
-              >
-                <h4
-                  style={{
-                    margin: "0 0 8px 0",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                  }}
-                >
-                  Changed Files:
-                </h4>
-                {stashFiles.map((file, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      padding: "4px 8px",
-                      fontSize: "12px",
-                      backgroundColor:
-                        idx % 2 === 0 ? "var(--bg-secondary)" : "transparent",
-                    }}
-                  >
-                    <span style={{ fontFamily: "monospace" }}>{file.path}</span>
-                    <span style={{ color: "var(--text-secondary)" }}>
-                      <span style={{ color: "green" }}>+{file.additions}</span>{" "}
-                      <span style={{ color: "red" }}>-{file.deletions}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Diff Viewer */}
-            <div style={{ flex: 1, overflow: "auto", padding: "16px" }}>
-              {loadingDiff ? (
-                <div style={{ textAlign: "center", padding: "40px" }}>
-                  Loading diff...
-                </div>
-              ) : (
-                <pre
-                  style={{
-                    fontFamily: "monospace",
-                    fontSize: "12px",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-all",
-                    margin: 0,
-                  }}
-                >
-                  {stashDiff || "No diff available"}
-                </pre>
-              )}
-            </div>
-          </>
-        ) : (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-secondary)",
-            }}
+      <div style={{ flex: 1, overflow: "auto" }}>
+        {stashes.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="No stashes"
+            style={{ marginTop: "60px" }}
           >
-            <div style={{ textAlign: "center" }}>
-              <FileTextOutlined
-                style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.3 }}
-              />
-              <div>Select a stash to view details</div>
-            </div>
-          </div>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setShowCreateModal(true)}
+              disabled={!repoPath}
+            >
+              Create Stash
+            </Button>
+          </Empty>
+        ) : (
+          <List
+            dataSource={stashes}
+            renderItem={renderStashItem}
+            loading={loading}
+          />
         )}
       </div>
 
@@ -610,6 +467,7 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
         onCancel={() => {
           setShowBranchModal(false);
           setBranchName("");
+          setSelectedStashForBranch(null);
         }}
         okText="Create Branch"
         confirmLoading={loading}
@@ -641,4 +499,4 @@ const StashPanel: React.FC<StashPanelProps> = ({ repoPath, onRefresh }) => {
   );
 };
 
-export default StashPanel;
+export default StashListPanel;

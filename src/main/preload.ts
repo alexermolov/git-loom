@@ -34,5 +34,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getStashFiles: (repoPath: string, index: number) => ipcRenderer.invoke('git:getStashFiles', repoPath, index),
   createBranchFromStash: (repoPath: string, index: number, branchName: string) => ipcRenderer.invoke('git:createBranchFromStash', repoPath, index, branchName),
   clearAllStashes: (repoPath: string) => ipcRenderer.invoke('git:clearAllStashes', repoPath),
+  // Conflict resolution
+  getConflictedFiles: (repoPath: string) => ipcRenderer.invoke('git:getConflictedFiles', repoPath),
+  getFileConflicts: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileConflicts', repoPath, filePath),
+  resolveConflict: (repoPath: string, filePath: string, resolution: 'ours' | 'theirs' | 'both', conflictIndex?: number) => ipcRenderer.invoke('git:resolveConflict', repoPath, filePath, resolution, conflictIndex),
+  resolveConflictManual: (repoPath: string, filePath: string, content: string) => ipcRenderer.invoke('git:resolveConflictManual', repoPath, filePath, content),
+  launchMergeTool: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:launchMergeTool', repoPath, filePath),
+  abortMerge: (repoPath: string) => ipcRenderer.invoke('git:abortMerge', repoPath),
+  continueMerge: (repoPath: string) => ipcRenderer.invoke('git:continueMerge', repoPath),
 });
 

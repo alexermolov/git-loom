@@ -7,8 +7,9 @@ import BranchTreePanel from './BranchTreePanel';
 import CommitFilesPanel from './CommitFilesPanel';
 import FileTreePanel from './FileTreePanel';
 import ReflogPanel from './ReflogPanel';
-import StashPanel from './StashPanel';
-import { CommitInfo, BranchInfo, CommitFile, FileStatus, ReflogEntry } from '../types';
+import StashListPanel from './StashListPanel';
+import ConflictResolutionPanel from './ConflictResolutionPanel';
+import { CommitInfo, BranchInfo, CommitFile, FileStatus, ReflogEntry, StashEntry } from '../types';
 import { ViewType } from './IconSidebar';
 
 interface MiddlePanelProps {
@@ -43,6 +44,12 @@ interface MiddlePanelProps {
   
   // Stash view
   onStashRefresh?: () => void;
+  onStashSelect?: (stash: StashEntry) => void;
+  selectedStashIndex?: number | null;
+  
+  // Conflicts view
+  onConflictFileClick?: (filePath: string) => void;
+  onConflictsRefresh?: () => void;
   
   // Sub-view state
   showingCommitFiles?: boolean;
@@ -68,11 +75,15 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   commitFiles = [],
   onReflogEntryClick,
   onStashRefresh,
+  onStashSelect,
+  selectedStashIndex,
   selectedCommitHash = '',
   onFileClick,
   onBackToBranches,
   showingCommitFiles = false,
   onBackToCommits,
+  onConflictFileClick,
+  onConflictsRefresh,
   width = 350,
   onResize,
 }) => {
@@ -201,9 +212,12 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
             <div className="middle-panel-header">
               <div className="middle-panel-title">Stashes</div>
             </div>
-            <div className="middle-panel-info">
-              <Empty description="Stash view is shown in the main panel" />
-            </div>
+            <StashListPanel
+              repoPath={repoPath}
+              onRefresh={onStashRefresh}
+              onStashSelect={onStashSelect}
+              selectedStashIndex={selectedStashIndex}
+            />
           </div>
         );
 
@@ -216,6 +230,20 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
             <div className="middle-panel-info">
               <Empty description="Reflog view is shown in the main panel" />
             </div>
+          </div>
+        );
+
+      case 'conflicts':
+        return (
+          <div className="middle-panel-content">
+            <div className="middle-panel-header">
+              <div className="middle-panel-title">Merge Conflicts</div>
+            </div>
+            <ConflictResolutionPanel
+              repoPath={repoPath}
+              onFileClick={onConflictFileClick}
+              onRefresh={onConflictsRefresh}
+            />
           </div>
         );
 

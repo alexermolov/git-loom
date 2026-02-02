@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -381,6 +381,76 @@ function setupIpcHandlers() {
       await clearAllStashes(repoPath);
     } catch (error) {
       console.error('Error clearing stashes:', error);
+      throw error;
+    }
+  });
+
+  // Get conflicted files
+  ipcMain.handle('git:getConflictedFiles', async (_event, repoPath: string) => {
+    try {
+      return await getConflictedFiles(repoPath);
+    } catch (error) {
+      console.error('Error getting conflicted files:', error);
+      throw error;
+    }
+  });
+
+  // Get file conflicts
+  ipcMain.handle('git:getFileConflicts', async (_event, repoPath: string, filePath: string) => {
+    try {
+      return await getFileConflicts(repoPath, filePath);
+    } catch (error) {
+      console.error('Error getting file conflicts:', error);
+      throw error;
+    }
+  });
+
+  // Resolve conflict
+  ipcMain.handle('git:resolveConflict', async (_event, repoPath: string, filePath: string, resolution: 'ours' | 'theirs' | 'both', conflictIndex?: number) => {
+    try {
+      await resolveConflict(repoPath, filePath, resolution, conflictIndex);
+    } catch (error) {
+      console.error('Error resolving conflict:', error);
+      throw error;
+    }
+  });
+
+  // Manually resolve conflict
+  ipcMain.handle('git:resolveConflictManual', async (_event, repoPath: string, filePath: string, content: string) => {
+    try {
+      await resolveConflictManual(repoPath, filePath, content);
+    } catch (error) {
+      console.error('Error manually resolving conflict:', error);
+      throw error;
+    }
+  });
+
+  // Launch merge tool
+  ipcMain.handle('git:launchMergeTool', async (_event, repoPath: string, filePath: string) => {
+    try {
+      await launchMergeTool(repoPath, filePath);
+    } catch (error) {
+      console.error('Error launching merge tool:', error);
+      throw error;
+    }
+  });
+
+  // Abort merge
+  ipcMain.handle('git:abortMerge', async (_event, repoPath: string) => {
+    try {
+      await abortMerge(repoPath);
+    } catch (error) {
+      console.error('Error aborting merge:', error);
+      throw error;
+    }
+  });
+
+  // Continue merge
+  ipcMain.handle('git:continueMerge', async (_event, repoPath: string) => {
+    try {
+      await continueMerge(repoPath);
+    } catch (error) {
+      console.error('Error continuing merge:', error);
       throw error;
     }
   });
