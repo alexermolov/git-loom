@@ -4,7 +4,7 @@ export interface ElectronAPI {
   getRepositoryInfo: (repoPath: string) => Promise<RepositoryInfo>;
   pullRepository: (repoPath: string) => Promise<RepositoryInfo>;
   pushRepository: (repoPath: string) => Promise<RepositoryInfo>;
-  getCommits: (repoPath: string, branch?: string) => Promise<CommitInfo[]>;
+  getCommits: (repoPath: string, branch?: string, skip?: number, limit?: number) => Promise<CommitInfo[]>;
   getFileTree: (repoPath: string, commitHash?: string) => Promise<FileTreeNode>;
   getBranches: (repoPath: string) => Promise<BranchInfo[]>;
   getGitGraph: (repoPath: string, branch?: string) => Promise<GitGraphRow[]>;

@@ -14,6 +14,8 @@ const App: React.FC = () => {
   const [repositories, setRepositories] = useState<Map<string, RepositoryInfo>>(new Map());
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [commits, setCommits] = useState<CommitInfo[]>([]);
+  const [hasMoreCommits, setHasMoreCommits] = useState(false);
+  const [loadingMoreCommits, setLoadingMoreCommits] = useState(false);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
   const [currentBranch, setCurrentBranch] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -210,10 +212,11 @@ const App: React.FC = () => {
         // Reload commits and branches
         try {
           const [commitsData, branchesData] = await Promise.all([
-            window.electronAPI.getCommits(selectedRepo),
+            window.electronAPI.getCommits(selectedRepo, undefined, 0, 25),
             window.electronAPI.getBranches(selectedRepo),
           ]);
           setCommits(commitsData);
+          setHasMoreCommits(commitsData.length === 25);
           setBranches(branchesData);
         } catch (error) {
           console.error('Error refreshing selected repository:', error);
@@ -237,13 +240,15 @@ const App: React.FC = () => {
       const repo = repositories.get(repoPath);
       if (!repo) return;
 
-      // Load commits and branches in parallel
+      // Load first 25 commits and branches in parallel
       const [commitsData, branchesData] = await Promise.all([
-        window.electronAPI.getCommits(repoPath),
+        window.electronAPI.getCommits(repoPath, undefined, 0, 25),
         window.electronAPI.getBranches(repoPath),
       ]);
 
       setCommits(commitsData);
+      // Check if there are potentially more commits (if we got exactly 25, there might be more)
+      setHasMoreCommits(commitsData.length === 25);
       setBranches(branchesData);
       setCurrentBranch(repo.currentBranch);
       
@@ -271,10 +276,11 @@ const App: React.FC = () => {
     setCurrentBranch(info.currentBranch);
     try {
       const [commitsData, branchesData] = await Promise.all([
-        window.electronAPI.getCommits(repoPath),
+        window.electronAPI.getCommits(repoPath, undefined, 0, 25),
         window.electronAPI.getBranches(repoPath),
       ]);
       setCommits(commitsData);
+      setHasMoreCommits(commitsData.length === 25);
       setBranches(branchesData);
       
       // Update conflict count
@@ -291,6 +297,28 @@ const App: React.FC = () => {
     } catch (error) {
       // Ignore errors, conflicts might not exist
       setConflictCount(0);
+    }
+  };
+
+  const handleLoadMoreCommits = async () => {
+    if (!selectedRepo || loadingMoreCommits || !hasMoreCommits) return;
+
+    setLoadingMoreCommits(true);
+    try {
+      const newCommits = await window.electronAPI.getCommits(selectedRepo, undefined, commits.length, 25);
+      
+      if (newCommits.length > 0) {
+        setCommits(prevCommits => [...prevCommits, ...newCommits]);
+        // If we got fewer than 25 commits, we've reached the end
+        setHasMoreCommits(newCommits.length === 25);
+      } else {
+        setHasMoreCommits(false);
+      }
+    } catch (error) {
+      console.error('Error loading more commits:', error);
+      message.error('Failed to load more commits');
+    } finally {
+      setLoadingMoreCommits(false);
     }
   };
 
@@ -673,6 +701,8 @@ const App: React.FC = () => {
             repoPath={selectedRepo}
             commits={commits}
             onCommitClick={handleCommitClick}
+            onLoadMoreCommits={handleLoadMoreCommits}
+            hasMoreCommits={hasMoreCommits}
             onChangesRefresh={handleChangesRefresh}
             onChangedFileClick={handleChangedFileClick}
             onFileExplorerFileClick={handleFileExplorerFileClick}

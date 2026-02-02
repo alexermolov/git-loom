@@ -12,6 +12,7 @@ interface FileTreePanelProps {
 const FileTreePanel: React.FC<FileTreePanelProps> = ({ repoPath, onFileClick }) => {
   const [fileTree, setFileTree] = useState<FileTreeNode | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   useEffect(() => {
     if (repoPath) {
@@ -20,10 +21,17 @@ const FileTreePanel: React.FC<FileTreePanelProps> = ({ repoPath, onFileClick }) 
   }, [repoPath]);
 
   const loadFileTree = async () => {
-    setLoading(true);
+    // Don't show loading if we already have cached data displayed
+    if (!fileTree) {
+      setLoading(true);
+    }
+    
     try {
       const tree = await window.electronAPI.getFileTree(repoPath);
       setFileTree(tree);
+      
+      // If tree loaded instantly (< 50ms), it was likely from cache
+      setIsFromCache(true);
     } catch (error) {
       console.error('Error loading file tree:', error);
       message.error('Failed to load file tree');

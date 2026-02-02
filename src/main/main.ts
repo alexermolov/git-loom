@@ -100,9 +100,9 @@ function setupIpcHandlers() {
   });
 
   // Get commits
-  ipcMain.handle('git:getCommits', async (_event, repoPath: string, branch?: string) => {
+  ipcMain.handle('git:getCommits', async (_event, repoPath: string, branch?: string, skip?: number, limit?: number) => {
     try {
-      const commits = await getCommits(repoPath, branch);
+      const commits = await getCommits(repoPath, branch, skip, limit);
       return commits;
     } catch (error) {
       console.error('Error getting commits:', error);

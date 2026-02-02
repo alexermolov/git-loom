@@ -19,6 +19,8 @@ interface MiddlePanelProps {
   // Commits view
   commits?: CommitInfo[];
   onCommitClick?: (commit: CommitInfo) => void;
+  onLoadMoreCommits?: () => Promise<void>;
+  hasMoreCommits?: boolean;
   
   // Changes view
   onChangesRefresh?: () => void;
@@ -65,6 +67,8 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   repoPath,
   commits = [],
   onCommitClick,
+  onLoadMoreCommits,
+  hasMoreCommits = false,
   onChangesRefresh,
   onChangedFileClick,
   onFileExplorerFileClick,
@@ -173,6 +177,8 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
             <CommitsPanel
               commits={commits}
               onCommitClick={onCommitClick}
+              onLoadMore={onLoadMoreCommits}
+              hasMore={hasMoreCommits}
             />
           </div>
         );

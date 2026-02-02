@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getRepositoryInfo: (repoPath: string) => ipcRenderer.invoke('git:getRepositoryInfo', repoPath),
   pullRepository: (repoPath: string) => ipcRenderer.invoke('git:pullRepository', repoPath),
   pushRepository: (repoPath: string) => ipcRenderer.invoke('git:pushRepository', repoPath),
-  getCommits: (repoPath: string, branch?: string) => ipcRenderer.invoke('git:getCommits', repoPath, branch),
+  getCommits: (repoPath: string, branch?: string, skip?: number, limit?: number) => ipcRenderer.invoke('git:getCommits', repoPath, branch, skip, limit),
   getFileTree: (repoPath: string, commitHash?: string) => ipcRenderer.invoke('git:getFileTree', repoPath, commitHash),
   getBranches: (repoPath: string) => ipcRenderer.invoke('git:getBranches', repoPath),
   getGitGraph: (repoPath: string, branch?: string) => ipcRenderer.invoke('git:getGitGraph', repoPath, branch),

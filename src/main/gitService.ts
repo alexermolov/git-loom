@@ -266,10 +266,10 @@ export async function checkoutBranch(repoPath: string, branchName: string): Prom
   } else {
     // Local branch, just checkout
     await git.checkout(targetBranch);
+  }
 
   // Invalidate cache after checkout
   gitCache.invalidate(repoPath);
-  }
 }
 
 export async function mergeBranch(repoPath: string, branchName: string): Promise<void> {
@@ -300,6 +300,8 @@ export async function mergeBranch(repoPath: string, branchName: string): Promise
 
   try {
     await git.merge([targetBranch]);
+    // Invalidate cache after successful merge
+    gitCache.invalidate(repoPath);
   } catch (error: any) {
     if (error.message && error.message.includes('CONFLICT')) {
       throw new Error('Merge conflict detected. Please resolve conflicts manually.');
@@ -412,7 +414,7 @@ export async function getRepositoryInfo(repoPath: string): Promise<RepositoryInf
 }
 
 // Get commit history
-export async function getCommits(repoPath: string, branch?: string, skip: number = 0, limit: number = 100): Promise<CommitInfo[]> {
+export async function getCommits(repoPath: string, branch?: string, skip: number = 0, limit: number = 25): Promise<CommitInfo[]> {
   // Check cache first
   const cacheKey = { branch, skip, limit };
   const cached = gitCache.get<CommitInfo[]>(repoPath, 'commits', cacheKey);
@@ -423,10 +425,20 @@ export async function getCommits(repoPath: string, branch?: string, skip: number
   const git: SimpleGit = simpleGit(repoPath);
 
   try {
-    const log = await git.log({
+    // Use skip parameter for pagination
+    const logOptions: any = {
       maxCount: limit,
-      ...(branch && { from: branch })
-    });
+    };
+    
+    if (skip > 0) {
+      logOptions['--skip'] = skip.toString();
+    }
+    
+    if (branch) {
+      logOptions.from = branch;
+    }
+    
+    const log = await git.log(logOptions);
 
     const commits = log.all.map(commit => ({
       hash: commit.hash,
@@ -451,23 +463,42 @@ export async function getFileTree(repoPath: string, commitHash?: string): Promis
   const git: SimpleGit = simpleGit(repoPath);
 
   try {
-    // If no commit hash provided, get current working tree
-    if (!commitHash) {
-      return await buildFileTree(repoPath);
+    // Check cache first - use different cache keys for working tree vs specific commits
+    const cacheKey = commitHash ? `fileTree-${commitHash}` : 'fileTree';
+    const cached = gitCache.get<FileTreeNode>(repoPath, cacheKey);
+    if (cached) {
+      console.log('✓ Returning cached file tree (instant load)');
+      return cached;
     }
 
-    // Get file list for specific commit
-    const files = await git.raw(['ls-tree', '-r', '--name-only', commitHash]);
-    const fileList = files.trim().split('\n').filter(f => f);
+    console.log('⟳ Building file tree...');
+    const startTime = Date.now();
+    let tree: FileTreeNode;
+    
+    // If no commit hash provided, get current working tree
+    if (!commitHash) {
+      tree = await buildFileTree(repoPath);
+    } else {
+      // Get file list for specific commit
+      const files = await git.raw(['ls-tree', '-r', '--name-only', commitHash]);
+      const fileList = files.trim().split('\n').filter(f => f);
+      tree = buildTreeFromPaths(fileList, repoPath);
+    }
 
-    return buildTreeFromPaths(fileList, repoPath);
+    const elapsed = Date.now() - startTime;
+    console.log(`✓ File tree built in ${elapsed}ms`);
+
+    // Cache the result with longer TTL for file tree
+    gitCache.set(repoPath, cacheKey, tree);
+    
+    return tree;
   } catch (error) {
     console.error('Error getting file tree:', error);
     throw error;
   }
 }
 
-// Build file tree from file system
+// Build file tree from file system with parallel loading
 async function buildFileTree(dirPath: string, relativePath: string = ''): Promise<FileTreeNode> {
   const name = relativePath ? path.basename(dirPath) : path.basename(dirPath);
   const node: FileTreeNode = {
@@ -480,6 +511,10 @@ async function buildFileTree(dirPath: string, relativePath: string = ''): Promis
   try {
     const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
 
+    // Separate files and directories
+    const files: FileTreeNode[] = [];
+    const directories: Promise<FileTreeNode>[] = [];
+
     for (const entry of entries) {
       // Skip .git directory
       if (entry.name === '.git') continue;
@@ -488,10 +523,11 @@ async function buildFileTree(dirPath: string, relativePath: string = ''): Promis
       const relPath = relativePath ? path.join(relativePath, entry.name) : entry.name;
 
       if (entry.isDirectory()) {
-        const childNode = await buildFileTree(fullPath, relPath);
-        node.children!.push(childNode);
+        // Add directory to parallel processing queue
+        directories.push(buildFileTree(fullPath, relPath));
       } else {
-        node.children!.push({
+        // Add file immediately
+        files.push({
           name: entry.name,
           path: relPath,
           type: 'file',
@@ -499,8 +535,14 @@ async function buildFileTree(dirPath: string, relativePath: string = ''): Promis
       }
     }
 
+    // Process all directories in parallel
+    const directoryNodes = await Promise.all(directories);
+    
+    // Combine files and directories
+    node.children = [...directoryNodes, ...files];
+
     // Sort: directories first, then files
-    node.children!.sort((a, b) => {
+    node.children.sort((a, b) => {
       if (a.type !== b.type) {
         return a.type === 'directory' ? -1 : 1;
       }
@@ -788,6 +830,8 @@ export async function createCommit(repoPath: string, message: string): Promise<v
 
   try {
     await git.commit(message);
+    // Invalidate file tree cache after commit
+    gitCache.invalidate(repoPath, 'fileTree');
   } catch (error) {
     console.error('Error creating commit:', error);
     throw error;
@@ -929,6 +973,8 @@ export async function resetToCommit(repoPath: string, commitHash: string, mode: 
 
   try {
     await git.reset([`--${mode}`, commitHash]);
+    // Invalidate file tree cache after reset
+    gitCache.invalidate(repoPath, 'fileTree');
   } catch (error) {
     console.error('Error resetting to commit:', error);
     throw error;
@@ -941,6 +987,8 @@ export async function cherryPickCommit(repoPath: string, commitHash: string): Pr
 
   try {
     await git.raw(['cherry-pick', commitHash]);
+    // Invalidate file tree cache after cherry-pick
+    gitCache.invalidate(repoPath, 'fileTree');
   } catch (error) {
     console.error('Error cherry-picking commit:', error);
     throw error;
@@ -1056,6 +1104,8 @@ export async function applyStash(repoPath: string, index: number): Promise<void>
   
   try {
     await git.raw(['stash', 'apply', `stash@{${index}}`]);
+    // Invalidate cache after applying stash
+    gitCache.invalidate(repoPath);
   } catch (error) {
     console.error('Error applying stash:', error);
     throw error;
@@ -1068,6 +1118,8 @@ export async function popStash(repoPath: string, index: number): Promise<void> {
   
   try {
     await git.raw(['stash', 'pop', `stash@{${index}}`]);
+    // Invalidate cache after popping stash
+    gitCache.invalidate(repoPath);
   } catch (error) {
     console.error('Error popping stash:', error);
     throw error;
