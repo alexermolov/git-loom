@@ -1,6 +1,8 @@
 import simpleGit, { SimpleGit, StatusResult, BranchSummary } from 'simple-git';
 import * as fs from 'fs';
 import * as path from 'path';
+import { gitCache } from './cache';
+import { gitWorkerPool } from './gitWorker';
 
 export interface RepositoryInfo {
   path: string;
@@ -102,51 +104,34 @@ export interface StashEntry {
   author: string;
 }
 
-export async function getCommitDetails(repoPath: string, branch?: string, maxCount: number = 200): Promise<CommitDetail[]> {
-  const git: SimpleGit = simpleGit(repoPath);
-
-  const normalizedBranch = branch?.startsWith('remotes/') ? branch.replace('remotes/', '') : branch;
-
-  const args = [
-    'log',
-    '--format=%H|%P|%s|%an|%ai|%D',
-    '--date-order',
-    `--max-count=${maxCount}`,
-  ];
-
-  if (normalizedBranch && normalizedBranch.trim().length > 0) {
-    args.push(normalizedBranch);
-  } else {
-    args.push('--all');
+export async function getCommitDetails(
+  repoPath: string, 
+  branch?: string, 
+  maxCount: number = 200,
+  skip: number = 0
+): Promise<CommitDetail[]> {
+  // Check cache first
+  const cacheKey = { branch, maxCount, skip };
+  const cached = gitCache.get<CommitDetail[]>(repoPath, 'commitDetails', cacheKey);
+  if (cached) {
+    return cached;
   }
 
-  const output = await git.raw(args);
-  const lines = output
-    .split('\n')
-    .map((l) => l.trim())
-    .filter((l) => l.length > 0);
-
-  const commits: CommitDetail[] = [];
-
-  for (const line of lines) {
-    const parts = line.split('|');
-    if (parts.length < 5) continue;
-
-    const [hash, parentsStr, message, author, date, refsStr] = parts;
-    const parents = parentsStr ? parentsStr.split(' ').filter(p => p.length > 0) : [];
-    const refs = refsStr ? refsStr.split(',').map(r => r.trim()).filter(r => r.length > 0) : [];
-
-    commits.push({
-      hash,
-      message,
-      author,
-      date,
-      parents,
-      refs,
+  // Use worker pool for heavy operations
+  try {
+    const commits = await gitWorkerPool.execute<CommitDetail[]>('log', repoPath, {
+      branch,
+      maxCount,
+      skip,
     });
-  }
 
-  return commits;
+    // Cache the results
+    gitCache.set(repoPath, 'commitDetails', commits, cacheKey);
+    return commits;
+  } catch (error) {
+    console.error('Error in getCommitDetails:', error);
+    throw error;
+  }
 }
 
 export async function getGitGraph(repoPath: string, branch?: string): Promise<GitGraphRow[]> {
@@ -208,16 +193,17 @@ export async function pullRepository(repoPath: string): Promise<void> {
   // Prefer tracking branch if present; otherwise fall back to origin/<branch>
   if (status.tracking) {
     await git.pull(['--ff-only']);
-    return;
+  } else {
+    const remotes = await git.getRemotes(true);
+    const hasOrigin = remotes.some((r) => r.name === 'origin');
+    if (!hasOrigin) {
+      throw new Error('Cannot pull: no tracking branch and no origin remote');
+    }
+    await git.pull('origin', currentBranch, ['--ff-only']);
   }
 
-  const remotes = await git.getRemotes(true);
-  const hasOrigin = remotes.some((r) => r.name === 'origin');
-  if (!hasOrigin) {
-    throw new Error('Cannot pull: no tracking branch and no origin remote');
-  }
-
-  await git.pull('origin', currentBranch, ['--ff-only']);
+  // Invalidate cache after pull
+  gitCache.invalidate(repoPath);
 }
 
 export async function pushRepository(repoPath: string): Promise<void> {
@@ -234,17 +220,18 @@ export async function pushRepository(repoPath: string): Promise<void> {
   // If upstream exists, normal push is fine.
   if (status.tracking) {
     await git.push();
-    return;
+  } else {
+    // No upstream: try to set upstream to origin/<branch>
+    const remotes = await git.getRemotes(true);
+    const hasOrigin = remotes.some((r) => r.name === 'origin');
+    if (!hasOrigin) {
+      throw new Error('Cannot push: no tracking branch and no origin remote');
+    }
+    await git.push(['-u', 'origin', currentBranch]);
   }
 
-  // No upstream: try to set upstream to origin/<branch>
-  const remotes = await git.getRemotes(true);
-  const hasOrigin = remotes.some((r) => r.name === 'origin');
-  if (!hasOrigin) {
-    throw new Error('Cannot push: no tracking branch and no origin remote');
-  }
-
-  await git.push(['-u', 'origin', currentBranch]);
+  // Invalidate cache after push
+  gitCache.invalidate(repoPath);
 }
 
 export async function checkoutBranch(repoPath: string, branchName: string): Promise<void> {
@@ -279,6 +266,9 @@ export async function checkoutBranch(repoPath: string, branchName: string): Prom
   } else {
     // Local branch, just checkout
     await git.checkout(targetBranch);
+
+  // Invalidate cache after checkout
+  gitCache.invalidate(repoPath);
   }
 }
 
@@ -350,6 +340,12 @@ export async function scanForRepositories(folderPath: string): Promise<string[]>
 
 // Get detailed repository information
 export async function getRepositoryInfo(repoPath: string): Promise<RepositoryInfo> {
+  // Check cache first (short TTL for repo info as it changes frequently)
+  const cached = gitCache.get<RepositoryInfo>(repoPath, 'repoInfo');
+  if (cached) {
+    return cached;
+  }
+
   const git: SimpleGit = simpleGit(repoPath);
 
   try {
@@ -384,7 +380,7 @@ export async function getRepositoryInfo(repoPath: string): Promise<RepositoryInf
       console.log('No remote tracking branch found');
     }
 
-    return {
+    const repoInfo: RepositoryInfo = {
       path: repoPath,
       name: path.basename(repoPath),
       currentBranch,
@@ -404,6 +400,11 @@ export async function getRepositoryInfo(repoPath: string): Promise<RepositoryInf
         tracking: status.tracking,
       },
     };
+
+    // Cache with shorter TTL for frequently changing data
+    gitCache.set(repoPath, 'repoInfo', repoInfo);
+
+    return repoInfo;
   } catch (error) {
     console.error('Error getting repository info:', error);
     throw error;
@@ -411,22 +412,34 @@ export async function getRepositoryInfo(repoPath: string): Promise<RepositoryInf
 }
 
 // Get commit history
-export async function getCommits(repoPath: string, branch?: string): Promise<CommitInfo[]> {
+export async function getCommits(repoPath: string, branch?: string, skip: number = 0, limit: number = 100): Promise<CommitInfo[]> {
+  // Check cache first
+  const cacheKey = { branch, skip, limit };
+  const cached = gitCache.get<CommitInfo[]>(repoPath, 'commits', cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const git: SimpleGit = simpleGit(repoPath);
 
   try {
     const log = await git.log({
-      maxCount: 100,
+      maxCount: limit,
       ...(branch && { from: branch })
     });
 
-    return log.all.map(commit => ({
+    const commits = log.all.map(commit => ({
       hash: commit.hash,
       date: commit.date,
       message: commit.message,
       author: commit.author_name,
       refs: commit.refs,
     }));
+
+    // Cache the results
+    gitCache.set(repoPath, 'commits', commits, cacheKey);
+
+    return commits;
   } catch (error) {
     console.error('Error getting commits:', error);
     throw error;
@@ -626,13 +639,27 @@ export async function getCommitFiles(repoPath: string, commitHash: string): Prom
   }
 }
 
-// Get diff for a specific file in a commit
-export async function getFileDiff(repoPath: string, commitHash: string, filePath: string): Promise<FileDiff> {
-  const git: SimpleGit = simpleGit(repoPath);
+// Get diff for a specific file in a commit with incremental loading support
+export async function getFileDiff(
+  repoPath: string, 
+  commitHash: string, 
+  filePath: string,
+  maxLines?: number
+): Promise<FileDiff> {
+  // Check cache first
+  const cacheKey = { commitHash, filePath, maxLines };
+  const cached = gitCache.get<FileDiff>(repoPath, 'fileDiff', cacheKey);
+  if (cached) {
+    return cached;
+  }
 
+  // Use worker pool for potentially large diffs
   try {
-    // Get the diff for the specific file
-    const diff = await git.diff([`${commitHash}^`, commitHash, '--', filePath]);
+    const diff = await gitWorkerPool.execute<string>('diff', repoPath, {
+      filePath,
+      commitHash,
+      maxLines,
+    });
     
     // Count additions and deletions
     const lines = diff.split('\n');
@@ -647,12 +674,17 @@ export async function getFileDiff(repoPath: string, commitHash: string, filePath
       }
     }
 
-    return {
+    const result: FileDiff = {
       path: filePath,
       diff,
       additions,
       deletions,
     };
+
+    // Cache the result
+    gitCache.set(repoPath, 'fileDiff', result, cacheKey);
+
+    return result;
   } catch (error) {
     console.error('Error getting file diff:', error);
     throw error;

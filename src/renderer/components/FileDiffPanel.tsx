@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Button, Empty, Space, Tag, Tooltip, Modal, message } from 'antd';
-import { ArrowLeftOutlined, PlusOutlined, MinusOutlined, WarningOutlined, CheckOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, PlusOutlined, MinusOutlined, WarningOutlined, CheckOutlined, ThunderboltOutlined, DownOutlined } from '@ant-design/icons';
 import { FileDiff, ConflictFile, ConflictMarker } from '../types';
 
 interface FileDiffPanelProps {
@@ -16,6 +16,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
   const [resolving, setResolving] = useState(false);
   const [editingContent, setEditingContent] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  
+  // Incremental loading state
+  const [displayedLines, setDisplayedLines] = useState(500); // Show first 500 lines by default
+  const LINES_PER_LOAD = 500;
 
   useEffect(() => {
     loadConflicts();
@@ -377,7 +381,15 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
     );
   }
 
-  const diffLines = diff.diff.split('\n');
+  // Split diff into lines and apply incremental loading
+  const diffLines = useMemo(() => diff.diff.split('\n'), [diff.diff]);
+  const totalLines = diffLines.length;
+  const visibleLines = diffLines.slice(0, displayedLines);
+  const hasMoreLines = displayedLines < totalLines;
+
+  const handleLoadMore = () => {
+    setDisplayedLines(prev => Math.min(prev + LINES_PER_LOAD, totalLines));
+  };
 
   return (
     <div className="file-diff-panel">
@@ -477,7 +489,32 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
         borderRadius: 4,
         overflow: 'auto',
       }}>
-        {diffLines.map((line, index) => isDiff ? renderDiffLine(line, index) : renderContentLine(line, index))}
+        {visibleLines.map((line, index) => isDiff ? renderDiffLine(line, index) : renderContentLine(line, index))}
+        
+        {/* Load more button for large diffs */}
+        {hasMoreLines && (
+          <div style={{ 
+            padding: '16px', 
+            textAlign: 'center', 
+            borderTop: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-primary)',
+          }}>
+            <Button 
+              type="primary" 
+              icon={<DownOutlined />} 
+              onClick={handleLoadMore}
+            >
+              Load More Lines ({displayedLines} / {totalLines})
+            </Button>
+            <div style={{ 
+              marginTop: 8, 
+              fontSize: 12, 
+              color: 'var(--text-secondary)' 
+            }}>
+              Showing {displayedLines} of {totalLines} lines
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Manual edit modal */}

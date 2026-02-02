@@ -46,9 +46,14 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
       if (ref.includes('HEAD ->')) {
         mainBranchName = ref.replace(/.*HEAD -> /, '').split(',')[0].trim();
         break;
-      } else if (!ref.includes('tag:') && !ref.includes('origin/')) {
-        mainBranchName = ref.split(',')[0].trim();
-        break;
+      } else if (!ref.includes('tag:')) {
+        let branchName = ref.split(',')[0].trim();
+        // Clean up remote prefixes
+        branchName = branchName.replace(/^origin\//, '').replace(/^remotes\/[^\/]+\//, '');
+        if (branchName && !branchName.includes('->')) {
+          mainBranchName = branchName;
+          break;
+        }
       }
     }
 
@@ -67,9 +72,12 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
         if (ref.includes('HEAD ->')) {
           const branchName = ref.replace(/.*HEAD -> /, '').split(',')[0].trim();
           branchNames.push(branchName);
-        } else if (!ref.includes('tag:') && !ref.includes('origin/')) {
-          const branchName = ref.replace(/^origin\//, '').split(',')[0].trim();
-          if (branchName && !branchName.includes('->')) {
+        } else if (!ref.includes('tag:')) {
+          // Include all branches, including remote branches
+          let branchName = ref.replace(/^origin\//, '').split(',')[0].trim();
+          // Also handle other remote formats
+          branchName = branchName.replace(/^remotes\/[^\/]+\//, '');
+          if (branchName && !branchName.includes('->') && branchName.length > 0) {
             branchNames.push(branchName);
           }
         }
