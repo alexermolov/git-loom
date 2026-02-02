@@ -21,6 +21,7 @@ export interface ElectronAPI {
   getReflog: (repoPath: string, ref?: string, maxCount?: number) => Promise<ReflogEntry[]>;
   resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<void>;
   cherryPickCommit: (repoPath: string, commitHash: string) => Promise<void>;
+  getFileContent: (repoPath: string, filePath: string) => Promise<string>;
 }
 
 export interface GitGraphRow {

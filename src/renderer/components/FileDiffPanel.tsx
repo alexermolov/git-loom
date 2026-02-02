@@ -9,6 +9,8 @@ interface FileDiffPanelProps {
 }
 
 const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack }) => {
+  const isDiff = diff && (diff.additions > 0 || diff.deletions > 0 || diff.diff.includes('@@'));
+  
   const renderDiffLine = (line: string, index: number) => {
     const isDarkTheme = document.body.classList.contains('dark-theme');
     let backgroundColor = 'transparent';
@@ -55,6 +57,34 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack }) => {
     );
   };
 
+  const renderContentLine = (line: string, index: number) => {
+    return (
+      <div
+        key={index}
+        style={{
+          padding: '2px 8px',
+          fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+          fontSize: 13,
+          lineHeight: '20px',
+          whiteSpace: 'pre',
+          color: 'var(--text-primary)',
+        }}
+      >
+        <span style={{ 
+          display: 'inline-block', 
+          minWidth: '40px', 
+          textAlign: 'right',
+          marginRight: '12px',
+          color: 'var(--text-secondary)',
+          userSelect: 'none',
+        }}>
+          {index + 1}
+        </span>
+        {line}
+      </div>
+    );
+  };
+
   if (!diff) {
     return (
       <div className="file-diff-panel">
@@ -85,14 +115,16 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack }) => {
           <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text-primary)' }}>
             {diff.path}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-            <span style={{ color: '#52c41a', marginRight: 8 }}>
-              +{diff.additions}
-            </span>
-            <span style={{ color: '#ff4d4f' }}>
-              -{diff.deletions}
-            </span>
-          </div>
+          {isDiff && (
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              <span style={{ color: '#52c41a', marginRight: 8 }}>
+                +{diff.additions}
+              </span>
+              <span style={{ color: '#ff4d4f' }}>
+                -{diff.deletions}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -102,7 +134,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack }) => {
         borderRadius: 4,
         overflow: 'auto',
       }}>
-        {diffLines.map((line, index) => renderDiffLine(line, index))}
+        {diffLines.map((line, index) => isDiff ? renderDiffLine(line, index) : renderContentLine(line, index))}
       </div>
     </div>
   );

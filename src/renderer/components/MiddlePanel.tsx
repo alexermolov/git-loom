@@ -142,8 +142,8 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               <div className="middle-panel-title">File Explorer</div>
             </div>
             <FileTreePanel
-              repoPath={repoPath}ExplorerFile
-              onFileClick={onFileClick}
+              repoPath={repoPath}
+              onFileClick={onFileExplorerFileClick}
             />
           </div>
         );

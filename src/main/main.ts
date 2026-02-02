@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -279,6 +279,16 @@ function setupIpcHandlers() {
       await cherryPickCommit(repoPath, commitHash);
     } catch (error) {
       console.error('Error cherry-picking commit:', error);
+      throw error;
+    }
+  });
+
+  // Get file content
+  ipcMain.handle('git:getFileContent', async (_event, repoPath: string, filePath: string) => {
+    try {
+      return await getFileContent(repoPath, filePath);
+    } catch (error) {
+      console.error('Error getting file content:', error);
       throw error;
     }
   });

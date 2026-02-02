@@ -23,5 +23,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getReflog: (repoPath: string, ref?: string, maxCount?: number) => ipcRenderer.invoke('git:getReflog', repoPath, ref, maxCount),
   resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => ipcRenderer.invoke('git:resetToCommit', repoPath, commitHash, mode),
   cherryPickCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:cherryPickCommit', repoPath, commitHash),
+  getFileContent: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileContent', repoPath, filePath),
 });
 

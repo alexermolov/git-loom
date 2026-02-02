@@ -891,3 +891,15 @@ export async function cherryPickCommit(repoPath: string, commitHash: string): Pr
     throw error;
   }
 }
+
+// Get file content from the working directory
+export async function getFileContent(repoPath: string, filePath: string): Promise<string> {
+  try {
+    const fullPath = path.join(repoPath, filePath);
+    const content = await fs.promises.readFile(fullPath, 'utf-8');
+    return content;
+  } catch (error) {
+    console.error('Error reading file content:', error);
+    throw error;
+  }
+}

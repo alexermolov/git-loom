@@ -16,6 +16,7 @@ interface SidebarProps {
   refreshing?: boolean;
   isDarkTheme?: boolean;
   onToggleTheme?: () => void;
+  loadingProgress?: { current: number; total: number };
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -31,6 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   refreshing = false,
   isDarkTheme = false,
   onToggleTheme,
+  loadingProgress,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [collapsed, setCollapsed] = useState(false);
@@ -149,6 +151,32 @@ const Sidebar: React.FC<SidebarProps> = ({
         {scanning ? (
           <div style={{ padding: 20, textAlign: 'center' }}>
             <Spin tip="Scanning for repositories..." />
+            {loadingProgress && loadingProgress.total > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ 
+                  fontSize: '13px', 
+                  marginBottom: '8px',
+                  color: isDarkTheme ? '#d4d4d4' : '#333'
+                }}>
+                  {loadingProgress.current} / {loadingProgress.total} 
+                  ({Math.round((loadingProgress.current / loadingProgress.total) * 100)}%)
+                </div>
+                <div style={{ 
+                  width: '100%', 
+                  height: '6px', 
+                  backgroundColor: isDarkTheme ? '#333' : '#e0e0e0',
+                  borderRadius: '3px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ 
+                    width: `${(loadingProgress.current / loadingProgress.total) * 100}%`,
+                    height: '100%',
+                    backgroundColor: '#1890ff',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </div>
+            )}
           </div>
         ) : repositories.length === 0 ? (
           <div style={{ padding: 20, textAlign: 'center', color: '#999' }}>

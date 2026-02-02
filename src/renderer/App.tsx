@@ -19,6 +19,7 @@ const App: React.FC = () => {
   const [scanningRepos, setScanningRepos] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [repoOps, setRepoOps] = useState<Record<string, 'pull' | 'push' | undefined>>({});
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   
   // New three-panel state management
@@ -63,15 +64,20 @@ const App: React.FC = () => {
           const repoPaths = await window.electronAPI.scanRepositories(lastFolderPath);
           if (repoPaths.length > 0) {
             const newRepos = new Map<string, RepositoryInfo>();
-            for (const repoPath of repoPaths) {
+            setLoadingProgress({ current: 0, total: repoPaths.length });
+            for (let i = 0; i < repoPaths.length; i++) {
+              const repoPath = repoPaths[i];
               try {
                 const info = await window.electronAPI.getRepositoryInfo(repoPath);
                 newRepos.set(repoPath, info);
+                setLoadingProgress({ current: i + 1, total: repoPaths.length });
               } catch (error) {
                 console.error(`Failed to load info for ${repoPath}:`, error);
+                setLoadingProgress({ current: i + 1, total: repoPaths.length });
               }
             }
             setRepositories(newRepos);
+            setLoadingProgress({ current: 0, total: 0 });
           }
         } catch (error) {
           console.error('Error loading last folder:', error);
@@ -127,19 +133,24 @@ const App: React.FC = () => {
 
       // Load info for each repository
       const newRepos = new Map<string, RepositoryInfo>();
+      setLoadingProgress({ current: 0, total: repoPaths.length });
       
-      for (const repoPath of repoPaths) {
+      for (let i = 0; i < repoPaths.length; i++) {
+        const repoPath = repoPaths[i];
         try {
           const info = await window.electronAPI.getRepositoryInfo(repoPath);
           newRepos.set(repoPath, info);
+          setLoadingProgress({ current: i + 1, total: repoPaths.length });
         } catch (error) {
           console.error(`Failed to load info for ${repoPath}:`, error);
           message.error(`Failed to load info for ${repoPath}`);
+          setLoadingProgress({ current: i + 1, total: repoPaths.length });
         }
       }
 
       setRepositories(newRepos);
       setScanningRepos(false);
+      setLoadingProgress({ current: 0, total: 0 });
       message.success(`Successfully loaded ${newRepos.size} repositories`);
       
       // Save folder path to localStorage
@@ -402,13 +413,19 @@ const App: React.FC = () => {
     if (!selectedRepo) return;
     
     try {
-      // For file explorer, show file diff against HEAD
-      const diff = await window.electronAPI.getWorkingFileDiff(selectedRepo, filePath, false);
+      // For file explorer, show file content
+      const content = await window.electronAPI.getFileContent(selectedRepo, filePath);
+      const diff: FileDiff = {
+        path: filePath,
+        diff: content,
+        additions: 0,
+        deletions: 0,
+      };
       setFileDiff(diff);
       setMainPanelView('diff');
     } catch (error) {
-      console.error('Error loading file diff:', error);
-      message.error('Failed to load file diff');
+      console.error('Error loading file content:', error);
+      message.error('Failed to load file content');
     }
   };
 
@@ -483,6 +500,7 @@ const App: React.FC = () => {
         refreshing={refreshing}
         isDarkTheme={isDarkTheme}
         onToggleTheme={toggleTheme}
+        loadingProgress={loadingProgress}
       />
       
       {!selectedRepo ? (
@@ -491,6 +509,32 @@ const App: React.FC = () => {
             <FolderOpenOutlined style={{ fontSize: 64, marginBottom: 16 }} />
             <h2>No Repository Selected</h2>
             <p>Open a folder to scan for Git repositories</p>
+            {scanningRepos && loadingProgress.total > 0 && (
+              <div style={{ width: '300px', marginBottom: '16px' }}>
+                <div style={{ 
+                  fontSize: '14px', 
+                  marginBottom: '8px',
+                  color: isDarkTheme ? '#d4d4d4' : '#333'
+                }}>
+                  Loading repositories: {loadingProgress.current} / {loadingProgress.total} 
+                  ({Math.round((loadingProgress.current / loadingProgress.total) * 100)}%)
+                </div>
+                <div style={{ 
+                  width: '100%', 
+                  height: '8px', 
+                  backgroundColor: isDarkTheme ? '#333' : '#e0e0e0',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{ 
+                    width: `${(loadingProgress.current / loadingProgress.total) * 100}%`,
+                    height: '100%',
+                    backgroundColor: '#1890ff',
+                    transition: 'width 0.3s ease'
+                  }} />
+                </div>
+              </div>
+            )}
             <Button 
               type="primary" 
               icon={<FolderOpenOutlined />} 
