@@ -81,17 +81,35 @@ const App: React.FC = () => {
           if (repoPaths.length > 0) {
             const newRepos = new Map<string, RepositoryInfo>();
             setLoadingProgress({ current: 0, total: repoPaths.length });
-            for (let i = 0; i < repoPaths.length; i++) {
-              const repoPath = repoPaths[i];
+            
+            // Параллельная загрузка всех репозиториев
+            const loadPromises = repoPaths.map(async (repoPath, index) => {
               try {
                 const info = await window.electronAPI.getRepositoryInfo(repoPath);
-                newRepos.set(repoPath, info);
-                setLoadingProgress({ current: i + 1, total: repoPaths.length });
+                return { repoPath, info, index };
               } catch (error) {
                 console.error(`Failed to load info for ${repoPath}:`, error);
-                setLoadingProgress({ current: i + 1, total: repoPaths.length });
+                return { repoPath, info: null, index };
               }
-            }
+            });
+            
+            // Отслеживаем прогресс по мере завершения промисов
+            let completed = 0;
+            const results = await Promise.all(
+              loadPromises.map(p => p.then(result => {
+                completed++;
+                setLoadingProgress({ current: completed, total: repoPaths.length });
+                return result;
+              }))
+            );
+            
+            // Добавляем успешно загруженные репозитории
+            results.forEach(({ repoPath, info }) => {
+              if (info) {
+                newRepos.set(repoPath, info);
+              }
+            });
+            
             setRepositories(newRepos);
             setLoadingProgress({ current: 0, total: 0 });
           }
@@ -151,18 +169,34 @@ const App: React.FC = () => {
       const newRepos = new Map<string, RepositoryInfo>();
       setLoadingProgress({ current: 0, total: repoPaths.length });
       
-      for (let i = 0; i < repoPaths.length; i++) {
-        const repoPath = repoPaths[i];
+      // Параллельная загрузка всех репозиториев
+      const loadPromises = repoPaths.map(async (repoPath) => {
         try {
           const info = await window.electronAPI.getRepositoryInfo(repoPath);
-          newRepos.set(repoPath, info);
-          setLoadingProgress({ current: i + 1, total: repoPaths.length });
+          return { repoPath, info };
         } catch (error) {
           console.error(`Failed to load info for ${repoPath}:`, error);
           message.error(`Failed to load info for ${repoPath}`);
-          setLoadingProgress({ current: i + 1, total: repoPaths.length });
+          return { repoPath, info: null };
         }
-      }
+      });
+      
+      // Отслеживаем прогресс по мере завершения промисов
+      let completed = 0;
+      const results = await Promise.all(
+        loadPromises.map(p => p.then(result => {
+          completed++;
+          setLoadingProgress({ current: completed, total: repoPaths.length });
+          return result;
+        }))
+      );
+      
+      // Добавляем успешно загруженные репозитории
+      results.forEach(({ repoPath, info }) => {
+        if (info) {
+          newRepos.set(repoPath, info);
+        }
+      });
 
       setRepositories(newRepos);
       setScanningRepos(false);
@@ -186,19 +220,24 @@ const App: React.FC = () => {
 
     const updatedRepos = new Map<string, RepositoryInfo>();
 
-    for (const [repoPath] of repositories) {
+    // Параллельное обновление всех репозиториев
+    const refreshPromises = Array.from(repositories.entries()).map(async ([repoPath, oldInfo]) => {
       try {
         const info = await window.electronAPI.getRepositoryInfo(repoPath);
-        updatedRepos.set(repoPath, info);
+        return { repoPath, info };
       } catch (error) {
         console.error(`Failed to refresh ${repoPath}:`, error);
         // Keep old info if refresh fails
-        const oldInfo = repositories.get(repoPath);
-        if (oldInfo) {
-          updatedRepos.set(repoPath, oldInfo);
-        }
+        return { repoPath, info: oldInfo };
       }
-    }
+    });
+    
+    const results = await Promise.all(refreshPromises);
+    
+    // Добавляем обновленные репозитории
+    results.forEach(({ repoPath, info }) => {
+      updatedRepos.set(repoPath, info);
+    });
 
     setRepositories(updatedRepos);
     setRefreshing(false);
