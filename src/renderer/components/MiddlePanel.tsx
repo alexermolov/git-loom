@@ -43,6 +43,10 @@ interface MiddlePanelProps {
   // Sub-view state
   showingCommitFiles?: boolean;
   onBackToCommits?: () => void;
+  
+  // Panel resize
+  width?: number;
+  onResize?: (width: number) => void;
 }
 
 const MiddlePanel: React.FC<MiddlePanelProps> = ({
@@ -64,7 +68,45 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   onBackToBranches,
   showingCommitFiles = false,
   onBackToCommits,
+  width = 350,
+  onResize,
 }) => {
+  const resizeRef = React.useRef<HTMLDivElement>(null);
+  const isResizingRef = React.useRef(false);
+  const startXRef = React.useRef(0);
+  const startWidthRef = React.useRef(0);
+
+  React.useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingRef.current || !onResize) return;
+      const deltaX = e.clientX - startXRef.current;
+      const newWidth = startWidthRef.current + deltaX;
+      onResize(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      isResizingRef.current = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [onResize]);
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    isResizingRef.current = true;
+    startXRef.current = e.clientX;
+    startWidthRef.current = width;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  };
   const renderContent = () => {
     // If showing commit files, override the view
     if (showingCommitFiles && commitFiles.length > 0) {
@@ -181,7 +223,19 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
     }
   };
 
-  return <div className="middle-panel">{renderContent()}</div>;
+  return (
+    <div 
+      ref={resizeRef}
+      className="middle-panel" 
+      style={{ width: `${width}px` }}
+    >
+      {renderContent()}
+      <div 
+        className="middle-panel-resize-handle"
+        onMouseDown={handleResizeStart}
+      />
+    </div>
+  );
 };
 
 export default MiddlePanel;

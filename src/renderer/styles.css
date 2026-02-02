@@ -145,7 +145,6 @@ body.dark-theme ::-webkit-scrollbar-corner {
 
 /* Middle Panel - content panel */
 .middle-panel {
-  width: 350px;
   min-width: 200px;
   max-width: 800px;
   background-color: var(--bg-primary);
@@ -153,7 +152,28 @@ body.dark-theme ::-webkit-scrollbar-corner {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  resize: horizontal;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.middle-panel-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.middle-panel-resize-handle:hover {
+  background-color: var(--accent-color);
+}
+
+.middle-panel-resize-handle:active {
+  background-color: var(--accent-color);
 }
 
 .middle-panel-content {

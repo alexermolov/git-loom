@@ -30,12 +30,17 @@ const App: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<CommitFile | null>(null);
   const [fileDiff, setFileDiff] = useState<FileDiff | null>(null);
   const [showingCommitFiles, setShowingCommitFiles] = useState(false);
+  const [middlePanelWidth, setMiddlePanelWidth] = useState(350);
 
   // Load theme from localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
       setIsDarkTheme(true);
+    }
+    const savedWidth = localStorage.getItem('middlePanelWidth');
+    if (savedWidth) {
+      setMiddlePanelWidth(parseInt(savedWidth, 10));
     }
   }, []);
 
@@ -52,6 +57,12 @@ const App: React.FC = () => {
 
   const toggleTheme = () => {
     setIsDarkTheme(!isDarkTheme);
+  };
+
+  const handleMiddlePanelResize = (newWidth: number) => {
+    const clampedWidth = Math.max(200, Math.min(800, newWidth));
+    setMiddlePanelWidth(clampedWidth);
+    localStorage.setItem('middlePanelWidth', clampedWidth.toString());
   };
 
   // Auto-load last folder on startup
@@ -377,10 +388,22 @@ const App: React.FC = () => {
       setSelectedCommit(null);
     }
     
-    // Show graph when graph view is selected
+    // Reset right panel state and show appropriate view for the mode
     if (view === 'graph') {
       setMainPanelView('graph');
       setFileDiff(null);
+      setSelectedFile(null);
+    } else if (view === 'reflog') {
+      // Reflog is shown in main panel, clear diff state
+      setMainPanelView('graph');
+      setFileDiff(null);
+      setSelectedFile(null);
+    } else {
+      // For other views (changes, branches, fileTree, commits), reset diff state
+      // This ensures the right panel doesn't get stuck showing a diff
+      setFileDiff(null);
+      setSelectedFile(null);
+      setMainPanelView('graph');
     }
   };
 
@@ -576,6 +599,8 @@ const App: React.FC = () => {
             onReflogEntryClick={handleReflogEntryClick}
             showingCommitFiles={showingCommitFiles}
             onBackToCommits={handleBackToCommits}
+            width={middlePanelWidth}
+            onResize={handleMiddlePanelResize}
           />
           
           <div className="main-panel">
