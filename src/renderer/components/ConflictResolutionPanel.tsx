@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { List, Button, Tag, Space, Modal, message, Divider, Tooltip } from 'antd';
+import { List, Button, Tag, Space, Modal, message, Divider, Tooltip, Spin } from 'antd';
 import {
   WarningOutlined,
   CheckCircleOutlined,
@@ -14,12 +14,14 @@ interface ConflictResolutionPanelProps {
   repoPath: string | null;
   onFileClick?: (filePath: string) => void;
   onRefresh?: () => void;
+  loading?: boolean;
 }
 
 const ConflictResolutionPanel: React.FC<ConflictResolutionPanelProps> = ({
   repoPath,
   onFileClick,
   onRefresh,
+  loading: externalLoading = false,
 }) => {
   const [conflictedFiles, setConflictedFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -128,6 +130,19 @@ const ConflictResolutionPanel: React.FC<ConflictResolutionPanelProps> = ({
         <div style={{ color: 'var(--text-secondary)' }}>
           No repository selected
         </div>
+      </div>
+    );
+  }
+
+  if (loading || externalLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '200px' 
+      }}>
+        <Spin size="large" tip="Loading conflicts..." />
       </div>
     );
   }

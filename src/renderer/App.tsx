@@ -36,6 +36,12 @@ const App: React.FC = () => {
   const [middlePanelWidth, setMiddlePanelWidth] = useState(350);
   const [conflictCount, setConflictCount] = useState(0);
   const [selectedStash, setSelectedStash] = useState<StashEntry | null>(null);
+  
+  // Loading states for different panels
+  const [loadingBranches, setLoadingBranches] = useState(false);
+  const [loadingReflog, setLoadingReflog] = useState(false);
+  const [loadingStash, setLoadingStash] = useState(false);
+  const [loadingConflicts, setLoadingConflicts] = useState(false);
 
   // Load theme from localStorage
   useEffect(() => {
@@ -267,6 +273,8 @@ const App: React.FC = () => {
   const handleSelectRepository = async (repoPath: string) => {
     setSelectedRepo(repoPath);
     setLoading(true);
+    
+    // Очистка всех данных предыдущего репозитория при переключении
     setActiveView('commits');
     setMainPanelView('graph');
     setSelectedCommit(null);
@@ -274,6 +282,17 @@ const App: React.FC = () => {
     setSelectedFile(null);
     setFileDiff(null);
     setShowingCommitFiles(false);
+    setCommits([]);
+    setBranches([]);
+    setHasMoreCommits(false);
+    setLoadingMoreCommits(false);
+    setConflictCount(0);
+    setSelectedStash(null);
+    setCurrentBranch('');
+    setLoadingBranches(false);
+    setLoadingReflog(false);
+    setLoadingStash(false);
+    setLoadingConflicts(false);
 
     try {
       const repo = repositories.get(repoPath);
@@ -328,12 +347,15 @@ const App: React.FC = () => {
   };
 
   const loadConflictCount = async (repoPath: string) => {
+    setLoadingConflicts(true);
     try {
       const conflictedFiles = await window.electronAPI.getConflictedFiles(repoPath);
       setConflictCount(conflictedFiles.length);
     } catch (error) {
       // Ignore errors, conflicts might not exist
       setConflictCount(0);
+    } finally {
+      setLoadingConflicts(false);
     }
   };
 
@@ -501,14 +523,18 @@ const App: React.FC = () => {
     try {
       if (view === 'branches' && branches.length === 0) {
         // Load branches only when user clicks on branches tab
+        setLoadingBranches(true);
         const branchesData = await window.electronAPI.getBranches(selectedRepo);
         setBranches(branchesData);
+        setLoadingBranches(false);
       } else if (view === 'conflicts') {
         // Load conflicts count when user clicks on conflicts tab
         await loadConflictCount(selectedRepo);
       }
     } catch (error) {
       console.error('Error loading view data:', error);
+      setLoadingBranches(false);
+      setLoadingConflicts(false);
     }
   };
 
@@ -519,8 +545,17 @@ const App: React.FC = () => {
       const info = await window.electronAPI.getRepositoryInfo(selectedRepo);
       updateRepoInfo(selectedRepo, info);
       await refreshSelectedRepoPanels(selectedRepo, info);
+      
+      // Refresh loading states based on current view
+      if (activeView === 'branches' && branches.length === 0) {
+        setLoadingBranches(true);
+        const branchesData = await window.electronAPI.getBranches(selectedRepo);
+        setBranches(branchesData);
+        setLoadingBranches(false);
+      }
     } catch (error) {
       console.error('Error refreshing after changes:', error);
+      setLoadingBranches(false);
     }
   };
 
@@ -774,6 +809,10 @@ const App: React.FC = () => {
             selectedStashIndex={selectedStash?.index ?? null}
             onConflictFileClick={handleConflictFileClick}
             onConflictsRefresh={handleConflictsRefresh}
+            loadingBranches={loadingBranches}
+            loadingReflog={loadingReflog}
+            loadingStash={loadingStash}
+            loadingConflicts={loadingConflicts}
             showingCommitFiles={showingCommitFiles}
             onBackToCommits={handleBackToCommits}
             width={middlePanelWidth}

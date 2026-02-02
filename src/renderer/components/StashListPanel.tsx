@@ -10,6 +10,7 @@ import {
   Space,
   Tag,
   Empty,
+  Spin,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,6 +30,7 @@ interface StashListPanelProps {
   onRefresh?: () => void;
   onStashSelect?: (stash: StashEntry) => void;
   selectedStashIndex?: number | null;
+  loading?: boolean;
 }
 
 const StashListPanel: React.FC<StashListPanelProps> = ({
@@ -36,6 +38,7 @@ const StashListPanel: React.FC<StashListPanelProps> = ({
   onRefresh,
   onStashSelect,
   selectedStashIndex,
+  loading: externalLoading = false,
 }) => {
   const [stashes, setStashes] = useState<StashEntry[]>([]);
   const [loading, setLoading] = useState(false);
@@ -387,7 +390,16 @@ const StashListPanel: React.FC<StashListPanelProps> = ({
       </div>
 
       <div style={{ flex: 1, overflow: "auto" }}>
-        {stashes.length === 0 ? (
+        {loading || externalLoading ? (
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            height: '200px' 
+          }}>
+            <Spin size="large" tip="Loading stashes..." />
+          </div>
+        ) : stashes.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description="No stashes"

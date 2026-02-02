@@ -1,5 +1,5 @@
 import React from 'react';
-import { Empty, Tree, Dropdown, Modal } from 'antd';
+import { Empty, Tree, Dropdown, Modal, Spin } from 'antd';
 import type { MenuProps } from 'antd';
 import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, MergeCellsOutlined, SwapOutlined } from '@ant-design/icons';
 import { BranchInfo } from '../types';
@@ -11,9 +11,10 @@ interface BranchTreePanelProps {
   currentBranch: string;
   onCheckoutBranch?: (branchName: string) => void;
   onMergeBranch?: (branchName: string) => void;
+  loading?: boolean;
 }
 
-const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, currentBranch, onCheckoutBranch, onMergeBranch }) => {
+const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, currentBranch, onCheckoutBranch, onMergeBranch, loading = false }) => {
   const handleBranchAction = (action: 'checkout' | 'merge', branchName: string, displayName: string) => {
     const isCurrent = branchName === currentBranch;
     
@@ -196,6 +197,19 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
 
     return convertNode(root);
   };
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '200px' 
+      }}>
+        <Spin size="large" tip="Loading branches..." />
+      </div>
+    );
+  }
 
   if (!branches || branches.length === 0) {
     return (
