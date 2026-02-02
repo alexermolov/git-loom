@@ -279,20 +279,13 @@ const App: React.FC = () => {
       const repo = repositories.get(repoPath);
       if (!repo) return;
 
-      // Load first 25 commits and branches in parallel
-      const [commitsData, branchesData] = await Promise.all([
-        window.electronAPI.getCommits(repoPath, undefined, 0, 25),
-        window.electronAPI.getBranches(repoPath),
-      ]);
+      // Load only commits initially - branches and conflicts will load on-demand
+      const commitsData = await window.electronAPI.getCommits(repoPath, undefined, 0, 25);
 
       setCommits(commitsData);
       // Check if there are potentially more commits (if we got exactly 25, there might be more)
       setHasMoreCommits(commitsData.length === 25);
-      setBranches(branchesData);
       setCurrentBranch(repo.currentBranch);
-      
-      // Load conflict count
-      await loadConflictCount(repoPath);
     } catch (error) {
       console.error('Error loading repository data:', error);
       message.error('Failed to load repository data');
@@ -314,16 +307,21 @@ const App: React.FC = () => {
 
     setCurrentBranch(info.currentBranch);
     try {
-      const [commitsData, branchesData] = await Promise.all([
-        window.electronAPI.getCommits(repoPath, undefined, 0, 25),
-        window.electronAPI.getBranches(repoPath),
-      ]);
-      setCommits(commitsData);
-      setHasMoreCommits(commitsData.length === 25);
-      setBranches(branchesData);
-      
-      // Update conflict count
-      await loadConflictCount(repoPath);
+      // Refresh only if on commits view
+      if (activeView === 'commits') {
+        const commitsData = await window.electronAPI.getCommits(repoPath, undefined, 0, 25);
+        setCommits(commitsData);
+        setHasMoreCommits(commitsData.length === 25);
+      }
+      // Refresh branches if on branches view
+      if (activeView === 'branches') {
+        const branchesData = await window.electronAPI.getBranches(repoPath);
+        setBranches(branchesData);
+      }
+      // Refresh conflicts if on conflicts view
+      if (activeView === 'conflicts') {
+        await loadConflictCount(repoPath);
+      }
     } catch (error) {
       console.error('Error refreshing selected repository panels:', error);
     }
@@ -464,7 +462,7 @@ const App: React.FC = () => {
     }
   };
 
-  const handleViewChange = (view: ViewType) => {
+  const handleViewChange = async (view: ViewType) => {
     setActiveView(view);
     
     // Reset commit files view when switching views
@@ -495,6 +493,22 @@ const App: React.FC = () => {
       setFileDiff(null);
       setSelectedFile(null);
       setMainPanelView('graph');
+    }
+
+    // Load data on-demand when switching to specific views
+    if (!selectedRepo) return;
+    
+    try {
+      if (view === 'branches' && branches.length === 0) {
+        // Load branches only when user clicks on branches tab
+        const branchesData = await window.electronAPI.getBranches(selectedRepo);
+        setBranches(branchesData);
+      } else if (view === 'conflicts') {
+        // Load conflicts count when user clicks on conflicts tab
+        await loadConflictCount(selectedRepo);
+      }
+    } catch (error) {
+      console.error('Error loading view data:', error);
     }
   };
 
@@ -614,6 +628,7 @@ const App: React.FC = () => {
   };
 
   const renderMainPanel = () => {
+    // First priority: show file diff if requested
     if (mainPanelView === 'diff' && fileDiff) {
       return (
         <FileDiffPanel 
@@ -650,7 +665,8 @@ const App: React.FC = () => {
       );
     }
     
-    if (selectedRepo && branches.length > 0) {
+    // Show git graph for normal view (when not showing diff)
+    if (selectedRepo && branches.length > 0 && mainPanelView !== 'diff') {
       return <GitGraphView repoPath={selectedRepo} branches={branches} />;
     }
     

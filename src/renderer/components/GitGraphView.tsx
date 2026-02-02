@@ -65,6 +65,43 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
         return Array.from(new Set(names));
       };
 
+      const formatRefsForCommit = (refs: string[]) => {
+        if (!refs || refs.length === 0) return { branches: [], tags: [] };
+
+        const branches: string[] = [];
+        const tags: string[] = [];
+
+        for (const ref of refs) {
+          const trimmedRef = ref.trim();
+          if (trimmedRef.includes("tag:")) {
+            const tagName = trimmedRef
+              .replace(/.*tag:\s*/, "")
+              .split(",")[0]
+              .trim();
+            if (tagName) tags.push(tagName);
+          } else if (trimmedRef.includes("HEAD ->")) {
+            const branchName = trimmedRef
+              .replace(/.*HEAD -> /, "")
+              .split(",")[0]
+              .trim();
+            if (branchName) branches.push(branchName);
+          } else {
+            const branchName = normalizeBranchName(trimmedRef.split(",")[0]);
+            if (branchName && !branchName.includes("->"))
+              branches.push(branchName);
+          }
+        }
+
+        return {
+          branches: Array.from(new Set(branches)),
+          tags: Array.from(new Set(tags)),
+        };
+      };
+
+      const branchNameSet = new Set(branches.map((b) => b.name));
+      const pickPreferredBranchName = (names: string[]) =>
+        names.find((n) => branchNameSet.has(n)) ?? names[0];
+
       const newestRefs = commitDetails[0]?.refs || [];
       let mainBranchName = "master";
       for (const ref of newestRefs) {
@@ -85,37 +122,62 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
         }
       }
 
+      const commitByHash = new Map<string, CommitDetail>();
+      const tipByBranch = new Map<string, string>();
+      for (const commit of commitDetails) {
+        commitByHash.set(commit.hash, commit);
+        const names = extractBranchNames(commit.refs || []);
+        for (const name of names) {
+          if (!tipByBranch.has(name)) {
+            tipByBranch.set(name, commit.hash);
+          }
+        }
+      }
+
+      const branchByCommit = new Map<string, string>();
+      for (const [branchName, tipHash] of tipByBranch.entries()) {
+        const preferredName = pickPreferredBranchName([branchName]);
+        let currentHash: string | undefined = tipHash;
+        while (currentHash) {
+          if (branchByCommit.has(currentHash)) break;
+          branchByCommit.set(currentHash, preferredName ?? branchName);
+          const current = commitByHash.get(currentHash);
+          const parent = current?.parents?.[0];
+          if (!parent) break;
+          currentHash = parent;
+        }
+      }
+
       const branchMap = new Map<string, any>();
       const commitBranchMap = new Map<string, any>();
 
       const mainBranch = gitgraph.branch(mainBranchName);
       branchMap.set(mainBranchName, mainBranch);
 
+      const getOrCreateBranch = (name: string, parentBranch: any) => {
+        if (branchMap.has(name)) return branchMap.get(name);
+        const created = parentBranch.branch(name);
+        branchMap.set(name, created);
+        return created;
+      };
+
       const orderedCommits = [...commitDetails].reverse();
 
       for (const commit of orderedCommits) {
-        const branchNames = extractBranchNames(commit.refs || []);
-
-        let targetBranch = mainBranch;
         const firstParent = commit.parents[0];
-        if (firstParent && commitBranchMap.has(firstParent)) {
-          targetBranch = commitBranchMap.get(firstParent);
-        }
+        const parentBranch = firstParent
+          ? (commitBranchMap.get(firstParent) ?? mainBranch)
+          : mainBranch;
 
-        if (branchNames.length > 0) {
-          const preferredBranchName = branchNames[0];
-          if (!branchMap.has(preferredBranchName)) {
-            const created = targetBranch.branch(preferredBranchName);
-            branchMap.set(preferredBranchName, created);
-          }
-          targetBranch = branchMap.get(preferredBranchName);
-        }
+        const assignedBranchName =
+          branchByCommit.get(commit.hash) ||
+          (firstParent ? branchByCommit.get(firstParent) : undefined) ||
+          mainBranchName;
 
-        for (const branchName of branchNames) {
-          if (!branchMap.has(branchName)) {
-            branchMap.set(branchName, targetBranch.branch(branchName));
-          }
-        }
+        const targetBranch =
+          assignedBranchName === mainBranchName
+            ? mainBranch
+            : getOrCreateBranch(assignedBranchName, parentBranch);
 
         if (commit.parents.length > 1) {
           const mergeParents = commit.parents.slice(1);
@@ -124,10 +186,41 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
             const mergeFrom = commitBranchMap.get(parentHash);
             if (mergeFrom && mergeFrom !== targetBranch) {
               try {
+                const refs = formatRefsForCommit(commit.refs || []);
                 targetBranch.merge(mergeFrom, {
                   subject: commit.message.substring(0, 50),
                   hash: commit.hash.substring(0, 7),
                   author: commit.author,
+                  renderMessage: (commit: any) => {
+                    return (
+                      <text
+                        alignmentBaseline="central"
+                        fill={commit.style.message.color}
+                      >
+                        {commit.hashAbbrev} {commit.subject}
+                        {refs.branches.map((b, i) => (
+                          <tspan
+                            key={`b-${i}`}
+                            fill="#52c41a"
+                            fontWeight="bold"
+                            dx="8"
+                          >
+                            [{b}]
+                          </tspan>
+                        ))}
+                        {refs.tags.map((t, i) => (
+                          <tspan
+                            key={`t-${i}`}
+                            fill="#faad14"
+                            fontWeight="bold"
+                            dx="8"
+                          >
+                            🏷️{t}
+                          </tspan>
+                        ))}
+                      </text>
+                    );
+                  },
                 });
                 merged = true;
                 break;
@@ -138,17 +231,79 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
           }
 
           if (!merged) {
+            const refs = formatRefsForCommit(commit.refs || []);
             targetBranch.commit({
               subject: commit.message.substring(0, 50),
               hash: commit.hash.substring(0, 7),
               author: commit.author,
+              renderMessage: (commit: any) => {
+                return (
+                  <text
+                    alignmentBaseline="central"
+                    fill={commit.style.message.color}
+                  >
+                    {commit.hashAbbrev} {commit.subject}
+                    {refs.branches.map((b, i) => (
+                      <tspan
+                        key={`b-${i}`}
+                        fill="#52c41a"
+                        fontWeight="bold"
+                        dx="8"
+                      >
+                        [{b}]
+                      </tspan>
+                    ))}
+                    {refs.tags.map((t, i) => (
+                      <tspan
+                        key={`t-${i}`}
+                        fill="#faad14"
+                        fontWeight="bold"
+                        dx="8"
+                      >
+                        🏷️{t}
+                      </tspan>
+                    ))}
+                  </text>
+                );
+              },
             });
           }
         } else {
+          const refs = formatRefsForCommit(commit.refs || []);
           targetBranch.commit({
             subject: commit.message.substring(0, 50),
             hash: commit.hash.substring(0, 7),
             author: commit.author,
+            renderMessage: (commit: any) => {
+              return (
+                <text
+                  alignmentBaseline="central"
+                  fill={commit.style.message.color}
+                >
+                  {commit.hashAbbrev} {commit.subject}
+                  {refs.branches.map((b, i) => (
+                    <tspan
+                      key={`b-${i}`}
+                      fill="#52c41a"
+                      fontWeight="bold"
+                      dx="8"
+                    >
+                      [{b}]
+                    </tspan>
+                  ))}
+                  {refs.tags.map((t, i) => (
+                    <tspan
+                      key={`t-${i}`}
+                      fill="#faad14"
+                      fontWeight="bold"
+                      dx="8"
+                    >
+                      🏷️{t}
+                    </tspan>
+                  ))}
+                </text>
+              );
+            },
           });
         }
 
