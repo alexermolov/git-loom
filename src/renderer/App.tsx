@@ -298,7 +298,6 @@ const App: React.FC = () => {
   const handleCommitClick = async (commit: CommitInfo) => {
     if (!selectedRepo) return;
     
-    setLoading(true);
     setSelectedCommit(commit);
     
     try {
@@ -308,15 +307,12 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error loading commit files:', error);
       message.error('Failed to load commit files');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleFileClick = async (file: CommitFile) => {
     if (!selectedRepo || !selectedCommit) return;
     
-    setLoading(true);
     setSelectedFile(file);
     
     try {
@@ -326,8 +322,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error loading file diff:', error);
       message.error('Failed to load file diff');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -339,8 +333,6 @@ const App: React.FC = () => {
 
   const handleReflogEntryClick = async (entry: ReflogEntry) => {
     if (!selectedRepo) return;
-    
-    setLoading(true);
     
     try {
       // Load commit details for the reflog entry
@@ -361,8 +353,6 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error loading reflog entry details:', error);
       message.error('Failed to load reflog entry details');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -398,8 +388,6 @@ const App: React.FC = () => {
   const handleChangedFileClick = async (file: FileStatus) => {
     if (!selectedRepo) return;
     
-    setLoading(true);
-    
     try {
       const diff = await window.electronAPI.getWorkingFileDiff(selectedRepo, file.path, file.staged);
       setFileDiff(diff);
@@ -407,15 +395,25 @@ const App: React.FC = () => {
     } catch (error) {
       console.error('Error loading file diff:', error);
       message.error('Failed to load file diff');
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const handleFileExplorerFileClick = async (filePath: string) => {
+    if (!selectedRepo) return;
+    
+    try {
+      // For file explorer, show file diff against HEAD
+      const diff = await window.electronAPI.getWorkingFileDiff(selectedRepo, filePath, false);
+      setFileDiff(diff);
+      setMainPanelView('diff');
+    } catch (error) {
+      console.error('Error loading file diff:', error);
+      message.error('Failed to load file diff');
     }
   };
 
   const handleCheckoutBranch = async (branchName: string) => {
     if (!selectedRepo) return;
-    
-    setLoading(true);
     
     try {
       const info = await window.electronAPI.checkoutBranch(selectedRepo, branchName);
@@ -425,15 +423,11 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error('Error checking out branch:', error);
       message.error(error?.message ? `Checkout failed: ${error.message}` : 'Failed to checkout branch');
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleMergeBranch = async (branchName: string) => {
     if (!selectedRepo) return;
-    
-    setLoading(true);
     
     try {
       const info = await window.electronAPI.mergeBranch(selectedRepo, branchName);
@@ -443,8 +437,6 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error('Error merging branch:', error);
       message.error(error?.message ? `Merge failed: ${error.message}` : 'Failed to merge branch');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -529,6 +521,7 @@ const App: React.FC = () => {
             onCommitClick={handleCommitClick}
             onChangesRefresh={handleChangesRefresh}
             onChangedFileClick={handleChangedFileClick}
+            onFileExplorerFileClick={handleFileExplorerFileClick}
             branches={branches}
             currentBranch={currentBranch}
             onCheckoutBranch={handleCheckoutBranch}

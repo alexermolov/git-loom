@@ -126,6 +126,16 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
         return <EditOutlined style={{ color: '#eb2f96' }} />;
       case 'pull':
         return <ReloadOutlined style={{ color: '#13c2c2' }} />;
+      case 'amend':
+        return <EditOutlined style={{ color: '#faad14' }} />;
+      case 'fetch':
+        return <ReloadOutlined style={{ color: '#2db7f5' }} />;
+      case 'clone':
+        return <PullRequestOutlined style={{ color: '#87d068' }} />;
+      case 'cherry-pick':
+        return <PullRequestOutlined style={{ color: '#f759ab' }} />;
+      case 'initial':
+        return <CheckCircleOutlined style={{ color: '#096dd9' }} />;
       default:
         return <ClockCircleOutlined style={{ color: '#8c8c8c' }} />;
     }
@@ -145,6 +155,16 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
         return 'magenta';
       case 'pull':
         return 'cyan';
+      case 'amend':
+        return 'gold';
+      case 'fetch':
+        return 'blue';
+      case 'clone':
+        return 'green';
+      case 'cherry-pick':
+        return 'pink';
+      case 'initial':
+        return 'geekblue';
       default:
         return 'default';
     }
@@ -164,6 +184,16 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
         return '#eb2f96';
       case 'pull':
         return '#13c2c2';
+      case 'amend':
+        return '#faad14';
+      case 'fetch':
+        return '#2db7f5';
+      case 'clone':
+        return '#87d068';
+      case 'cherry-pick':
+        return '#f759ab';
+      case 'initial':
+        return '#096dd9';
       default:
         return '#8c8c8c';
     }
@@ -581,6 +611,13 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
         /* Timeline styles */
         .reflog-timeline {
           padding: 16px;
+          display: flex;
+          justify-content: center;
+        }
+
+        .reflog-timeline .ant-timeline {
+          max-width: 800px;
+          width: 100%;
         }
 
         .timeline-entry {

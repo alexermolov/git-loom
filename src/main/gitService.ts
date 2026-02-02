@@ -823,9 +823,32 @@ export async function getReflog(repoPath: string, ref: string = 'HEAD', maxCount
 
       const [selector, hash, refName, subject, date, author] = parts;
       
-      // Parse action from subject (e.g., "commit: message" or "checkout: moving from X to Y")
-      const actionMatch = subject.match(/^(\w+):/);
-      const action = actionMatch ? actionMatch[1] : 'unknown';
+      // Parse action from subject with improved detection
+      let action = 'unknown';
+      const subjectLower = subject.toLowerCase();
+      
+      // Check for specific patterns first
+      if (subjectLower.includes('merge') || subjectLower.match(/^merge\b/i)) {
+        action = 'merge';
+      } else if (subjectLower.includes('pull') || subjectLower.match(/pull.*into/i)) {
+        action = 'pull';
+      } else if (subjectLower.includes('rebase') || subjectLower.match(/^rebase/i)) {
+        action = 'rebase';
+      } else if (subjectLower.includes('amend') || subjectLower.match(/commit \(amend\)/i)) {
+        action = 'amend';
+      } else if (subjectLower.includes('clone') || subjectLower.match(/^clone/i)) {
+        action = 'clone';
+      } else if (subjectLower.includes('fetch') || subjectLower.match(/^fetch/i)) {
+        action = 'fetch';
+      } else if (subjectLower.includes('cherry-pick') || subjectLower.match(/cherry.?pick/i)) {
+        action = 'cherry-pick';
+      } else if (subjectLower.match(/^initial commit/i)) {
+        action = 'initial';
+      } else {
+        // Fall back to extracting first word before colon
+        const actionMatch = subject.match(/^(\w+):/);
+        action = actionMatch ? actionMatch[1] : 'unknown';
+      }
       
       entries.push({
         selector,

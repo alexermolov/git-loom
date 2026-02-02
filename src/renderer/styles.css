@@ -146,11 +146,14 @@ body.dark-theme ::-webkit-scrollbar-corner {
 /* Middle Panel - content panel */
 .middle-panel {
   width: 350px;
+  min-width: 200px;
+  max-width: 800px;
   background-color: var(--bg-primary);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  resize: horizontal;
 }
 
 .middle-panel-content {
@@ -291,6 +294,31 @@ body.dark-theme ::-webkit-scrollbar-corner {
   background-color: var(--bg-primary);
   overflow-y: auto;
   padding: 16px;
+}
+
+/* Changes Panel Styles */
+.changes-panel {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.changes-list {
+  background-color: var(--bg-primary);
+  border-color: var(--border-color);
+}
+
+.changes-list-item {
+  background-color: var(--bg-primary);
+  border-color: var(--border-light);
+  color: var(--text-primary);
+}
+
+.changes-list-item:hover {
+  background-color: var(--bg-hover);
+}
+
+.commit-section {
+  background-color: var(--bg-secondary);
 }
 
 .repository-item {

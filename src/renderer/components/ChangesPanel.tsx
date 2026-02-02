@@ -158,16 +158,14 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
   const stagedSelected = stagedFiles.filter(f => selectedFiles.has(f.path));
 
   return (
-    <div style={{ 
+    <div className="changes-panel" style={{ 
       padding: '12px', 
       height: '100%', 
       display: 'flex', 
-      flexDirection: 'column',
-      backgroundColor: '#1e1e1e',
-      color: '#d4d4d4'
+      flexDirection: 'column'
     }}>
       <div style={{ marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <h3 style={{ margin: 0, color: '#d4d4d4', fontSize: '16px' }}>Changes</h3>
+        <h3 style={{ margin: 0, fontSize: '16px' }}>Changes</h3>
         <Button onClick={loadStatus} loading={loading} size="small">
           Refresh
         </Button>
@@ -182,7 +180,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
             alignItems: 'center',
             marginBottom: '8px',
             padding: '4px 8px',
-            backgroundColor: '#252526',
+            backgroundColor: 'var(--bg-hover)',
             borderRadius: '4px'
           }}>
             <Space size="small">
@@ -191,7 +189,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                 indeterminate={stagedSelected.length > 0 && stagedSelected.length < stagedFiles.length}
                 onChange={(e) => handleSelectAll(true, e.target.checked)}
               />
-              <strong style={{ color: '#d4d4d4', fontSize: '13px' }}>Staged Changes ({stagedFiles.length})</strong>
+              <strong style={{ fontSize: '13px' }}>Staged Changes ({stagedFiles.length})</strong>
             </Space>
             {stagedSelected.length > 0 && (
               <Button
@@ -206,16 +204,14 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
           <List
             size="small"
             bordered
-            style={{ backgroundColor: '#2d2d30', borderColor: '#3e3e42' }}
+            className="changes-list"
             dataSource={stagedFiles}
             renderItem={(file) => (
               <List.Item
+                className="changes-list-item"
                 style={{ 
                   padding: '6px 10px', 
-                  cursor: onFileClick ? 'pointer' : 'default',
-                  backgroundColor: '#2d2d30',
-                  borderColor: '#3e3e42',
-                  color: '#d4d4d4'
+                  cursor: onFileClick ? 'pointer' : 'default'
                 }}
                 onClick={() => onFileClick && onFileClick(file)}
                 actions={[
@@ -240,10 +236,10 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                     }}
                   />
                   {getStatusIcon(file.status)}
-                  <span style={{ color: '#d4d4d4', fontSize: '13px' }}>{file.path}</span>
+                  <span style={{ fontSize: '13px' }}>{file.path}</span>
                   {getStatusTag(file.status)}
                   {file.oldPath && (
-                    <span style={{ fontSize: '11px', color: '#858585' }}>
+                    <span style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>
                       (from {file.oldPath})
                     </span>
                   )}
@@ -254,7 +250,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
           />
         </div>
 
-        <Divider style={{ margin: '12px 0', borderColor: '#3e3e42' }} />
+        <Divider style={{ margin: '12px 0' }} />
 
         {/* Unstaged Files */}
         <div>
@@ -264,7 +260,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
             alignItems: 'center',
             marginBottom: '8px',
             padding: '4px 8px',
-            backgroundColor: '#252526',
+            backgroundColor: 'var(--bg-hover)',
             borderRadius: '4px'
           }}>
             <Space size="small">
@@ -273,7 +269,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                 indeterminate={unstagedSelected.length > 0 && unstagedSelected.length < unstagedFiles.length}
                 onChange={(e) => handleSelectAll(false, e.target.checked)}
               />
-              <strong style={{ color: '#d4d4d4', fontSize: '13px' }}>Changes ({unstagedFiles.length})</strong>
+              <strong style={{ fontSize: '13px' }}>Changes ({unstagedFiles.length})</strong>
             </Space>
             {unstagedSelected.length > 0 && (
               <Button
@@ -288,16 +284,14 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
           <List
             size="small"
             bordered
-            style={{ backgroundColor: '#2d2d30', borderColor: '#3e3e42' }}
+            className="changes-list"
             dataSource={unstagedFiles}
             renderItem={(file) => (
               <List.Item
+                className="changes-list-item"
                 style={{ 
                   padding: '6px 10px', 
-                  cursor: onFileClick ? 'pointer' : 'default',
-                  backgroundColor: '#2d2d30',
-                  borderColor: '#3e3e42',
-                  color: '#d4d4d4'
+                  cursor: onFileClick ? 'pointer' : 'default'
                 }}
                 onClick={() => onFileClick && onFileClick(file)}
                 actions={[
@@ -322,7 +316,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                     }}
                   />
                   {getStatusIcon(file.status)}
-                  <span style={{ color: '#d4d4d4', fontSize: '13px' }}>{file.path}</span>
+                  <span style={{ fontSize: '13px' }}>{file.path}</span>
                   {getStatusTag(file.status)}
                 </Space>
               </List.Item>
@@ -333,22 +327,19 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
       </div>
 
       {/* Commit Section */}
-      <div style={{ 
-        borderTop: '1px solid #3e3e42', 
+      <div className="commit-section" style={{ 
+        borderTop: '1px solid var(--border-color)', 
         paddingTop: '12px',
-        backgroundColor: '#252526',
         padding: '12px',
-        borderRadius: '4px'
+        borderRadius: '4px',
+        backgroundColor: 'var(--bg-hover)'
       }}>
         <Input
           placeholder="Commit message..."
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
           style={{ 
-            marginBottom: '8px',
-            backgroundColor: '#1e1e1e',
-            borderColor: '#3e3e42',
-            color: '#d4d4d4'
+            marginBottom: '8px'
           }}
           onPressEnter={handleCommit}
         />

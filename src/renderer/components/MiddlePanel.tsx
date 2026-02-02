@@ -22,6 +22,9 @@ interface MiddlePanelProps {
   onChangesRefresh?: () => void;
   onChangedFileClick?: (file: FileStatus) => void;
   
+  // File Explorer view
+  onFileExplorerFileClick?: (filePath: string) => void;
+  
   // Branches view
   branches?: BranchInfo[];
   currentBranch?: string;
@@ -49,6 +52,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   onCommitClick,
   onChangesRefresh,
   onChangedFileClick,
+  onFileExplorerFileClick,
   branches = [],
   currentBranch = '',
   onCheckoutBranch,
@@ -137,9 +141,10 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
             <div className="middle-panel-header">
               <div className="middle-panel-title">File Explorer</div>
             </div>
-            <div className="middle-panel-info">
-              <Empty description="File tree view - coming soon" />
-            </div>
+            <FileTreePanel
+              repoPath={repoPath}ExplorerFile
+              onFileClick={onFileClick}
+            />
           </div>
         );
 
