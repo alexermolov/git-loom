@@ -81,8 +81,9 @@ export class GitWorkerPool {
     
     const args = [
       'log',
-      '--format=%H|%P|%s|%an|%ai|%D',
+      '--format=%H%x1f%P%x1f%s%x1f%an%x1f%ai%x1f%D',
       '--date-order',
+      '--topo-order',
       `--max-count=${maxCount}`,
       `--skip=${skip}`,
     ];
@@ -113,8 +114,8 @@ export class GitWorkerPool {
     const commits = [];
 
     for (const line of lines) {
-      const parts = line.split('|');
-      if (parts.length < 5) continue;
+      const parts = line.split('\x1f');
+      if (parts.length < 6) continue;
 
       const [hash, parentsStr, message, author, date, refsStr] = parts;
       const parents = parentsStr ? parentsStr.split(' ').filter(p => p.length > 0) : [];
