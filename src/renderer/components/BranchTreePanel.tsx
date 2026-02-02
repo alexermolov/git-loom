@@ -83,14 +83,9 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
     };
   };
 
-  const convertToAntdTree = (branch: BranchInfo): DataNode => {
+  const createBranchNode = (branch: BranchInfo, displayName: string): DataNode => {
     const isCurrent = branch.name === currentBranch;
     const isRemote = branch.name.startsWith('remotes/');
-    
-    // Format branch name for display
-    const displayName = isRemote 
-      ? branch.name.replace('remotes/', '') 
-      : branch.name;
     
     // Create title with status icons
     const title = (
@@ -121,6 +116,87 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
     };
   };
 
+  const buildBranchHierarchy = (branches: BranchInfo[], isRemote: boolean): DataNode[] => {
+    // Group branches by folder structure
+    interface BranchNode {
+      branches: BranchInfo[];
+      folders: Map<string, BranchNode>;
+    }
+
+    const root: BranchNode = { branches: [], folders: new Map() };
+
+    branches.forEach(branch => {
+      const displayName = isRemote 
+        ? branch.name.replace('remotes/', '') 
+        : branch.name;
+      
+      const parts = displayName.split('/');
+      
+      if (parts.length === 1) {
+        // Branch without folder
+        root.branches.push(branch);
+      } else {
+        // Branch with folder structure
+        let currentNode = root;
+        
+        // Navigate through folders
+        for (let i = 0; i < parts.length - 1; i++) {
+          const folderName = parts[i];
+          if (!currentNode.folders.has(folderName)) {
+            currentNode.folders.set(folderName, { branches: [], folders: new Map() });
+          }
+          currentNode = currentNode.folders.get(folderName)!;
+        }
+        
+        // Add branch to the final folder
+        currentNode.branches.push(branch);
+      }
+    });
+
+    // Convert to DataNode structure
+    const convertNode = (node: BranchNode, pathPrefix: string = ''): DataNode[] => {
+      const result: DataNode[] = [];
+
+      // Sort and add branches
+      const sortedBranches = [...node.branches].sort((a, b) => {
+        const aName = isRemote ? a.name.replace('remotes/', '') : a.name;
+        const bName = isRemote ? b.name.replace('remotes/', '') : b.name;
+        return aName.localeCompare(bName);
+      });
+
+      sortedBranches.forEach(branch => {
+        const displayName = isRemote 
+          ? branch.name.replace('remotes/', '').split('/').pop()!
+          : branch.name.split('/').pop()!;
+        result.push(createBranchNode(branch, displayName));
+      });
+
+      // Sort and add folders
+      const sortedFolders = Array.from(node.folders.entries()).sort((a, b) => 
+        a[0].localeCompare(b[0])
+      );
+
+      sortedFolders.forEach(([folderName, folderNode]) => {
+        const folderKey = `${pathPrefix}${folderName}/`;
+        const children = convertNode(folderNode, folderKey);
+        
+        if (children.length > 0) {
+          result.push({
+            title: <span style={{ fontWeight: 500 }}>{folderName}</span>,
+            key: folderKey,
+            icon: <BranchesOutlined style={{ color: '#8c8c8c' }} />,
+            children,
+            selectable: false,
+          });
+        }
+      });
+
+      return result;
+    };
+
+    return convertNode(root);
+  };
+
   if (!branches || branches.length === 0) {
     return (
       <div className="branch-tree-panel">
@@ -141,7 +217,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
       title: <strong>Local Branches ({localBranches.length})</strong>,
       key: 'local',
       icon: <BranchesOutlined />,
-      children: localBranches.map(convertToAntdTree),
+      children: buildBranchHierarchy(localBranches, false),
       selectable: false,
     });
   }
@@ -151,7 +227,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
       title: <strong>Remote Branches ({remoteBranches.length})</strong>,
       key: 'remote',
       icon: <BranchesOutlined />,
-      children: remoteBranches.map(convertToAntdTree),
+      children: buildBranchHierarchy(remoteBranches, true),
       selectable: false,
     });
   }
