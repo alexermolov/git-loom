@@ -509,8 +509,11 @@ const App: React.FC = () => {
       setMainPanelView('graph');
       setFileDiff(null);
       setSelectedFile(null);
+    } else if (view === 'changes') {
+      // For changes view, keep the diff state so clicking files shows diff in right panel
+      // Don't reset fileDiff or mainPanelView
     } else {
-      // For other views (changes, branches, fileTree, commits), reset diff state
+      // For other views (branches, fileTree, commits), reset diff state
       // This ensures the right panel doesn't get stuck showing a diff
       setFileDiff(null);
       setSelectedFile(null);
