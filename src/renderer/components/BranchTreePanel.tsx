@@ -91,6 +91,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
     const title = (
       <Dropdown menu={getContextMenu(branch)} trigger={['contextMenu']}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'context-menu' }}>
+          <BranchesOutlined style={{ color: isCurrent ? '#1890ff' : '#8c8c8c' }} />
           {isCurrent && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
           <span style={{ 
             fontWeight: isCurrent ? 600 : 400,
@@ -111,7 +112,6 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
     return {
       title,
       key: branch.name,
-      icon: <BranchesOutlined style={{ color: isCurrent ? '#1890ff' : '#8c8c8c' }} />,
       isLeaf: true,
     };
   };
@@ -257,7 +257,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
       
       <div style={{ flex: 1, overflow: 'auto' }}>
         <Tree
-          showIcon
+          showIcon={false}
           defaultExpandAll
           treeData={treeData}
           selectable={false}

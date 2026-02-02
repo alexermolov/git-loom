@@ -22,6 +22,16 @@ export interface ElectronAPI {
   resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<void>;
   cherryPickCommit: (repoPath: string, commitHash: string) => Promise<void>;
   getFileContent: (repoPath: string, filePath: string) => Promise<string>;
+  // Stash operations
+  createStash: (repoPath: string, message?: string, includeUntracked?: boolean) => Promise<void>;
+  getStashList: (repoPath: string) => Promise<StashEntry[]>;
+  applyStash: (repoPath: string, index: number) => Promise<void>;
+  popStash: (repoPath: string, index: number) => Promise<void>;
+  dropStash: (repoPath: string, index: number) => Promise<void>;
+  getStashDiff: (repoPath: string, index: number) => Promise<string>;
+  getStashFiles: (repoPath: string, index: number) => Promise<CommitFile[]>;
+  createBranchFromStash: (repoPath: string, index: number, branchName: string) => Promise<void>;
+  clearAllStashes: (repoPath: string) => Promise<void>;
 }
 
 export interface GitGraphRow {
@@ -100,6 +110,15 @@ export interface ReflogEntry {
   refName: string;
   action: string;
   message: string;
+  date: string;
+  author: string;
+}
+
+export interface StashEntry {
+  index: number;
+  hash: string;
+  message: string;
+  branch: string;
   date: string;
   author: string;
 }

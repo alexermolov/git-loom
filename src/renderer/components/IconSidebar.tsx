@@ -6,10 +6,11 @@ import {
   HistoryOutlined, 
   FolderOpenOutlined,
   ApartmentOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  SaveOutlined
 } from '@ant-design/icons';
 
-export type ViewType = 'changes' | 'commits' | 'graph' | 'branches' | 'fileTree' | 'reflog';
+export type ViewType = 'changes' | 'commits' | 'graph' | 'branches' | 'fileTree' | 'reflog' | 'stash';
 
 interface IconSidebarProps {
   activeView: ViewType;
@@ -20,8 +21,8 @@ const IconSidebar: React.FC<IconSidebarProps> = ({ activeView, onViewChange }) =
   const icons = [
     { key: 'changes' as ViewType, icon: <FileTextOutlined />, tooltip: 'Source Control' },
     { key: 'commits' as ViewType, icon: <HistoryOutlined />, tooltip: 'Commits History' },
-    { key: 'graph' as ViewType, icon: <ApartmentOutlined />, tooltip: 'Git Graph' },
     { key: 'branches' as ViewType, icon: <BranchesOutlined />, tooltip: 'Branches' },
+    { key: 'stash' as ViewType, icon: <SaveOutlined />, tooltip: 'Stashes' },
     { key: 'reflog' as ViewType, icon: <ClockCircleOutlined />, tooltip: 'Reflog' },
     { key: 'fileTree' as ViewType, icon: <FolderOpenOutlined />, tooltip: 'File Explorer' },
   ];

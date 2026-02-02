@@ -7,6 +7,7 @@ import MiddlePanel from './components/MiddlePanel';
 import FileDiffPanel from './components/FileDiffPanel';
 import GitGraphView from './components/GitGraphView';
 import ReflogPanel from './components/ReflogPanel';
+import StashPanel from './components/StashPanel';
 import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry } from './types';
 
 const App: React.FC = () => {
@@ -23,7 +24,7 @@ const App: React.FC = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   
   // New three-panel state management
-  const [activeView, setActiveView] = useState<ViewType>('graph');
+  const [activeView, setActiveView] = useState<ViewType>('commits');
   const [mainPanelView, setMainPanelView] = useState<'graph' | 'diff'>('graph');
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null);
   const [commitFiles, setCommitFiles] = useState<CommitFile[]>([]);
@@ -222,7 +223,7 @@ const App: React.FC = () => {
   const handleSelectRepository = async (repoPath: string) => {
     setSelectedRepo(repoPath);
     setLoading(true);
-    setActiveView('graph');
+    setActiveView('commits');
     setMainPanelView('graph');
     setSelectedCommit(null);
     setCommitFiles([]);
@@ -492,6 +493,18 @@ const App: React.FC = () => {
           <ReflogPanel
             repoPath={selectedRepo}
             onEntryClick={handleReflogEntryClick}
+          />
+        </div>
+      );
+    }
+    
+    // Show stash panel when stash view is active
+    if (activeView === 'stash' && selectedRepo) {
+      return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <StashPanel
+            repoPath={selectedRepo}
+            onRefresh={() => handleRefresh()}
           />
         </div>
       );

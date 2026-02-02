@@ -1,0 +1,45 @@
+name: Question
+description: Ask a question about GitLoom
+title: "[QUESTION] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to ask a question! Please check the [documentation](https://github.com/yourusername/gitloom#readme) and [FAQ](https://github.com/yourusername/gitloom/wiki/FAQ) first.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What would you like to know?
+      placeholder: Please be as specific as possible
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Any additional context that might help us answer your question
+      placeholder: What are you trying to accomplish?
+
+  - type: dropdown
+    id: searched
+    attributes:
+      label: Have you searched for similar questions?
+      options:
+        - "Yes"
+        - "No"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      options:
+        - label: I have read the documentation
+          required: true
+        - label: I have searched for similar questions
+          required: true

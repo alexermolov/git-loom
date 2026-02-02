@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -289,6 +289,98 @@ function setupIpcHandlers() {
       return await getFileContent(repoPath, filePath);
     } catch (error) {
       console.error('Error getting file content:', error);
+      throw error;
+    }
+  });
+
+  // ==================== STASH HANDLERS ====================
+
+  // Create stash
+  ipcMain.handle('git:createStash', async (_event, repoPath: string, message?: string, includeUntracked?: boolean) => {
+    try {
+      await createStash(repoPath, message, includeUntracked);
+    } catch (error) {
+      console.error('Error creating stash:', error);
+      throw error;
+    }
+  });
+
+  // Get stash list
+  ipcMain.handle('git:getStashList', async (_event, repoPath: string) => {
+    try {
+      return await getStashList(repoPath);
+    } catch (error) {
+      console.error('Error getting stash list:', error);
+      throw error;
+    }
+  });
+
+  // Apply stash
+  ipcMain.handle('git:applyStash', async (_event, repoPath: string, index: number) => {
+    try {
+      await applyStash(repoPath, index);
+    } catch (error) {
+      console.error('Error applying stash:', error);
+      throw error;
+    }
+  });
+
+  // Pop stash
+  ipcMain.handle('git:popStash', async (_event, repoPath: string, index: number) => {
+    try {
+      await popStash(repoPath, index);
+    } catch (error) {
+      console.error('Error popping stash:', error);
+      throw error;
+    }
+  });
+
+  // Drop stash
+  ipcMain.handle('git:dropStash', async (_event, repoPath: string, index: number) => {
+    try {
+      await dropStash(repoPath, index);
+    } catch (error) {
+      console.error('Error dropping stash:', error);
+      throw error;
+    }
+  });
+
+  // Get stash diff
+  ipcMain.handle('git:getStashDiff', async (_event, repoPath: string, index: number) => {
+    try {
+      return await getStashDiff(repoPath, index);
+    } catch (error) {
+      console.error('Error getting stash diff:', error);
+      throw error;
+    }
+  });
+
+  // Get stash files
+  ipcMain.handle('git:getStashFiles', async (_event, repoPath: string, index: number) => {
+    try {
+      return await getStashFiles(repoPath, index);
+    } catch (error) {
+      console.error('Error getting stash files:', error);
+      throw error;
+    }
+  });
+
+  // Create branch from stash
+  ipcMain.handle('git:createBranchFromStash', async (_event, repoPath: string, index: number, branchName: string) => {
+    try {
+      await createBranchFromStash(repoPath, index, branchName);
+    } catch (error) {
+      console.error('Error creating branch from stash:', error);
+      throw error;
+    }
+  });
+
+  // Clear all stashes
+  ipcMain.handle('git:clearAllStashes', async (_event, repoPath: string) => {
+    try {
+      await clearAllStashes(repoPath);
+    } catch (error) {
+      console.error('Error clearing stashes:', error);
       throw error;
     }
   });

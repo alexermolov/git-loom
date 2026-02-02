@@ -217,16 +217,34 @@ body.dark-theme ::-webkit-scrollbar-corner {
 
 .sidebar {
   width: 300px;
+  min-width: 300px;
   background-color: var(--bg-primary);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar-header {
   padding: 16px;
   border-bottom: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sidebar-header > div:first-child {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.sidebar-header > div:first-child button {
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .sidebar-content {

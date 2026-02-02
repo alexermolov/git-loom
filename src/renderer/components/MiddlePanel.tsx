@@ -7,6 +7,7 @@ import BranchTreePanel from './BranchTreePanel';
 import CommitFilesPanel from './CommitFilesPanel';
 import FileTreePanel from './FileTreePanel';
 import ReflogPanel from './ReflogPanel';
+import StashPanel from './StashPanel';
 import { CommitInfo, BranchInfo, CommitFile, FileStatus, ReflogEntry } from '../types';
 import { ViewType } from './IconSidebar';
 
@@ -40,6 +41,9 @@ interface MiddlePanelProps {
   // Reflog view
   onReflogEntryClick?: (entry: ReflogEntry) => void;
   
+  // Stash view
+  onStashRefresh?: () => void;
+  
   // Sub-view state
   showingCommitFiles?: boolean;
   onBackToCommits?: () => void;
@@ -63,6 +67,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   onMergeBranch,
   commitFiles = [],
   onReflogEntryClick,
+  onStashRefresh,
   selectedCommitHash = '',
   onFileClick,
   onBackToBranches,
@@ -187,6 +192,18 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               repoPath={repoPath}
               onFileClick={onFileExplorerFileClick}
             />
+          </div>
+        );
+
+      case 'stash':
+        return (
+          <div className="middle-panel-content">
+            <div className="middle-panel-header">
+              <div className="middle-panel-title">Stashes</div>
+            </div>
+            <div className="middle-panel-info">
+              <Empty description="Stash view is shown in the main panel" />
+            </div>
           </div>
         );
 

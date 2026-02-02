@@ -24,5 +24,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => ipcRenderer.invoke('git:resetToCommit', repoPath, commitHash, mode),
   cherryPickCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:cherryPickCommit', repoPath, commitHash),
   getFileContent: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileContent', repoPath, filePath),
+  // Stash operations
+  createStash: (repoPath: string, message?: string, includeUntracked?: boolean) => ipcRenderer.invoke('git:createStash', repoPath, message, includeUntracked),
+  getStashList: (repoPath: string) => ipcRenderer.invoke('git:getStashList', repoPath),
+  applyStash: (repoPath: string, index: number) => ipcRenderer.invoke('git:applyStash', repoPath, index),
+  popStash: (repoPath: string, index: number) => ipcRenderer.invoke('git:popStash', repoPath, index),
+  dropStash: (repoPath: string, index: number) => ipcRenderer.invoke('git:dropStash', repoPath, index),
+  getStashDiff: (repoPath: string, index: number) => ipcRenderer.invoke('git:getStashDiff', repoPath, index),
+  getStashFiles: (repoPath: string, index: number) => ipcRenderer.invoke('git:getStashFiles', repoPath, index),
+  createBranchFromStash: (repoPath: string, index: number, branchName: string) => ipcRenderer.invoke('git:createBranchFromStash', repoPath, index, branchName),
+  clearAllStashes: (repoPath: string) => ipcRenderer.invoke('git:clearAllStashes', repoPath),
 });
 

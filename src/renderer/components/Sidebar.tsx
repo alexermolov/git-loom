@@ -87,14 +87,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <div className="sidebar" style={{ width: collapsed ? '48px' : '300px', transition: 'width 0.3s' }}>
+    <div className="sidebar" style={{ width: collapsed ? '48px' : '300px', minWidth: collapsed ? '48px' : '300px', transition: 'width 0.3s, min-width 0.3s' }}>
       <div className="sidebar-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: collapsed ? 0 : 8 }}>
           <Tooltip title={collapsed ? 'Expand panel' : 'Collapse panel'}>
             <Button
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
               size="small"
+              style={{ flexShrink: 0 }}
             />
           </Tooltip>
           {!collapsed && onToggleTheme && (

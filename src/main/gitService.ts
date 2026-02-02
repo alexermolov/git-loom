@@ -93,6 +93,15 @@ export interface ReflogEntry {
   author: string;
 }
 
+export interface StashEntry {
+  index: number;
+  hash: string;
+  message: string;
+  branch: string;
+  date: string;
+  author: string;
+}
+
 export async function getCommitDetails(repoPath: string, branch?: string, maxCount: number = 200): Promise<CommitDetail[]> {
   const git: SimpleGit = simpleGit(repoPath);
 
@@ -914,6 +923,234 @@ export async function getFileContent(repoPath: string, filePath: string): Promis
     return content;
   } catch (error) {
     console.error('Error reading file content:', error);
+    throw error;
+  }
+}
+
+// ==================== STASH MANAGEMENT ====================
+
+// Create a stash with optional message
+export async function createStash(repoPath: string, message?: string, includeUntracked: boolean = false): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    const args = ['stash', 'push'];
+    
+    if (includeUntracked) {
+      args.push('-u');
+    }
+    
+    if (message) {
+      args.push('-m', message);
+    }
+    
+    await git.raw(args);
+  } catch (error) {
+    console.error('Error creating stash:', error);
+    throw error;
+  }
+}
+
+// Get list of all stashes
+export async function getStashList(repoPath: string): Promise<StashEntry[]> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // Format: %gD|%H|%gs|%gd|%ci|%cn
+    // %gD - reflog selector (stash@{0})
+    // %H - commit hash
+    // %gs - reflog subject (message)
+    // %gd - reflog ref name
+    // %ci - committer date ISO
+    // %cn - committer name
+    const output = await git.raw([
+      'stash',
+      'list',
+      '--format=%gD|%H|%gs|%gd|%ci|%cn',
+    ]);
+    
+    if (!output || output.trim().length === 0) {
+      return [];
+    }
+    
+    const lines = output
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+    
+    const stashes: StashEntry[] = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const parts = lines[i].split('|');
+      if (parts.length < 6) continue;
+      
+      const [selector, hash, subject, _refName, date, author] = parts;
+      
+      // Extract branch name from subject like "WIP on main: abc1234 commit message"
+      // or "On main: abc1234 commit message"
+      let branch = 'unknown';
+      let message = subject;
+      
+      const wipMatch = subject.match(/^(?:WIP on|On) ([^:]+):/);
+      if (wipMatch) {
+        branch = wipMatch[1];
+        // Extract the actual message after the branch
+        const messageMatch = subject.match(/^(?:WIP on|On) [^:]+: (.+)$/);
+        if (messageMatch) {
+          message = messageMatch[1];
+        }
+      }
+      
+      stashes.push({
+        index: i,
+        hash,
+        message,
+        branch,
+        date,
+        author,
+      });
+    }
+    
+    return stashes;
+  } catch (error) {
+    console.error('Error getting stash list:', error);
+    throw error;
+  }
+}
+
+// Apply a stash by index (keeps the stash in the list)
+export async function applyStash(repoPath: string, index: number): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    await git.raw(['stash', 'apply', `stash@{${index}}`]);
+  } catch (error) {
+    console.error('Error applying stash:', error);
+    throw error;
+  }
+}
+
+// Pop a stash by index (removes the stash from the list)
+export async function popStash(repoPath: string, index: number): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    await git.raw(['stash', 'pop', `stash@{${index}}`]);
+  } catch (error) {
+    console.error('Error popping stash:', error);
+    throw error;
+  }
+}
+
+// Drop (delete) a stash by index
+export async function dropStash(repoPath: string, index: number): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    await git.raw(['stash', 'drop', `stash@{${index}}`]);
+  } catch (error) {
+    console.error('Error dropping stash:', error);
+    throw error;
+  }
+}
+
+// Get diff of a stash
+export async function getStashDiff(repoPath: string, index: number): Promise<string> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    const diff = await git.raw(['stash', 'show', '-p', `stash@{${index}}`]);
+    return diff;
+  } catch (error) {
+    console.error('Error getting stash diff:', error);
+    throw error;
+  }
+}
+
+// Get stash files (list of changed files in a stash)
+export async function getStashFiles(repoPath: string, index: number): Promise<CommitFile[]> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // Get numstat for the stash
+    const output = await git.raw([
+      'stash',
+      'show',
+      '--numstat',
+      `stash@{${index}}`,
+    ]);
+    
+    if (!output || output.trim().length === 0) {
+      return [];
+    }
+    
+    const lines = output
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+    
+    const files: CommitFile[] = [];
+    
+    for (const line of lines) {
+      // Format: additions deletions filename
+      // or: - - filename (for binary files)
+      const parts = line.split(/\s+/);
+      if (parts.length < 3) continue;
+      
+      const [addStr, delStr, ...pathParts] = parts;
+      const filePath = pathParts.join(' ');
+      
+      const additions = addStr === '-' ? 0 : parseInt(addStr, 10);
+      const deletions = delStr === '-' ? 0 : parseInt(delStr, 10);
+      
+      // Determine status
+      let status: 'added' | 'modified' | 'deleted' | 'renamed' = 'modified';
+      if (additions > 0 && deletions === 0) {
+        status = 'added';
+      } else if (additions === 0 && deletions > 0) {
+        status = 'deleted';
+      }
+      
+      files.push({
+        path: filePath,
+        status,
+        additions,
+        deletions,
+      });
+    }
+    
+    return files;
+  } catch (error) {
+    console.error('Error getting stash files:', error);
+    throw error;
+  }
+}
+
+// Create a new branch from a stash
+export async function createBranchFromStash(
+  repoPath: string,
+  index: number,
+  branchName: string
+): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // This will create a branch and apply the stash, then drop the stash
+    await git.raw(['stash', 'branch', branchName, `stash@{${index}}`]);
+  } catch (error) {
+    console.error('Error creating branch from stash:', error);
+    throw error;
+  }
+}
+
+// Clear all stashes
+export async function clearAllStashes(repoPath: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    await git.raw(['stash', 'clear']);
+  } catch (error) {
+    console.error('Error clearing stashes:', error);
     throw error;
   }
 }
