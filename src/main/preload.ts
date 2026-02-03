@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getStatus: (repoPath: string) => ipcRenderer.invoke('git:getStatus', repoPath),
   stageFiles: (repoPath: string, filePaths: string[]) => ipcRenderer.invoke('git:stageFiles', repoPath, filePaths),
   unstageFiles: (repoPath: string, filePaths: string[]) => ipcRenderer.invoke('git:unstageFiles', repoPath, filePaths),
+  discardChanges: (repoPath: string, filePaths: string[]) => ipcRenderer.invoke('git:discardChanges', repoPath, filePaths),
   createCommit: (repoPath: string, message: string) => ipcRenderer.invoke('git:createCommit', repoPath, message),
   getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => ipcRenderer.invoke('git:getWorkingFileDiff', repoPath, filePath, staged),
   checkoutBranch: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:checkoutBranch', repoPath, branchName),

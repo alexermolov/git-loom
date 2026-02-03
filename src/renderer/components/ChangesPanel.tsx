@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { List, Button, Input, Checkbox, Tag, Space, Divider, message } from 'antd';
+import { List, Button, Input, Checkbox, Tag, Space, Divider, message, Modal, App } from 'antd';
 import { 
   PlusOutlined, 
   MinusOutlined, 
@@ -9,7 +9,8 @@ import {
   EditOutlined,
   SwapOutlined,
   CheckOutlined,
-  SearchOutlined
+  SearchOutlined,
+  RollbackOutlined
 } from '@ant-design/icons';
 import { FileStatus } from '../types';
 
@@ -22,6 +23,7 @@ interface ChangesPanelProps {
 }
 
 const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFileClick }) => {
+  const { modal } = App.useApp();
   const [files, setFiles] = useState<FileStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [commitMessage, setCommitMessage] = useState('');
@@ -77,6 +79,30 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
       console.error('Error unstaging files:', error);
       message.error('Failed to unstage files');
     }
+  };
+
+  const handleDiscardChanges = async (filePaths: string[]) => {
+    if (!repoPath) return;
+
+    modal.confirm({
+      title: 'Discard Changes',
+      content: `Are you sure you want to discard changes in ${filePaths.length} file(s)? This action cannot be undone.`,
+      okText: 'Discard',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await window.electronAPI.discardChanges(repoPath, filePaths);
+          message.success(`Discarded changes in ${filePaths.length} file(s)`);
+          await loadStatus();
+          setSelectedFiles(new Set());
+          if (onRefresh) onRefresh();
+        } catch (error) {
+          console.error('Error discarding changes:', error);
+          message.error('Failed to discard changes');
+        }
+      },
+    });
   };
 
   const handleCommit = async () => {
@@ -240,13 +266,12 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                   <Button
                     size="small"
                     icon={<MinusOutlined />}
+                    title="Unstage"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUnstageFiles([file.path]);
                     }}
-                  >
-                    Unstage
-                  </Button>
+                  />
                 ]}
               >
                 <Space size="small">
@@ -294,13 +319,23 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
               <strong style={{ fontSize: '13px' }}>Changes ({unstagedFiles.length})</strong>
             </Space>
             {unstagedSelected.length > 0 && (
-              <Button
-                size="small"
-                icon={<PlusOutlined />}
-                onClick={() => handleStageFiles(unstagedSelected.map(f => f.path))}
-              >
-                Stage Selected ({unstagedSelected.length})
-              </Button>
+              <Space size="small">
+                <Button
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={() => handleStageFiles(unstagedSelected.map(f => f.path))}
+                >
+                  Stage ({unstagedSelected.length})
+                </Button>
+                <Button
+                  size="small"
+                  danger
+                  icon={<RollbackOutlined />}
+                  onClick={() => handleDiscardChanges(unstagedSelected.map(f => f.path))}
+                >
+                  Discard ({unstagedSelected.length})
+                </Button>
+              </Space>
             )}
           </div>
           <List
@@ -320,13 +355,22 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
                   <Button
                     size="small"
                     icon={<PlusOutlined />}
+                    title="Stage"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleStageFiles([file.path]);
                     }}
-                  >
-                    Stage
-                  </Button>
+                  />,
+                  <Button
+                    size="small"
+                    danger
+                    icon={<RollbackOutlined />}
+                    title="Discard changes"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDiscardChanges([file.path]);
+                    }}
+                  />
                 ]}
               >
                 <Space size="small">

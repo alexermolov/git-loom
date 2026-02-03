@@ -1035,6 +1035,36 @@ export async function unstageFiles(repoPath: string, filePaths: string[]): Promi
   }
 }
 
+// Discard changes in files
+export async function discardChanges(repoPath: string, filePaths: string[]): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    // For each file, check if it's untracked or modified
+    const status = await git.status();
+    
+    for (const filePath of filePaths) {
+      // Check if file is untracked (new file)
+      if (status.not_added.includes(filePath)) {
+        // Delete untracked file
+        const fullPath = path.join(repoPath, filePath);
+        if (fs.existsSync(fullPath)) {
+          fs.unlinkSync(fullPath);
+        }
+      } else {
+        // For tracked files (modified, deleted, etc.), restore from HEAD
+        await git.checkout(['HEAD', '--', filePath]);
+      }
+    }
+    
+    // Invalidate cache after discarding changes
+    gitCache.invalidate(repoPath, 'status');
+  } catch (error) {
+    console.error('Error discarding changes:', error);
+    throw error;
+  }
+}
+
 // Create commit
 export async function createCommit(repoPath: string, message: string): Promise<void> {
   const git: SimpleGit = simpleGit(repoPath);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Button, Empty, Space, Tag, Tooltip, Modal, message } from "antd";
+import { Button, Empty, Space, Tag, Tooltip, Modal, message, App } from "antd";
 import {
   ArrowLeftOutlined,
   PlusOutlined,
@@ -28,6 +28,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   onRefresh,
 }) => {
   const { isDarkMode } = useTheme();
+  const { modal } = App.useApp();
   const [conflictInfo, setConflictInfo] = useState<ConflictFile | null>(null);
   const [resolving, setResolving] = useState(false);
   const [editingContent, setEditingContent] = useState<string | null>(null);
@@ -103,7 +104,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   ) => {
     if (!repoPath || !filePath) return;
 
-    Modal.confirm({
+    modal.confirm({
       title: `Resolve All Conflicts`,
       content: `Are you sure you want to resolve all conflicts in this file using "${resolution}"?`,
       okText: "Resolve All",
@@ -715,3 +716,4 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
 };
 
 export default FileDiffPanel;
+

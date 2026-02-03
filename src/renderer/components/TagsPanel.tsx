@@ -8,6 +8,7 @@ import {
   Tooltip,
   Popconfirm,
   Space,
+  App,
   Tag,
   Empty,
   Spin,
@@ -47,6 +48,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
   onRefresh,
 }) => {
   const { isDarkMode } = useTheme();
+  const { modal } = App.useApp();
   const [tags, setTags] = useState<TagInfo[]>([]);
   const [filteredTags, setFilteredTags] = useState<TagInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -244,7 +246,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
   const handleCheckoutTag = async (tag: TagInfo) => {
     if (!repoPath) return;
 
-    Modal.confirm({
+    modal.confirm({
       title: (
         <span style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
           Checkout Tag (Detached HEAD)
@@ -1068,3 +1070,4 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
 };
 
 export default TagsPanel;
+

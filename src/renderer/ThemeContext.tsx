@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ConfigProvider, theme } from 'antd';
+import { ConfigProvider, theme, App } from 'antd';
 import ruRU from 'antd/locale/ru_RU';
 
 type ThemeMode = 'light' | 'dark';
@@ -154,7 +154,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   return (
     <ThemeContext.Provider value={{ themeMode, toggleTheme, isDarkMode }}>
       <ConfigProvider theme={antdTheme} locale={ruRU}>
-        {children}
+        <App>
+          {children}
+        </App>
       </ConfigProvider>
     </ThemeContext.Provider>
   );

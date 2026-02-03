@@ -14,6 +14,7 @@ export interface ElectronAPI {
   getStatus: (repoPath: string) => Promise<FileStatus[]>;
   stageFiles: (repoPath: string, filePaths: string[]) => Promise<void>;
   unstageFiles: (repoPath: string, filePaths: string[]) => Promise<void>;
+  discardChanges: (repoPath: string, filePaths: string[]) => Promise<void>;
   createCommit: (repoPath: string, message: string) => Promise<void>;
   getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => Promise<FileDiff>;
   checkoutBranch: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;

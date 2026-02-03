@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { List, Button, Tag, Space, Modal, message, Divider, Tooltip, Spin } from 'antd';
+import { List, Button, Tag, Space, Modal, message, Divider, Tooltip, Spin, App } from 'antd';
 import {
   WarningOutlined,
   CheckCircleOutlined,
@@ -24,6 +24,7 @@ const ConflictResolutionPanel: React.FC<ConflictResolutionPanelProps> = ({
   onRefresh,
   loading: externalLoading = false,
 }) => {
+  const { modal } = App.useApp();
   const [conflictedFiles, setConflictedFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [resolving, setResolving] = useState<Record<string, boolean>>({});
@@ -86,7 +87,7 @@ const ConflictResolutionPanel: React.FC<ConflictResolutionPanelProps> = ({
   const handleAbortMerge = () => {
     if (!repoPath) return;
 
-    Modal.confirm({
+    modal.confirm({
       title: 'Abort Merge',
       content: 'Are you sure you want to abort the merge? All conflict resolution progress will be lost.',
       okText: 'Abort Merge',

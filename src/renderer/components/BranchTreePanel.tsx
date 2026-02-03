@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Empty, Tree, Dropdown, Modal, Spin, Input, Form, Select, message, Radio, Space } from 'antd';
+import { Empty, Tree, Dropdown, Modal, Spin, Input, Form, Select, message, Radio, Space, App } from 'antd';
 import type { MenuProps } from 'antd';
 import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, MergeCellsOutlined, SwapOutlined, SearchOutlined, PlusOutlined, DeleteOutlined, EditOutlined, LinkOutlined, DisconnectOutlined, DiffOutlined } from '@ant-design/icons';
 import { BranchInfo } from '../types';
@@ -16,11 +16,12 @@ interface BranchTreePanelProps {
 }
 
 const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, currentBranch, onCheckoutBranch, onMergeBranch, onRefresh, loading = false }) => {
+  const { modal } = App.useApp();
   const [filterText, setFilterText] = useState('');
 
   // Handle create new branch
   const handleCreateBranch = (fromCommit?: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Create New Branch',
       content: (
         <Form layout="vertical" style={{ marginTop: 16 }}>
@@ -61,7 +62,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
   const handleDeleteBranch = (branchName: string, isRemote: boolean) => {
     const displayName = isRemote ? branchName.replace('remotes/', '') : branchName;
     
-    Modal.confirm({
+    modal.confirm({
       title: `Delete ${isRemote ? 'Remote' : 'Local'} Branch`,
       content: `Are you sure you want to delete branch "${displayName}"? This action cannot be undone.`,
       okText: 'Delete',
@@ -81,7 +82,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
               message.success(`Branch "${branchName}" deleted successfully`);
             } else if (result.warning) {
               // Branch is not merged, ask for force delete
-              Modal.confirm({
+              modal.confirm({
                 title: 'Branch Not Merged',
                 content: result.warning + ' Do you want to force delete?',
                 okText: 'Force Delete',
@@ -110,7 +111,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
 
   // Handle rename branch
   const handleRenameBranch = (branchName: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Rename Branch',
       content: (
         <Form layout="vertical" style={{ marginTop: 16 }}>
@@ -162,7 +163,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
     let selectedRemote = remoteOptions[0] || 'origin';
     let selectedBranch = branchName;
 
-    Modal.confirm({
+    modal.confirm({
       title: 'Set Upstream Branch',
       content: (
         <Form layout="vertical" style={{ marginTop: 16 }}>
@@ -204,7 +205,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
 
   // Handle unset upstream
   const handleUnsetUpstream = (branchName: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: 'Unset Upstream Branch',
       content: `Remove upstream tracking for branch "${branchName}"?`,
       okText: 'Unset',
@@ -286,7 +287,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
         return;
       }
       
-      Modal.confirm({
+      modal.confirm({
         title: 'Checkout Branch',
         content: `Switch to branch "${displayName}"?`,
         okText: 'Checkout',
@@ -306,7 +307,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
       
       let selectedMode: 'auto' | 'no-ff' | 'ff-only' = 'no-ff';
       
-      Modal.confirm({
+      modal.confirm({
         title: 'Merge Branch',
         content: (
           <div>
