@@ -818,6 +818,7 @@ const App: React.FC = () => {
             loadingConflicts={loadingConflicts}
             showingCommitFiles={showingCommitFiles}
             onBackToCommits={handleBackToCommits}
+            isDarkTheme={isDarkTheme}
             width={middlePanelWidth}
             onResize={handleMiddlePanelResize}
           />

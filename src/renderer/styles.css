@@ -10,6 +10,9 @@
   --text-tertiary: #999999;
   --accent-color: #1890ff;
   --graph-bg: #ffffff;
+  --warning-bg: #fff7e6;
+  --warning-border: #ffd591;
+  --warning-text: #8c5800;
 }
 
 body.dark-theme {
@@ -24,6 +27,9 @@ body.dark-theme {
   --text-tertiary: #707070;
   --accent-color: #4a9eff;
   --graph-bg: #1f1f1f;
+  --warning-bg: #3a2e1a;
+  --warning-border: #6b5a2d;
+  --warning-text: #ffd591;
 }
 
 body {
@@ -94,6 +100,18 @@ body.dark-theme ::-webkit-scrollbar-thumb:active {
 
 body.dark-theme ::-webkit-scrollbar-corner {
   background: #1f1f1f;
+}
+
+/* Text selection - Light theme */
+::selection {
+  background-color: #0d3a5f;
+  color: #ffffff;
+}
+
+/* Text selection - Dark theme */
+body.dark-theme ::selection {
+  background-color: #4a9eff;
+  color: #000000;
 }
 
 #root {
@@ -180,7 +198,7 @@ body.dark-theme ::-webkit-scrollbar-corner {
   display: flex;
   flex-direction: column;
   height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .middle-panel-header {
@@ -203,7 +221,9 @@ body.dark-theme ::-webkit-scrollbar-corner {
 
 .middle-panel-info {
   padding: 20px;
-  text-align: center;
+  text-align: left;
+  overflow-y: auto;
+  flex: 1;
 }
 
 /* Main Panel - graph/diff display */
@@ -632,8 +652,17 @@ body.dark-theme .ant-tree .ant-tree-treenode-selected {
   background: var(--bg-active) !important;
 }
 
+body.dark-theme .ant-tree .ant-tree-treenode-selected .ant-tree-node-content-wrapper {
+  background: transparent !important;
+  color: var(--accent-color) !important;
+}
+
 body.dark-theme .ant-tree .ant-tree-treenode:hover {
   background: var(--bg-hover) !important;
+}
+
+body.dark-theme .ant-tree .ant-tree-node-content-wrapper:hover {
+  background: transparent !important;
 }
 
 body.dark-theme .ant-empty {
@@ -661,6 +690,18 @@ body.dark-theme .ant-list-item-meta-title {
 
 body.dark-theme .ant-list-item-meta-description {
   color: var(--text-secondary) !important;
+}
+
+body.dark-theme .ant-list-item:hover {
+  background: var(--bg-hover) !important;
+}
+
+body.dark-theme .ant-list-item-meta-title a {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-list-item-meta-title a:hover {
+  color: var(--accent-color) !important;
 }
 
 body.dark-theme .ant-tag {
@@ -692,6 +733,26 @@ body.dark-theme .ant-input-affix-wrapper {
 body.dark-theme .ant-input-affix-wrapper:hover,
 body.dark-theme .ant-input-affix-wrapper:focus-within {
   border-color: var(--accent-color) !important;
+}
+
+body.dark-theme .ant-input-textarea-show-count .ant-input {
+  background-color: var(--bg-hover) !important;
+}
+
+body.dark-theme textarea.ant-input {
+  background-color: var(--bg-hover) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme textarea.ant-input::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+body.dark-theme textarea.ant-input:hover,
+body.dark-theme textarea.ant-input:focus {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
 }
 
 body.dark-theme .ant-tooltip {
@@ -854,4 +915,46 @@ body.dark-theme .ant-modal-footer {
   cursor: default;
   font-weight: 600;
   line-height: 16px;
+}
+
+/* Dark theme improvements for better readability */
+body.dark-theme .repository-item.active {
+  background-color: var(--bg-active);
+  border-left-color: var(--accent-color);
+}
+
+body.dark-theme .repository-item.active .repository-name {
+  color: var(--accent-color);
+}
+
+body.dark-theme .commit-item.selected {
+  background-color: var(--bg-active);
+}
+
+body.dark-theme .file-tree-node.selected {
+  background-color: var(--bg-active);
+  color: var(--accent-color);
+}
+
+body.dark-theme code,
+body.dark-theme pre {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+body.dark-theme .ant-descriptions-item-label {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .ant-descriptions-item-content {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .ant-statistic-title {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .ant-statistic-content {
+  color: var(--text-primary) !important;
 }
