@@ -92,16 +92,16 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
     const title = (
       <Dropdown menu={getContextMenu(branch)} trigger={['contextMenu']}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'context-menu' }}>
-          <BranchesOutlined style={{ color: isCurrent ? '#1890ff' : '#8c8c8c' }} />
+          <BranchesOutlined style={{ color: isCurrent ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
           {isCurrent && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
           <span style={{ 
             fontWeight: isCurrent ? 600 : 400,
-            color: isCurrent ? '#1890ff' : isRemote ? '#8c8c8c' : 'inherit'
+            color: isCurrent ? 'var(--accent-color)' : isRemote ? 'var(--text-tertiary)' : 'var(--text-primary)'
           }}>
             {displayName}
           </span>
           {branch.lastCommitDate && (
-            <span style={{ fontSize: 12, color: '#8c8c8c', marginLeft: 4 }}>
+            <span style={{ fontSize: 12, color: 'var(--text-tertiary)', marginLeft: 4 }}>
               <ClockCircleOutlined style={{ marginRight: 4 }} />
               {new Date(branch.lastCommitDate).toLocaleDateString()}
             </span>
@@ -183,9 +183,9 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
         
         if (children.length > 0) {
           result.push({
-            title: <span style={{ fontWeight: 500 }}>{folderName}</span>,
+            title: <span style={{ fontWeight: 500, color: 'var(--text-primary)' }}>{folderName}</span>,
             key: folderKey,
-            icon: <BranchesOutlined style={{ color: '#8c8c8c' }} />,
+            icon: <BranchesOutlined style={{ color: 'var(--text-secondary)' }} />,
             children,
             selectable: false,
           });
@@ -228,9 +228,9 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
 
   if (localBranches.length > 0) {
     treeData.push({
-      title: <strong>Local Branches ({localBranches.length})</strong>,
+      title: <strong style={{ color: 'var(--text-primary)' }}>Local Branches ({localBranches.length})</strong>,
       key: 'local',
-      icon: <BranchesOutlined />,
+      icon: <BranchesOutlined style={{ color: 'var(--text-primary)' }} />,
       children: buildBranchHierarchy(localBranches, false),
       selectable: false,
     });
@@ -238,9 +238,9 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
 
   if (remoteBranches.length > 0) {
     treeData.push({
-      title: <strong>Remote Branches ({remoteBranches.length})</strong>,
+      title: <strong style={{ color: 'var(--text-primary)' }}>Remote Branches ({remoteBranches.length})</strong>,
       key: 'remote',
-      icon: <BranchesOutlined />,
+      icon: <BranchesOutlined style={{ color: 'var(--text-primary)' }} />,
       children: buildBranchHierarchy(remoteBranches, true),
       selectable: false,
     });

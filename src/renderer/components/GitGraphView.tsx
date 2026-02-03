@@ -189,7 +189,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
                 const refs = formatRefsForCommit(commit.refs || []);
                 targetBranch.merge(mergeFrom, {
                   subject: commit.message.substring(0, 50),
-                  hash: commit.hash.substring(0, 7),
+                  hash: commit.hash,
                   author: commit.author,
                   renderMessage: (commit: any) => {
                     return (
@@ -234,7 +234,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
             const refs = formatRefsForCommit(commit.refs || []);
             targetBranch.commit({
               subject: commit.message.substring(0, 50),
-              hash: commit.hash.substring(0, 7),
+              hash: commit.hash,
               author: commit.author,
               renderMessage: (commit: any) => {
                 return (
@@ -272,7 +272,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
           const refs = formatRefsForCommit(commit.refs || []);
           targetBranch.commit({
             subject: commit.message.substring(0, 50),
-            hash: commit.hash.substring(0, 7),
+            hash: commit.hash,
             author: commit.author,
             renderMessage: (commit: any) => {
               return (

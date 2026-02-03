@@ -1,15 +1,21 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const webpack = require('webpack');
 
 module.exports = {
-  target: 'electron-renderer',
+  target: 'web',
   entry: './src/renderer/index.tsx',
   output: {
     path: path.resolve(__dirname, 'dist/renderer'),
     filename: 'renderer.js'
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.jsx']
+    extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    fallback: {
+      'path': false,
+      'fs': false,
+      'events': require.resolve('events/')
+    }
   },
   module: {
     rules: [
@@ -27,6 +33,9 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       template: './src/renderer/index.html'
+    }),
+    new webpack.ProvidePlugin({
+      process: 'process/browser'
     })
   ],
   devServer: {
