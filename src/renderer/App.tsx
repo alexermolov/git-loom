@@ -676,8 +676,13 @@ const App: React.FC = () => {
     
     try {
       setLoadingBranches(true);
-      const branchesData = await window.electronAPI.getBranches(selectedRepo);
+      const [branchesData, info] = await Promise.all([
+        window.electronAPI.getBranches(selectedRepo),
+        window.electronAPI.getRepositoryInfo(selectedRepo)
+      ]);
       setBranches(branchesData);
+      setCurrentBranch(info.currentBranch);
+      updateRepoInfo(selectedRepo, info);
     } catch (error: any) {
       console.error('Error refreshing branches:', error);
       message.error('Failed to refresh branches');

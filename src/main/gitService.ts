@@ -822,40 +822,60 @@ function buildTreeFromPaths(paths: string[], rootPath: string): FileTreeNode {
 // Get detailed branch information
 export async function getBranches(repoPath: string): Promise<BranchInfo[]> {
   const git: SimpleGit = simpleGit(repoPath);
+  
+  // Check cache first
+  const cached = gitCache.get<BranchInfo[]>(repoPath, 'branches');
+  if (cached) {
+    return cached;
+  }
 
   try {
     // Get all branches including remotes
     const branchSummary: BranchSummary = await git.branch(['-a', '-v']);
-    const branches: BranchInfo[] = [];
-
-    for (const [branchName, branchData] of Object.entries(branchSummary.branches)) {
-      try {
-        // Get the last commit info for this branch
-        const log = await git.log({
-          maxCount: 1,
-          from: branchName,
-        });
-
-        const lastCommit = log.latest;
-
-        branches.push({
-          name: branchName,
-          commit: branchData.commit,
-          lastCommitDate: lastCommit?.date || '',
-          lastCommitMessage: lastCommit?.message || '',
-          author: lastCommit?.author_name || '',
-        });
-      } catch (error) {
-        // If we can't get commit info, still add the branch
-        branches.push({
-          name: branchName,
-          commit: branchData.commit,
-          lastCommitDate: '',
-          lastCommitMessage: '',
-          author: '',
+    
+    // Get all commits for branches in one batch query using git log with --all
+    // This is much faster than individual git.log() calls per branch
+    const logResult = await git.raw(
+      'log',
+      '--all',
+      '--branches',
+      '--remotes',
+      '--format=%H|%ai|%an|%s',
+      '-n', '1000' // Get last 1000 commits to cover all branches
+    );
+    
+    // Parse the log output into a map: commit hash -> commit info
+    const commitMap = new Map<string, { date: string; author: string; message: string }>();
+    const logLines = logResult.trim().split('\n').filter(line => line);
+    
+    for (const line of logLines) {
+      const [hash, date, author, ...messageParts] = line.split('|');
+      if (hash) {
+        commitMap.set(hash, {
+          date: date || '',
+          author: author || '',
+          message: messageParts.join('|') || ''
         });
       }
     }
+    
+    // Build branches array using pre-fetched commit data
+    const branches: BranchInfo[] = [];
+    
+    for (const [branchName, branchData] of Object.entries(branchSummary.branches)) {
+      const commitInfo = commitMap.get(branchData.commit);
+      
+      branches.push({
+        name: branchName,
+        commit: branchData.commit,
+        lastCommitDate: commitInfo?.date || '',
+        lastCommitMessage: commitInfo?.message || '',
+        author: commitInfo?.author || '',
+      });
+    }
+    
+    // Cache the result
+    gitCache.set(repoPath, 'branches', branches);
 
     return branches;
   } catch (error) {
