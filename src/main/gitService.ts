@@ -310,6 +310,171 @@ export async function mergeBranch(repoPath: string, branchName: string): Promise
   }
 }
 
+export async function createBranch(repoPath: string, branchName: string, startPoint?: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  // Validate branch name
+  if (!branchName || branchName.trim() === '') {
+    throw new Error('Branch name cannot be empty');
+  }
+
+  // Check if branch already exists
+  const branches = await git.branch();
+  if (branches.all.includes(branchName)) {
+    throw new Error(`Branch "${branchName}" already exists`);
+  }
+
+  // Create branch from start point (commit hash or branch name) or from HEAD
+  if (startPoint) {
+    await git.branch([branchName, startPoint]);
+  } else {
+    await git.branch([branchName]);
+  }
+
+  // Invalidate cache after creating branch
+  gitCache.invalidate(repoPath);
+}
+
+export async function deleteBranch(repoPath: string, branchName: string, force: boolean = false): Promise<{ deleted: boolean; warning?: string }> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  // Check if it's the current branch
+  const branchSummary = await git.branch();
+  if (branchSummary.current === branchName) {
+    throw new Error('Cannot delete the currently checked out branch');
+  }
+
+  // Check if branch is merged (unless force is true)
+  if (!force) {
+    try {
+      // Get list of merged branches
+      const mergedBranches = await git.raw(['branch', '--merged']);
+      const isMerged = mergedBranches.split('\n').some(line => line.trim() === branchName || line.trim() === `* ${branchName}`);
+      
+      if (!isMerged) {
+        return {
+          deleted: false,
+          warning: 'Branch is not fully merged. Use force delete to remove it anyway.'
+        };
+      }
+    } catch (error) {
+      console.error('Error checking if branch is merged:', error);
+    }
+  }
+
+  // Delete the branch
+  try {
+    await git.branch([force ? '-D' : '-d', branchName]);
+    gitCache.invalidate(repoPath);
+    return { deleted: true };
+  } catch (error: any) {
+    throw new Error(`Failed to delete branch: ${error.message}`);
+  }
+}
+
+export async function deleteRemoteBranch(repoPath: string, remoteName: string, branchName: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  // Delete the remote branch
+  try {
+    await git.push([remoteName, '--delete', branchName]);
+    gitCache.invalidate(repoPath);
+  } catch (error: any) {
+    throw new Error(`Failed to delete remote branch: ${error.message}`);
+  }
+}
+
+export async function renameBranch(repoPath: string, oldName: string, newName: string, renameRemote: boolean = false): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  // Validate new branch name
+  if (!newName || newName.trim() === '') {
+    throw new Error('New branch name cannot be empty');
+  }
+
+  // Check if new branch name already exists
+  const branches = await git.branch();
+  if (branches.all.includes(newName)) {
+    throw new Error(`Branch "${newName}" already exists`);
+  }
+
+  // Check if we're renaming the current branch
+  const isCurrentBranch = branches.current === oldName;
+
+  // Rename the local branch
+  if (isCurrentBranch) {
+    await git.branch(['-m', newName]);
+  } else {
+    await git.branch(['-m', oldName, newName]);
+  }
+
+  // If renaming remote branch as well
+  if (renameRemote) {
+    try {
+      // Get the remote tracking branch
+      const trackingInfo = await git.raw(['rev-parse', '--abbrev-ref', '--symbolic-full-name', `${oldName}@{u}`]);
+      if (trackingInfo && trackingInfo.trim()) {
+        const [remoteName, remoteBranch] = trackingInfo.trim().split('/');
+        
+        // Delete old remote branch and push new one
+        await git.push([remoteName, '--delete', remoteBranch]);
+        await git.push(['-u', remoteName, newName]);
+      }
+    } catch (error) {
+      // Remote branch might not exist, just continue
+      console.warn('Remote branch does not exist or could not be renamed:', error);
+    }
+  }
+
+  gitCache.invalidate(repoPath);
+}
+
+export async function setUpstreamBranch(repoPath: string, localBranch: string, remoteName: string, remoteBranch: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    await git.branch(['--set-upstream-to', `${remoteName}/${remoteBranch}`, localBranch]);
+    gitCache.invalidate(repoPath);
+  } catch (error: any) {
+    throw new Error(`Failed to set upstream branch: ${error.message}`);
+  }
+}
+
+export async function unsetUpstreamBranch(repoPath: string, branchName: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    await git.branch(['--unset-upstream', branchName]);
+    gitCache.invalidate(repoPath);
+  } catch (error: any) {
+    throw new Error(`Failed to unset upstream branch: ${error.message}`);
+  }
+}
+
+export async function compareBranches(repoPath: string, baseBranch: string, compareBranch: string): Promise<{
+  ahead: number;
+  behind: number;
+  files: { path: string; status: string; additions: number; deletions: number }[];
+}> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  // Get commits ahead/behind
+  const revList = await git.raw(['rev-list', '--left-right', '--count', `${baseBranch}...${compareBranch}`]);
+  const [behind, ahead] = revList.trim().split('\t').map(Number);
+
+  // Get file differences
+  const diffSummary = await git.diffSummary([baseBranch, compareBranch]);
+  
+  const files = diffSummary.files.map(file => ({
+    path: file.file,
+    status: file.binary ? 'binary' : 'modified',
+    additions: file.insertions,
+    deletions: file.deletions
+  }));
+
+  return { ahead, behind, files };
+}
+
 // Scan folder for all git repositories
 export async function scanForRepositories(folderPath: string): Promise<string[]> {
   const repositories: string[] = [];

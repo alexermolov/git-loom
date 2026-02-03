@@ -9,6 +9,8 @@
   --text-secondary: #666666;
   --text-tertiary: #999999;
   --accent-color: #1890ff;
+  --success-color: #52c41a;
+  --error-color: #ff4d4f;
   --graph-bg: #ffffff;
   --warning-bg: #fff7e6;
   --warning-border: #ffd591;
@@ -26,6 +28,8 @@ body.dark-theme {
   --text-secondary: #a0a0a0;
   --text-tertiary: #707070;
   --accent-color: #4a9eff;
+  --success-color: #73d13d;
+  --error-color: #ff7875;
   --graph-bg: #1f1f1f;
   --warning-bg: #3a2e1a;
   --warning-border: #6b5a2d;
@@ -320,6 +324,30 @@ body.dark-theme ::selection {
   display: flex;
   flex-direction: column;
   height: 100%;
+}
+
+.branch-tree-panel .new-branch-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  background: var(--accent-color);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  fontSize: 13px;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.branch-tree-panel .new-branch-btn:hover {
+  opacity: 0.85;
+  transform: translateY(-1px);
+}
+
+.branch-tree-panel .new-branch-btn:active {
+  opacity: 0.7;
+  transform: translateY(0);
 }
 
 .commit-files-panel {

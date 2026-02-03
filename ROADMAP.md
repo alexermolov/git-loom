@@ -8,6 +8,8 @@ This document outlines the planned features and improvements for GitLoom. Items 
 - **Performance Optimizations** (7/7 features) - Lazy loading, virtual scrolling, caching, worker threads
 - **Stash Management** (6/6 features) - Full stash operations with UI
 - **Conflict Resolution Interface** (6/6 features) - Visual conflict markers, quick actions, merge tool integration
+- **Branch Creation & Management** (9/9 features) - Complete branch operations including create, delete, rename, tracking, compare
+- **Remote Management** (8/8 features) - Full remote CRUD operations
 - **Advanced History Visualization** (4/8 features) - Git graph with branch filtering
 - **Search & Filter System** (4/4 features) - Global search, branch/file filtering
 - **Reflog Support** - View and interact with reflog entries
@@ -15,13 +17,12 @@ This document outlines the planned features and improvements for GitLoom. Items 
 - **File Operations** - File tree, diff viewer, working directory changes
 
 ### 🔄 In Progress
-- **Branch Creation & Management** (3/9 features) - Basic operations complete, advanced pending
 - **Tags Management** (0/7 features) - Not started
 
 ### 📈 Progress Overview
-- **v0.2.0 Must-Have Features**: 71% complete (5/7 fully done, 1 partial)
+- **v0.2.0 Must-Have Features**: 86% complete (6/7 fully done)
 - **v0.3.0 Enhanced Workflow**: 17% complete (1/6 partial)
-- **Overall Roadmap**: ~35% complete
+- **Overall Roadmap**: ~40% complete
 
 ---
 
@@ -99,24 +100,28 @@ These are essential features that significantly improve the core Git workflow ex
 - Integration with main UI and sidebar
 
 ### 4. Branch Creation & Management
-**Priority: HIGH** ⚠️ **PARTIALLY COMPLETED**
+**Priority: HIGH** ✅ **COMPLETED**
 
 - ✅ **Checkout branches** with safety checks
 - ✅ **View branch tree** with local and remote branches
 - ✅ **Merge branches** with conflict detection
-- ⏳ **Create new branch** from current HEAD or specific commit
-- ⏳ **Delete local branches** with safety checks (merged/unmerged warnings)
-- ⏳ **Delete remote branches**
-- ⏳ **Rename branches** locally and remotely
-- ⏳ **Track/untrack remote branches**
-- ⏳ **Compare branches** side-by-side with diff statistics
+- ✅ **Create new branch** from current HEAD or specific commit
+- ✅ **Delete local branches** with safety checks (merged/unmerged warnings)
+- ✅ **Delete remote branches**
+- ✅ **Rename branches** locally and remotely
+- ✅ **Track/untrack remote branches**
+- ✅ **Compare branches** side-by-side with diff statistics
 
-**Status**: Basic branch operations (checkout, merge, view) are implemented. Advanced operations (create, delete, rename, compare) are pending.
+**Status**: All branch operations fully implemented including create, delete, rename, tracking, and comparison features.
 
-**Completed**:
-- BranchTreePanel with hierarchical view
-- Checkout and merge operations
-- Context menu for branch actions
+**Implementation**:
+- BranchTreePanel with comprehensive context menu
+- Create branch from HEAD or specific commit
+- Delete branches with merge safety checks
+- Rename branches with optional remote sync
+- Set/unset upstream tracking branches
+- Compare branches with detailed diff statistics
+- Full integration with gitService and IPC handlers
 
 ### 5. Conflict Resolution Interface
 **Priority: HIGH** ✅ **COMPLETED**

@@ -41,6 +41,7 @@ interface MiddlePanelProps {
   currentBranch?: string;
   onCheckoutBranch?: (branchName: string) => void;
   onMergeBranch?: (branchName: string) => void;
+  onBranchesRefresh?: () => void;
 
   // Commit files view
   commitFiles?: CommitFile[];
@@ -92,6 +93,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   currentBranch = "",
   onCheckoutBranch,
   onMergeBranch,
+  onBranchesRefresh,
   commitFiles = [],
   onReflogEntryClick,
   onStashRefresh,
@@ -215,6 +217,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               branches={branches}
               currentBranch={currentBranch}
               onCheckoutBranch={onCheckoutBranch}
+              onRefresh={onBranchesRefresh}
               onMergeBranch={onMergeBranch}
               loading={loadingBranches}
             />

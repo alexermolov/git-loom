@@ -18,6 +18,14 @@ export interface ElectronAPI {
   getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => Promise<FileDiff>;
   checkoutBranch: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
   mergeBranch: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
+  // Branch management
+  createBranch: (repoPath: string, branchName: string, startPoint?: string) => Promise<BranchInfo[]>;
+  deleteBranch: (repoPath: string, branchName: string, force: boolean) => Promise<{ success: boolean; branches?: BranchInfo[]; warning?: string }>;
+  deleteRemoteBranch: (repoPath: string, remoteName: string, branchName: string) => Promise<BranchInfo[]>;
+  renameBranch: (repoPath: string, oldName: string, newName: string, renameRemote: boolean) => Promise<BranchInfo[]>;
+  setUpstreamBranch: (repoPath: string, localBranch: string, remoteName: string, remoteBranch: string) => Promise<BranchInfo[]>;
+  unsetUpstreamBranch: (repoPath: string, branchName: string) => Promise<BranchInfo[]>;
+  compareBranches: (repoPath: string, baseBranch: string, compareBranch: string) => Promise<BranchComparison>;
   getReflog: (repoPath: string, ref?: string, maxCount?: number) => Promise<ReflogEntry[]>;
   resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<void>;
   cherryPickCommit: (repoPath: string, commitHash: string) => Promise<void>;
@@ -118,6 +126,17 @@ export interface BranchInfo {
   lastCommitDate: string;
   lastCommitMessage: string;
   author: string;
+}
+
+export interface BranchComparison {
+  ahead: number;
+  behind: number;
+  files: {
+    path: string;
+    status: string;
+    additions: number;
+    deletions: number;
+  }[];
 }
 
 export interface CommitFile {

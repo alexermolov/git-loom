@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -248,6 +248,93 @@ function setupIpcHandlers() {
       return info;
     } catch (error) {
       console.error('Error merging branch:', error);
+      throw error;
+    }
+  });
+
+  // Create branch
+  ipcMain.handle('git:createBranch', async (_event, repoPath: string, branchName: string, startPoint?: string) => {
+    try {
+      await createBranch(repoPath, branchName, startPoint);
+      const branches = await getBranches(repoPath);
+      return branches;
+    } catch (error) {
+      console.error('Error creating branch:', error);
+      throw error;
+    }
+  });
+
+  // Delete branch
+  ipcMain.handle('git:deleteBranch', async (_event, repoPath: string, branchName: string, force: boolean) => {
+    try {
+      const result = await deleteBranch(repoPath, branchName, force);
+      if (result.deleted) {
+        const branches = await getBranches(repoPath);
+        return { success: true, branches };
+      } else {
+        return { success: false, warning: result.warning };
+      }
+    } catch (error) {
+      console.error('Error deleting branch:', error);
+      throw error;
+    }
+  });
+
+  // Delete remote branch
+  ipcMain.handle('git:deleteRemoteBranch', async (_event, repoPath: string, remoteName: string, branchName: string) => {
+    try {
+      await deleteRemoteBranch(repoPath, remoteName, branchName);
+      const branches = await getBranches(repoPath);
+      return branches;
+    } catch (error) {
+      console.error('Error deleting remote branch:', error);
+      throw error;
+    }
+  });
+
+  // Rename branch
+  ipcMain.handle('git:renameBranch', async (_event, repoPath: string, oldName: string, newName: string, renameRemote: boolean) => {
+    try {
+      await renameBranch(repoPath, oldName, newName, renameRemote);
+      const branches = await getBranches(repoPath);
+      return branches;
+    } catch (error) {
+      console.error('Error renaming branch:', error);
+      throw error;
+    }
+  });
+
+  // Set upstream branch
+  ipcMain.handle('git:setUpstreamBranch', async (_event, repoPath: string, localBranch: string, remoteName: string, remoteBranch: string) => {
+    try {
+      await setUpstreamBranch(repoPath, localBranch, remoteName, remoteBranch);
+      const branches = await getBranches(repoPath);
+      return branches;
+    } catch (error) {
+      console.error('Error setting upstream branch:', error);
+      throw error;
+    }
+  });
+
+  // Unset upstream branch
+  ipcMain.handle('git:unsetUpstreamBranch', async (_event, repoPath: string, branchName: string) => {
+    try {
+      await unsetUpstreamBranch(repoPath, branchName);
+      const branches = await getBranches(repoPath);
+      return branches;
+    } catch (error) {
+      console.error('Error unsetting upstream branch:', error);
+      throw error;
+    }
+  });
+
+  // Compare branches
+  ipcMain.handle('git:compareBranches', async (_event, repoPath: string, baseBranch: string, compareBranch: string) => {
+    try {
+      const comparison = await compareBranches(repoPath, baseBranch, compareBranch);
+      return comparison;
+    } catch (error) {
+      console.error('Error comparing branches:', error);
       throw error;
     }
   });

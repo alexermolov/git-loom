@@ -637,6 +637,21 @@ const App: React.FC = () => {
     }
   };
 
+  const handleBranchesRefresh = async () => {
+    if (!selectedRepo) return;
+    
+    try {
+      setLoadingBranches(true);
+      const branchesData = await window.electronAPI.getBranches(selectedRepo);
+      setBranches(branchesData);
+    } catch (error: any) {
+      console.error('Error refreshing branches:', error);
+      message.error('Failed to refresh branches');
+    } finally {
+      setLoadingBranches(false);
+    }
+  };
+
   const handleConflictFileClick = async (filePath: string) => {
     if (!selectedRepo) return;
     
@@ -841,6 +856,7 @@ const App: React.FC = () => {
             currentBranch={currentBranch}
             onCheckoutBranch={handleCheckoutBranch}
             onMergeBranch={handleMergeBranch}
+            onBranchesRefresh={handleBranchesRefresh}
             commitFiles={commitFiles}
             selectedCommitHash={selectedCommit?.hash}
             onFileClick={handleFileClick}

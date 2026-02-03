@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Empty, Tree, Dropdown, Modal, Spin, Input } from 'antd';
+import { Empty, Tree, Dropdown, Modal, Spin, Input, Form, Select, message } from 'antd';
 import type { MenuProps } from 'antd';
-import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, MergeCellsOutlined, SwapOutlined, SearchOutlined } from '@ant-design/icons';
+import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, MergeCellsOutlined, SwapOutlined, SearchOutlined, PlusOutlined, DeleteOutlined, EditOutlined, LinkOutlined, DisconnectOutlined, DiffOutlined } from '@ant-design/icons';
 import { BranchInfo } from '../types';
 import type { DataNode } from 'antd/es/tree';
 
@@ -11,11 +11,268 @@ interface BranchTreePanelProps {
   currentBranch: string;
   onCheckoutBranch?: (branchName: string) => void;
   onMergeBranch?: (branchName: string) => void;
+  onRefresh?: () => void;
   loading?: boolean;
 }
 
-const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, currentBranch, onCheckoutBranch, onMergeBranch, loading = false }) => {
+const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, currentBranch, onCheckoutBranch, onMergeBranch, onRefresh, loading = false }) => {
   const [filterText, setFilterText] = useState('');
+
+  // Handle create new branch
+  const handleCreateBranch = (fromCommit?: string) => {
+    Modal.confirm({
+      title: 'Create New Branch',
+      content: (
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item label="Branch Name" required>
+            <Input id="new-branch-name" placeholder="feature/my-new-feature" />
+          </Form.Item>
+          {fromCommit && (
+            <Form.Item label="Starting Point">
+              <Input value={fromCommit} disabled />
+            </Form.Item>
+          )}
+        </Form>
+      ),
+      okText: 'Create',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        const input = document.getElementById('new-branch-name') as HTMLInputElement;
+        const branchName = input?.value.trim();
+        
+        if (!branchName) {
+          message.error('Branch name is required');
+          return Promise.reject();
+        }
+
+        try {
+          await window.electronAPI.createBranch(repoPath, branchName, fromCommit);
+          message.success(`Branch "${branchName}" created successfully`);
+          onRefresh?.();
+        } catch (error: any) {
+          message.error(error.message || 'Failed to create branch');
+          throw error;
+        }
+      },
+    });
+  };
+
+  // Handle delete branch
+  const handleDeleteBranch = (branchName: string, isRemote: boolean) => {
+    const displayName = isRemote ? branchName.replace('remotes/', '') : branchName;
+    
+    Modal.confirm({
+      title: `Delete ${isRemote ? 'Remote' : 'Local'} Branch`,
+      content: `Are you sure you want to delete branch "${displayName}"? This action cannot be undone.`,
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          if (isRemote) {
+            const parts = branchName.replace('remotes/', '').split('/');
+            const remoteName = parts[0];
+            const remoteBranchName = parts.slice(1).join('/');
+            await window.electronAPI.deleteRemoteBranch(repoPath, remoteName, remoteBranchName);
+            message.success(`Remote branch "${displayName}" deleted successfully`);
+          } else {
+            const result = await window.electronAPI.deleteBranch(repoPath, branchName, false);
+            if (result.success) {
+              message.success(`Branch "${branchName}" deleted successfully`);
+            } else if (result.warning) {
+              // Branch is not merged, ask for force delete
+              Modal.confirm({
+                title: 'Branch Not Merged',
+                content: result.warning + ' Do you want to force delete?',
+                okText: 'Force Delete',
+                okButtonProps: { danger: true },
+                cancelText: 'Cancel',
+                onOk: async () => {
+                  try {
+                    await window.electronAPI.deleteBranch(repoPath, branchName, true);
+                    message.success(`Branch "${branchName}" force deleted successfully`);
+                    onRefresh?.();
+                  } catch (error: any) {
+                    message.error(error.message || 'Failed to delete branch');
+                  }
+                },
+              });
+              return;
+            }
+          }
+          onRefresh?.();
+        } catch (error: any) {
+          message.error(error.message || 'Failed to delete branch');
+        }
+      },
+    });
+  };
+
+  // Handle rename branch
+  const handleRenameBranch = (branchName: string) => {
+    Modal.confirm({
+      title: 'Rename Branch',
+      content: (
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item label="Current Name">
+            <Input value={branchName} disabled />
+          </Form.Item>
+          <Form.Item label="New Name" required>
+            <Input id="new-branch-name-rename" placeholder="feature/new-name" />
+          </Form.Item>
+          <Form.Item>
+            <label>
+              <input type="checkbox" id="rename-remote-checkbox" style={{ marginRight: 8 }} />
+              Also rename on remote (if tracking)
+            </label>
+          </Form.Item>
+        </Form>
+      ),
+      okText: 'Rename',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        const input = document.getElementById('new-branch-name-rename') as HTMLInputElement;
+        const checkbox = document.getElementById('rename-remote-checkbox') as HTMLInputElement;
+        const newName = input?.value.trim();
+        const renameRemote = checkbox?.checked || false;
+        
+        if (!newName) {
+          message.error('New branch name is required');
+          return Promise.reject();
+        }
+
+        try {
+          await window.electronAPI.renameBranch(repoPath, branchName, newName, renameRemote);
+          message.success(`Branch renamed from "${branchName}" to "${newName}"`);
+          onRefresh?.();
+        } catch (error: any) {
+          message.error(error.message || 'Failed to rename branch');
+          throw error;
+        }
+      },
+    });
+  };
+
+  // Handle set upstream
+  const handleSetUpstream = (branchName: string, remoteBranches: BranchInfo[]) => {
+    const remoteOptions = Array.from(
+      new Set(remoteBranches.map(b => b.name.replace('remotes/', '').split('/')[0]))
+    );
+
+    let selectedRemote = remoteOptions[0] || 'origin';
+    let selectedBranch = branchName;
+
+    Modal.confirm({
+      title: 'Set Upstream Branch',
+      content: (
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item label="Local Branch">
+            <Input value={branchName} disabled />
+          </Form.Item>
+          <Form.Item label="Remote" required>
+            <Select 
+              id="upstream-remote-select" 
+              defaultValue={selectedRemote}
+              options={remoteOptions.map(r => ({ label: r, value: r }))}
+            />
+          </Form.Item>
+          <Form.Item label="Remote Branch" required>
+            <Input id="upstream-branch-input" defaultValue={selectedBranch} placeholder="main" />
+          </Form.Item>
+        </Form>
+      ),
+      okText: 'Set Upstream',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        const remoteSelect = document.getElementById('upstream-remote-select') as any;
+        const branchInput = document.getElementById('upstream-branch-input') as HTMLInputElement;
+        
+        const remote = remoteSelect?.innerText || selectedRemote;
+        const remoteBranchName = branchInput?.value.trim() || selectedBranch;
+
+        try {
+          await window.electronAPI.setUpstreamBranch(repoPath, branchName, remote, remoteBranchName);
+          message.success(`Upstream set to ${remote}/${remoteBranchName}`);
+          onRefresh?.();
+        } catch (error: any) {
+          message.error(error.message || 'Failed to set upstream');
+          throw error;
+        }
+      },
+    });
+  };
+
+  // Handle unset upstream
+  const handleUnsetUpstream = (branchName: string) => {
+    Modal.confirm({
+      title: 'Unset Upstream Branch',
+      content: `Remove upstream tracking for branch "${branchName}"?`,
+      okText: 'Unset',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          await window.electronAPI.unsetUpstreamBranch(repoPath, branchName);
+          message.success(`Upstream unset for branch "${branchName}"`);
+          onRefresh?.();
+        } catch (error: any) {
+          message.error(error.message || 'Failed to unset upstream');
+        }
+      },
+    });
+  };
+
+  // Handle compare branches
+  const handleCompareBranches = (branchName: string) => {
+    Modal.info({
+      title: `Compare with "${branchName}"`,
+      content: (
+        <Form layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item label="Base Branch">
+            <Input value={currentBranch} disabled />
+          </Form.Item>
+          <Form.Item label="Compare Branch">
+            <Input value={branchName} disabled />
+          </Form.Item>
+        </Form>
+      ),
+      okText: 'Compare',
+      onOk: async () => {
+        try {
+          const comparison = await window.electronAPI.compareBranches(repoPath, currentBranch, branchName);
+          
+          Modal.info({
+            title: 'Branch Comparison',
+            width: 600,
+            content: (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ marginBottom: 16 }}>
+                  <strong>Commits Ahead:</strong> {comparison.ahead}<br />
+                  <strong>Commits Behind:</strong> {comparison.behind}
+                </div>
+                <div>
+                  <strong>Changed Files ({comparison.files.length}):</strong>
+                  <div style={{ maxHeight: 300, overflow: 'auto', marginTop: 8 }}>
+                    {comparison.files.map((file: any) => (
+                      <div key={file.path} style={{ padding: '4px 0', borderBottom: '1px solid var(--border-color)' }}>
+                        <div style={{ fontFamily: 'monospace', fontSize: 12 }}>{file.path}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                          <span style={{ color: 'var(--success-color)' }}>+{file.additions}</span>
+                          {' '}
+                          <span style={{ color: 'var(--error-color)' }}>-{file.deletions}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ),
+          });
+        } catch (error: any) {
+          message.error(error.message || 'Failed to compare branches');
+        }
+      },
+    });
+  };
 
   const handleBranchAction = (action: 'checkout' | 'merge', branchName: string, displayName: string) => {
     const isCurrent = branchName === currentBranch;
@@ -66,24 +323,80 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
       ? branch.name.replace('remotes/', '') 
       : branch.name;
     
-    return {
-      items: [
+    const menuItems: MenuProps['items'] = [
+      {
+        key: 'checkout',
+        label: isCurrent ? 'Current Branch' : 'Checkout',
+        icon: <SwapOutlined />,
+        disabled: isCurrent,
+        onClick: () => handleBranchAction('checkout', branch.name, displayName),
+      },
+      {
+        key: 'merge',
+        label: 'Merge into Current',
+        icon: <MergeCellsOutlined />,
+        disabled: isCurrent,
+        onClick: () => handleBranchAction('merge', branch.name, displayName),
+      },
+      { type: 'divider' },
+    ];
+
+    if (!isRemote) {
+      // Local branch actions
+      menuItems.push(
         {
-          key: 'checkout',
-          label: isCurrent ? 'Current Branch' : 'Checkout',
-          icon: <SwapOutlined />,
-          disabled: isCurrent,
-          onClick: () => handleBranchAction('checkout', branch.name, displayName),
+          key: 'rename',
+          label: 'Rename Branch',
+          icon: <EditOutlined />,
+          onClick: () => handleRenameBranch(branch.name),
         },
         {
-          key: 'merge',
-          label: 'Merge into Current',
-          icon: <MergeCellsOutlined />,
+          key: 'delete',
+          label: 'Delete Branch',
+          icon: <DeleteOutlined />,
+          danger: true,
           disabled: isCurrent,
-          onClick: () => handleBranchAction('merge', branch.name, displayName),
+          onClick: () => handleDeleteBranch(branch.name, false),
         },
-      ],
-    };
+        { type: 'divider' },
+        {
+          key: 'set-upstream',
+          label: 'Set Upstream',
+          icon: <LinkOutlined />,
+          onClick: () => handleSetUpstream(branch.name, branches.filter(b => b.name.startsWith('remotes/'))),
+        },
+        {
+          key: 'unset-upstream',
+          label: 'Unset Upstream',
+          icon: <DisconnectOutlined />,
+          onClick: () => handleUnsetUpstream(branch.name),
+        }
+      );
+    } else {
+      // Remote branch actions
+      menuItems.push(
+        {
+          key: 'delete-remote',
+          label: 'Delete Remote Branch',
+          icon: <DeleteOutlined />,
+          danger: true,
+          onClick: () => handleDeleteBranch(branch.name, true),
+        }
+      );
+    }
+
+    menuItems.push(
+      { type: 'divider' },
+      {
+        key: 'compare',
+        label: 'Compare with Current',
+        icon: <DiffOutlined />,
+        disabled: isCurrent,
+        onClick: () => handleCompareBranches(branch.name),
+      }
+    );
+
+    return { items: menuItems };
   };
 
   const createBranchNode = (branch: BranchInfo, displayName: string): DataNode => {
@@ -95,7 +408,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
       <Dropdown menu={getContextMenu(branch)} trigger={['contextMenu']}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'context-menu' }}>
           <BranchesOutlined style={{ color: isCurrent ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
-          {isCurrent && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+          {isCurrent && <CheckCircleOutlined style={{ color: 'var(--success-color)' }} />}
           <span style={{ 
             fontWeight: isCurrent ? 600 : 400,
             color: isCurrent ? 'var(--accent-color)' : isRemote ? 'var(--text-tertiary)' : 'var(--text-primary)'
@@ -278,11 +591,21 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
           fontSize: 16,
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
+          justifyContent: 'space-between',
           color: 'var(--text-primary)'
         }}>
-          <BranchesOutlined />
-          Git Branches
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BranchesOutlined />
+            Git Branches
+          </div>
+          <button
+            onClick={() => handleCreateBranch()}
+            className="new-branch-btn"
+            title="Create new branch"
+          >
+            <PlusOutlined />
+            New Branch
+          </button>
         </div>
         
         <Input
