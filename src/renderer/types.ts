@@ -40,6 +40,26 @@ export interface ElectronAPI {
   launchMergeTool: (repoPath: string, filePath: string) => Promise<void>;
   abortMerge: (repoPath: string) => Promise<void>;
   continueMerge: (repoPath: string) => Promise<void>;
+  // Search operations
+  searchCommits: (repoPath: string, filter: SearchFilter, limit?: number) => Promise<SearchResult[]>;
+  searchCommitsMultiRepo: (repoPaths: string[], filter: SearchFilter, limit?: number) => Promise<Record<string, SearchResult[]>>;
+  getAuthors: (repoPath: string) => Promise<string[]>;
+}
+
+export interface SearchFilter {
+  query?: string;
+  author?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  branch?: string;
+}
+
+export interface SearchResult {
+  hash: string;
+  date: string;
+  message: string;
+  author: string;
+  refs: string;
 }
 
 export interface GitGraphRow {

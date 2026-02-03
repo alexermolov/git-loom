@@ -1,7 +1,7 @@
-import React from 'react';
-import { Empty, Tree, Dropdown, Modal, Spin } from 'antd';
+import React, { useState } from 'react';
+import { Empty, Tree, Dropdown, Modal, Spin, Input } from 'antd';
 import type { MenuProps } from 'antd';
-import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, MergeCellsOutlined, SwapOutlined } from '@ant-design/icons';
+import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, MergeCellsOutlined, SwapOutlined, SearchOutlined } from '@ant-design/icons';
 import { BranchInfo } from '../types';
 import type { DataNode } from 'antd/es/tree';
 
@@ -15,6 +15,8 @@ interface BranchTreePanelProps {
 }
 
 const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, currentBranch, onCheckoutBranch, onMergeBranch, loading = false }) => {
+  const [filterText, setFilterText] = useState('');
+
   const handleBranchAction = (action: 'checkout' | 'merge', branchName: string, displayName: string) => {
     const isCurrent = branchName === currentBranch;
     
@@ -223,25 +225,39 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
   const localBranches = branches.filter(b => !b.name.startsWith('remotes/'));
   const remoteBranches = branches.filter(b => b.name.startsWith('remotes/'));
 
+  // Filter branches based on search text
+  const filterBranches = (branchList: BranchInfo[]) => {
+    if (!filterText.trim()) return branchList;
+    const query = filterText.toLowerCase();
+    return branchList.filter(b => 
+      b.name.toLowerCase().includes(query) ||
+      b.author?.toLowerCase().includes(query) ||
+      b.lastCommitMessage?.toLowerCase().includes(query)
+    );
+  };
+
+  const filteredLocalBranches = filterBranches(localBranches);
+  const filteredRemoteBranches = filterBranches(remoteBranches);
+
   // Create tree structure with local and remote groups
   const treeData: DataNode[] = [];
 
-  if (localBranches.length > 0) {
+  if (filteredLocalBranches.length > 0) {
     treeData.push({
-      title: <strong style={{ color: 'var(--text-primary)' }}>Local Branches ({localBranches.length})</strong>,
+      title: <strong style={{ color: 'var(--text-primary)' }}>Local Branches ({filteredLocalBranches.length})</strong>,
       key: 'local',
       icon: <BranchesOutlined style={{ color: 'var(--text-primary)' }} />,
-      children: buildBranchHierarchy(localBranches, false),
+      children: buildBranchHierarchy(filteredLocalBranches, false),
       selectable: false,
     });
   }
 
-  if (remoteBranches.length > 0) {
+  if (filteredRemoteBranches.length > 0) {
     treeData.push({
-      title: <strong style={{ color: 'var(--text-primary)' }}>Remote Branches ({remoteBranches.length})</strong>,
+      title: <strong style={{ color: 'var(--text-primary)' }}>Remote Branches ({filteredRemoteBranches.length})</strong>,
       key: 'remote',
       icon: <BranchesOutlined style={{ color: 'var(--text-primary)' }} />,
-      children: buildBranchHierarchy(remoteBranches, true),
+      children: buildBranchHierarchy(filteredRemoteBranches, true),
       selectable: false,
     });
   }
@@ -251,7 +267,8 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
       <div style={{ 
         marginBottom: 16, 
         display: 'flex',
-        alignItems: 'center',
+        flexDirection: 'column',
+        gap: 12,
         background: 'var(--bg-primary)',
         color: 'var(--text-primary)',
         flexShrink: 0
@@ -267,16 +284,32 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
           <BranchesOutlined />
           Git Branches
         </div>
+        
+        <Input
+          placeholder="Filter branches..."
+          prefix={<SearchOutlined />}
+          value={filterText}
+          onChange={(e) => setFilterText(e.target.value)}
+          allowClear
+          size="small"
+        />
       </div>
       
       <div style={{ flex: 1, overflow: 'auto' }}>
-        <Tree
-          showIcon={false}
-          defaultExpandAll
-          treeData={treeData}
-          selectable={false}
-          style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
-        />
+        {treeData.length > 0 ? (
+          <Tree
+            showIcon={false}
+            defaultExpandAll
+            treeData={treeData}
+            selectable={false}
+            style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
+          />
+        ) : (
+          <Empty 
+            description={filterText ? `No branches match "${filterText}"` : "No branches available"} 
+            style={{ marginTop: 40 }}
+          />
+        )}
       </div>
     </div>
   );

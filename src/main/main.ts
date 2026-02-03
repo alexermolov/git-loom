@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -451,6 +451,38 @@ function setupIpcHandlers() {
       await continueMerge(repoPath);
     } catch (error) {
       console.error('Error continuing merge:', error);
+      throw error;
+    }
+  });
+
+  // Search commits
+  ipcMain.handle('git:searchCommits', async (_event, repoPath: string, filter: any, limit?: number) => {
+    try {
+      return await searchCommits(repoPath, filter, limit);
+    } catch (error) {
+      console.error('Error searching commits:', error);
+      throw error;
+    }
+  });
+
+  // Search commits across multiple repos
+  ipcMain.handle('git:searchCommitsMultiRepo', async (_event, repoPaths: string[], filter: any, limit?: number) => {
+    try {
+      const results = await searchCommitsMultiRepo(repoPaths, filter, limit);
+      // Convert Map to Object for JSON serialization
+      return Object.fromEntries(results);
+    } catch (error) {
+      console.error('Error searching commits in multiple repos:', error);
+      throw error;
+    }
+  });
+
+  // Get authors
+  ipcMain.handle('git:getAuthors', async (_event, repoPath: string) => {
+    try {
+      return await getAuthors(repoPath);
+    } catch (error) {
+      console.error('Error getting authors:', error);
       throw error;
     }
   });

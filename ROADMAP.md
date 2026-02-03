@@ -9,20 +9,20 @@ This document outlines the planned features and improvements for GitLoom. Items 
 - **Stash Management** (6/6 features) - Full stash operations with UI
 - **Conflict Resolution Interface** (6/6 features) - Visual conflict markers, quick actions, merge tool integration
 - **Advanced History Visualization** (4/8 features) - Git graph with branch filtering
+- **Search & Filter System** (4/4 features) - Global search, branch/file filtering
 - **Reflog Support** - View and interact with reflog entries
 - **Core Git Operations** - Commit, stage, unstage, push, pull, checkout, merge
 - **File Operations** - File tree, diff viewer, working directory changes
 
 ### 🔄 In Progress
 - **Branch Creation & Management** (3/9 features) - Basic operations complete, advanced pending
-- **Search & Filter System** (0/4 features) - Not started
 - **Remote Management** (0/7 features) - Not started
 - **Tags Management** (0/7 features) - Not started
 
 ### 📈 Progress Overview
-- **v0.2.0 Must-Have Features**: 50% complete (3/7 fully done, 1 partial)
+- **v0.2.0 Must-Have Features**: 57% complete (4/7 fully done, 1 partial)
 - **v0.3.0 Enhanced Workflow**: 17% complete (1/6 partial)
-- **Overall Roadmap**: ~25% complete
+- **Overall Roadmap**: ~30% complete
 
 ---
 
@@ -40,17 +40,24 @@ This document outlines the planned features and improvements for GitLoom. Items 
 These are essential features that significantly improve the core Git workflow experience.
 
 ### 1. Search & Filter System
-**Priority: HIGH** ⏳ **NOT STARTED**
+**Priority: HIGH** ✅ **COMPLETED**
 
-- ⏳ **Global commit search** across all repositories
+- ✅ **Global commit search** across all repositories
   - Search by commit message, author, hash, or date range
   - Fuzzy search support
   - Search results with context and navigation
-- ⏳ **Branch filtering** in branch tree view
-- ⏳ **File filtering** in file tree and changes panel
-- ⏳ **Quick repository search** in sidebar
+- ✅ **Branch filtering** in branch tree view
+- ✅ **File filtering** in file tree and changes panel
+- ✅ **Quick repository search** in sidebar
 
-**Why**: Users often need to find specific commits, branches, or files quickly across large repositories or multiple projects.
+**Status**: Fully implemented with SearchPanel component and filters in BranchTreePanel, FileTreePanel, and ChangesPanel.
+
+**Implementation**:
+- SearchPanel with advanced filters (author, date range, branch)
+- Support for single repository and multi-repository search
+- Real-time filtering in branch tree with fuzzy matching
+- File name filtering in file explorer and changes view
+- Search icon in sidebar for easy access
 
 ### 2. Stash Management
 **Priority: HIGH** ✅ **COMPLETED**

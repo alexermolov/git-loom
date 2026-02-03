@@ -42,5 +42,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   launchMergeTool: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:launchMergeTool', repoPath, filePath),
   abortMerge: (repoPath: string) => ipcRenderer.invoke('git:abortMerge', repoPath),
   continueMerge: (repoPath: string) => ipcRenderer.invoke('git:continueMerge', repoPath),
+  // Search operations
+  searchCommits: (repoPath: string, filter: any, limit?: number) => ipcRenderer.invoke('git:searchCommits', repoPath, filter, limit),
+  searchCommitsMultiRepo: (repoPaths: string[], filter: any, limit?: number) => ipcRenderer.invoke('git:searchCommitsMultiRepo', repoPaths, filter, limit),
+  getAuthors: (repoPath: string) => ipcRenderer.invoke('git:getAuthors', repoPath),
 });
 

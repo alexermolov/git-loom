@@ -8,7 +8,8 @@ import {
   DeleteOutlined,
   EditOutlined,
   SwapOutlined,
-  CheckOutlined
+  CheckOutlined,
+  SearchOutlined
 } from '@ant-design/icons';
 import { FileStatus } from '../types';
 
@@ -25,6 +26,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
   const [loading, setLoading] = useState(false);
   const [commitMessage, setCommitMessage] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
+  const [filterText, setFilterText] = useState('');
 
   useEffect(() => {
     if (repoPath) {
@@ -152,8 +154,18 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
     return <Tag color={colors[status]}>{status.toUpperCase()}</Tag>;
   };
 
-  const unstagedFiles = files.filter(f => !f.staged);
-  const stagedFiles = files.filter(f => f.staged);
+  // Filter files based on search text
+  const filterFiles = (fileList: FileStatus[]) => {
+    if (!filterText.trim()) return fileList;
+    const query = filterText.toLowerCase();
+    return fileList.filter(f => 
+      f.path.toLowerCase().includes(query) ||
+      f.status.toLowerCase().includes(query)
+    );
+  };
+
+  const unstagedFiles = filterFiles(files.filter(f => !f.staged));
+  const stagedFiles = filterFiles(files.filter(f => f.staged));
   const unstagedSelected = unstagedFiles.filter(f => selectedFiles.has(f.path));
   const stagedSelected = stagedFiles.filter(f => selectedFiles.has(f.path));
 
@@ -170,6 +182,16 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
           Refresh
         </Button>
       </div>
+
+      <Input
+        placeholder="Filter files..."
+        prefix={<SearchOutlined />}
+        value={filterText}
+        onChange={(e) => setFilterText(e.target.value)}
+        allowClear
+        size="small"
+        style={{ marginBottom: 12 }}
+      />
 
       <div style={{ flex: 1, overflowY: 'auto', marginBottom: '12px' }}>
         {/* Staged Files */}

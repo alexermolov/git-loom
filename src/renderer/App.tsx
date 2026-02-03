@@ -8,7 +8,8 @@ import FileDiffPanel from './components/FileDiffPanel';
 import GitGraphView from './components/GitGraphView';
 import ReflogPanel from './components/ReflogPanel';
 import StashDetailsPanel from './components/StashDetailsPanel';
-import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry, StashEntry } from './types';
+import SearchPanel from './components/SearchPanel';
+import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry, StashEntry, SearchResult } from './types';
 
 const App: React.FC = () => {
   const [repositories, setRepositories] = useState<Map<string, RepositoryInfo>>(new Map());
@@ -666,6 +667,29 @@ const App: React.FC = () => {
   };
 
   const renderMainPanel = () => {
+    // Show search panel when search view is active
+    if (activeView === 'search') {
+      return (
+        <div style={{ height: '100%', overflow: 'auto', padding: '20px' }}>
+          <SearchPanel
+            selectedRepo={selectedRepo}
+            repositories={repositories}
+            onCommitClick={(commit: SearchResult) => {
+              // Convert SearchResult to CommitInfo and handle click
+              const commitInfo: CommitInfo = {
+                hash: commit.hash,
+                date: commit.date,
+                message: commit.message,
+                author: commit.author,
+                refs: commit.refs,
+              };
+              handleCommitClick(commitInfo);
+            }}
+          />
+        </div>
+      );
+    }
+
     // First priority: show file diff if requested
     if (mainPanelView === 'diff' && fileDiff) {
       return (
