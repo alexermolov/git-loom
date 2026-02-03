@@ -1,7 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Button, Empty, Space, Tag, Tooltip, Modal, message } from 'antd';
-import { ArrowLeftOutlined, PlusOutlined, MinusOutlined, WarningOutlined, CheckOutlined, ThunderboltOutlined, DownOutlined } from '@ant-design/icons';
-import { FileDiff, ConflictFile, ConflictMarker } from '../types';
+import React, { useState, useEffect, useMemo } from "react";
+import { Button, Empty, Space, Tag, Tooltip, Modal, message } from "antd";
+import {
+  ArrowLeftOutlined,
+  PlusOutlined,
+  MinusOutlined,
+  WarningOutlined,
+  CheckOutlined,
+  ThunderboltOutlined,
+  DownOutlined,
+} from "@ant-design/icons";
+import { FileDiff, ConflictFile, ConflictMarker } from "../types";
 
 interface FileDiffPanelProps {
   diff: FileDiff | null;
@@ -11,13 +19,19 @@ interface FileDiffPanelProps {
   onRefresh?: () => void;
 }
 
-const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, filePath, onRefresh }) => {
+const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
+  diff,
+  onBack,
+  repoPath,
+  filePath,
+  onRefresh,
+}) => {
   const [conflictInfo, setConflictInfo] = useState<ConflictFile | null>(null);
   const [resolving, setResolving] = useState(false);
   const [editingContent, setEditingContent] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const diffContainerRef = React.useRef<HTMLDivElement>(null);
-  
+
   // Incremental loading state
   const [displayedLines, setDisplayedLines] = useState(500); // Show first 500 lines by default
   const LINES_PER_LOAD = 500;
@@ -39,7 +53,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
     if (!repoPath || !filePath) return;
 
     try {
-      const conflicts = await window.electronAPI.getFileConflicts(repoPath, filePath);
+      const conflicts = await window.electronAPI.getFileConflicts(
+        repoPath,
+        filePath,
+      );
       if (conflicts.conflicts.length > 0) {
         setConflictInfo(conflicts);
         setEditingContent(conflicts.content);
@@ -52,40 +69,56 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
     }
   };
 
-  const handleResolveConflict = async (conflictIndex: number, resolution: 'ours' | 'theirs' | 'both') => {
+  const handleResolveConflict = async (
+    conflictIndex: number,
+    resolution: "ours" | "theirs" | "both",
+  ) => {
     if (!repoPath || !filePath) return;
 
     setResolving(true);
     try {
-      await window.electronAPI.resolveConflict(repoPath, filePath, resolution, conflictIndex);
-      message.success(`Conflict ${conflictIndex + 1} resolved using "${resolution}"`);
+      await window.electronAPI.resolveConflict(
+        repoPath,
+        filePath,
+        resolution,
+        conflictIndex,
+      );
+      message.success(
+        `Conflict ${conflictIndex + 1} resolved using "${resolution}"`,
+      );
       await loadConflicts();
       if (onRefresh) onRefresh();
     } catch (error) {
-      console.error('Error resolving conflict:', error);
+      console.error("Error resolving conflict:", error);
       message.error(`Failed to resolve conflict: ${error}`);
     } finally {
       setResolving(false);
     }
   };
 
-  const handleResolveAllConflicts = async (resolution: 'ours' | 'theirs' | 'both') => {
+  const handleResolveAllConflicts = async (
+    resolution: "ours" | "theirs" | "both",
+  ) => {
     if (!repoPath || !filePath) return;
 
     Modal.confirm({
       title: `Resolve All Conflicts`,
       content: `Are you sure you want to resolve all conflicts in this file using "${resolution}"?`,
-      okText: 'Resolve All',
-      cancelText: 'Cancel',
+      okText: "Resolve All",
+      cancelText: "Cancel",
       onOk: async () => {
         setResolving(true);
         try {
-          await window.electronAPI.resolveConflict(repoPath, filePath, resolution);
+          await window.electronAPI.resolveConflict(
+            repoPath,
+            filePath,
+            resolution,
+          );
           message.success(`All conflicts resolved using "${resolution}"`);
           await loadConflicts();
           if (onRefresh) onRefresh();
         } catch (error) {
-          console.error('Error resolving all conflicts:', error);
+          console.error("Error resolving all conflicts:", error);
           message.error(`Failed to resolve conflicts: ${error}`);
         } finally {
           setResolving(false);
@@ -103,13 +136,17 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
 
     setResolving(true);
     try {
-      await window.electronAPI.resolveConflictManual(repoPath, filePath, editingContent);
-      message.success('File resolved and staged successfully');
+      await window.electronAPI.resolveConflictManual(
+        repoPath,
+        filePath,
+        editingContent,
+      );
+      message.success("File resolved and staged successfully");
       setShowEditModal(false);
       await loadConflicts();
       if (onRefresh) onRefresh();
     } catch (error) {
-      console.error('Error saving manual resolution:', error);
+      console.error("Error saving manual resolution:", error);
       message.error(`Failed to save resolution: ${error}`);
     } finally {
       setResolving(false);
@@ -121,43 +158,48 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
 
     try {
       await window.electronAPI.launchMergeTool(repoPath, filePath);
-      message.success('Launched external merge tool');
+      message.success("Launched external merge tool");
       setTimeout(() => {
         loadConflicts();
         if (onRefresh) onRefresh();
       }, 2000);
     } catch (error) {
-      console.error('Error launching merge tool:', error);
+      console.error("Error launching merge tool:", error);
       message.error(`Failed to launch merge tool: ${error}`);
     }
   };
-  
+
   const renderDiffLine = (line: string, index: number) => {
-    const isDarkTheme = document.body.classList.contains('dark-theme');
-    let backgroundColor = 'transparent';
-    let color = 'inherit';
+    const isDarkTheme = document.body.classList.contains("dark-theme");
+    let backgroundColor = "transparent";
+    let color = "inherit";
     let icon = null;
     let isConflictMarker = false;
 
     // Check for conflict markers
-    if (line.startsWith('<<<<<<<') || line.startsWith('=======') || line.startsWith('>>>>>>>') || line.startsWith('|||||||')) {
-      backgroundColor = isDarkTheme ? '#4a2a2a' : '#fff1f0';
-      color = '#ff4d4f';
+    if (
+      line.startsWith("<<<<<<<") ||
+      line.startsWith("=======") ||
+      line.startsWith(">>>>>>>") ||
+      line.startsWith("|||||||")
+    ) {
+      backgroundColor = isDarkTheme ? "#4a2a2a" : "#fff1f0";
+      color = "#ff4d4f";
       isConflictMarker = true;
       icon = <WarningOutlined style={{ fontSize: 10, marginRight: 8 }} />;
-    } else if (line.startsWith('+') && !line.startsWith('+++')) {
-      backgroundColor = isDarkTheme ? '#1a3a1a' : '#f6ffed';
-      color = '#52c41a';
+    } else if (line.startsWith("+") && !line.startsWith("+++")) {
+      backgroundColor = isDarkTheme ? "#1a3a1a" : "#f6ffed";
+      color = "#52c41a";
       icon = <PlusOutlined style={{ fontSize: 10, marginRight: 8 }} />;
-    } else if (line.startsWith('-') && !line.startsWith('---')) {
-      backgroundColor = isDarkTheme ? '#3a1a1a' : '#fff2f0';
-      color = '#ff4d4f';
+    } else if (line.startsWith("-") && !line.startsWith("---")) {
+      backgroundColor = isDarkTheme ? "#3a1a1a" : "#fff2f0";
+      color = "#ff4d4f";
       icon = <MinusOutlined style={{ fontSize: 10, marginRight: 8 }} />;
-    } else if (line.startsWith('@@')) {
-      backgroundColor = isDarkTheme ? '#1a2a3a' : '#e6f7ff';
-      color = '#1890ff';
-    } else if (line.startsWith('+++') || line.startsWith('---')) {
-      color = isDarkTheme ? '#a0a0a0' : '#8c8c8c';
+    } else if (line.startsWith("@@")) {
+      backgroundColor = isDarkTheme ? "#1a2a3a" : "#e6f7ff";
+      color = "#1890ff";
+    } else if (line.startsWith("+++") || line.startsWith("---")) {
+      color = isDarkTheme ? "#a0a0a0" : "#8c8c8c";
       fontWeight: 600;
     }
 
@@ -167,19 +209,19 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
         style={{
           backgroundColor,
           color,
-          padding: '2px 8px',
+          padding: "2px 8px",
           fontFamily: 'Consolas, Monaco, "Courier New", monospace',
           fontSize: 13,
-          lineHeight: '20px',
-          whiteSpace: 'pre',
+          lineHeight: "20px",
+          whiteSpace: "pre",
           borderLeft: isConflictMarker
-            ? '3px solid #ff4d4f'
-            : line.startsWith('+') && !line.startsWith('+++') 
-            ? '3px solid #52c41a' 
-            : line.startsWith('-') && !line.startsWith('---')
-            ? '3px solid #ff4d4f'
-            : 'none',
-          fontWeight: isConflictMarker ? 600 : 'normal',
+            ? "3px solid #ff4d4f"
+            : line.startsWith("+") && !line.startsWith("+++")
+              ? "3px solid #52c41a"
+              : line.startsWith("-") && !line.startsWith("---")
+                ? "3px solid #ff4d4f"
+                : "none",
+          fontWeight: isConflictMarker ? 600 : "normal",
         }}
       >
         {icon}
@@ -188,33 +230,38 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
     );
   };
 
-  const renderConflictBlock = (conflict: ConflictMarker, conflictIndex: number) => {
-    const isDarkTheme = document.body.classList.contains('dark-theme');
+  const renderConflictBlock = (
+    conflict: ConflictMarker,
+    conflictIndex: number,
+  ) => {
+    const isDarkTheme = document.body.classList.contains("dark-theme");
 
     return (
       <div
         key={`conflict-${conflictIndex}`}
         style={{
-          margin: '16px 0',
-          border: '2px solid #ff4d4f',
+          margin: "16px 0",
+          border: "2px solid #ff4d4f",
           borderRadius: 8,
-          backgroundColor: isDarkTheme ? '#2a1a1a' : '#fff7f7',
-          overflow: 'hidden',
+          backgroundColor: isDarkTheme ? "#2a1a1a" : "#fff7f7",
+          overflow: "hidden",
         }}
       >
         <div
           style={{
-            padding: '8px 12px',
-            backgroundColor: '#ff4d4f',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            padding: "8px 12px",
+            backgroundColor: "#ff4d4f",
+            color: "white",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <WarningOutlined />
-            <span style={{ fontWeight: 600 }}>Conflict {conflictIndex + 1}</span>
+            <span style={{ fontWeight: 600 }}>
+              Conflict {conflictIndex + 1}
+            </span>
           </div>
           <Space size="small">
             <Tooltip title="Accept your changes (HEAD)">
@@ -223,8 +270,8 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                 type="primary"
                 ghost
                 loading={resolving}
-                onClick={() => handleResolveConflict(conflictIndex, 'ours')}
-                style={{ borderColor: 'white', color: 'white' }}
+                onClick={() => handleResolveConflict(conflictIndex, "ours")}
+                style={{ borderColor: "white", color: "white" }}
               >
                 Ours
               </Button>
@@ -235,8 +282,8 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                 type="primary"
                 ghost
                 loading={resolving}
-                onClick={() => handleResolveConflict(conflictIndex, 'theirs')}
-                style={{ borderColor: 'white', color: 'white' }}
+                onClick={() => handleResolveConflict(conflictIndex, "theirs")}
+                style={{ borderColor: "white", color: "white" }}
               >
                 Theirs
               </Button>
@@ -247,8 +294,8 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                 type="primary"
                 ghost
                 loading={resolving}
-                onClick={() => handleResolveConflict(conflictIndex, 'both')}
-                style={{ borderColor: 'white', color: 'white' }}
+                onClick={() => handleResolveConflict(conflictIndex, "both")}
+                style={{ borderColor: "white", color: "white" }}
               >
                 Both
               </Button>
@@ -264,10 +311,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
             </Tag>
             <div
               style={{
-                backgroundColor: isDarkTheme ? '#1a3a1a' : '#f6ffed',
+                backgroundColor: isDarkTheme ? "#1a3a1a" : "#f6ffed",
                 padding: 8,
                 borderRadius: 4,
-                border: '1px solid #52c41a',
+                border: "1px solid #52c41a",
               }}
             >
               <pre
@@ -275,12 +322,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                   margin: 0,
                   fontFamily: 'Consolas, Monaco, "Courier New", monospace',
                   fontSize: 13,
-                  color: '#52c41a',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
+                  color: "#52c41a",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
                 }}
               >
-                {conflict.currentContent || '(empty)'}
+                {conflict.currentContent || "(empty)"}
               </pre>
             </div>
           </div>
@@ -293,10 +340,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
               </Tag>
               <div
                 style={{
-                  backgroundColor: isDarkTheme ? '#2a2a2a' : '#f5f5f5',
+                  backgroundColor: isDarkTheme ? "#2a2a2a" : "#f5f5f5",
                   padding: 8,
                   borderRadius: 4,
-                  border: '1px solid #d9d9d9',
+                  border: "1px solid #d9d9d9",
                 }}
               >
                 <pre
@@ -304,9 +351,9 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                     margin: 0,
                     fontFamily: 'Consolas, Monaco, "Courier New", monospace',
                     fontSize: 13,
-                    color: 'var(--text-secondary)',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-word',
+                    color: "var(--text-secondary)",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
                   }}
                 >
                   {conflict.baseContent}
@@ -322,10 +369,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
             </Tag>
             <div
               style={{
-                backgroundColor: isDarkTheme ? '#3a2a1a' : '#fffbe6',
+                backgroundColor: isDarkTheme ? "#3a2a1a" : "#fffbe6",
                 padding: 8,
                 borderRadius: 4,
-                border: '1px solid #faad14',
+                border: "1px solid #faad14",
               }}
             >
               <pre
@@ -333,12 +380,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                   margin: 0,
                   fontFamily: 'Consolas, Monaco, "Courier New", monospace',
                   fontSize: 13,
-                  color: '#faad14',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
+                  color: "#faad14",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
                 }}
               >
-                {conflict.incomingContent || '(empty)'}
+                {conflict.incomingContent || "(empty)"}
               </pre>
             </div>
           </div>
@@ -352,22 +399,24 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
       <div
         key={index}
         style={{
-          padding: '2px 8px',
+          padding: "2px 8px",
           fontFamily: 'Consolas, Monaco, "Courier New", monospace',
           fontSize: 13,
-          lineHeight: '20px',
-          whiteSpace: 'pre',
-          color: 'var(--text-primary)',
+          lineHeight: "20px",
+          whiteSpace: "pre",
+          color: "var(--text-primary)",
         }}
       >
-        <span style={{ 
-          display: 'inline-block', 
-          minWidth: '40px', 
-          textAlign: 'right',
-          marginRight: '12px',
-          color: 'var(--text-secondary)',
-          userSelect: 'none',
-        }}>
+        <span
+          style={{
+            display: "inline-block",
+            minWidth: "40px",
+            textAlign: "right",
+            marginRight: "12px",
+            color: "var(--text-secondary)",
+            userSelect: "none",
+          }}
+        >
           {index + 1}
         </span>
         {line}
@@ -383,7 +432,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
             Back to Files
           </Button>
         </div>
-        <Empty 
+        <Empty
           description="Select a file to view its changes"
           style={{ marginTop: 60 }}
         />
@@ -392,22 +441,27 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
   }
 
   // Check if diff is empty or file is binary
-  const diffContent = diff.diff?.trim() || '';
+  const diffContent = diff.diff?.trim() || "";
   // Only mark as binary if explicitly stated, not just empty
-  const isBinary = diffContent.includes('Binary files');
-  const isEmpty = diffContent === '' && diff.additions === 0 && diff.deletions === 0;
+  const isBinary = diffContent.includes("Binary files");
+  const isEmpty =
+    diffContent === "" && diff.additions === 0 && diff.deletions === 0;
 
-  const isDiff = diff && (diff.additions > 0 || diff.deletions > 0 || diff.diff.includes('@@'));
+  const isDiff =
+    diff &&
+    (diff.additions > 0 || diff.deletions > 0 || diff.diff.includes("@@"));
   const hasConflicts = conflictInfo && conflictInfo.conflicts.length > 0;
 
   // Split diff into lines and apply incremental loading
-  const diffLines = useMemo(() => diff.diff.split('\n'), [diff.diff]);
+  const diffLines = useMemo(() => diff.diff.split("\n"), [diff.diff]);
   const totalLines = diffLines.length;
   const visibleLines = diffLines.slice(0, displayedLines);
   const hasMoreLines = displayedLines < totalLines;
 
   const handleLoadMore = () => {
-    setDisplayedLines((prev: number) => Math.min(prev + LINES_PER_LOAD, totalLines));
+    setDisplayedLines((prev: number) =>
+      Math.min(prev + LINES_PER_LOAD, totalLines),
+    );
   };
 
   // Check if this is a binary or empty file
@@ -416,40 +470,54 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
 
   return (
     <div className="file-diff-panel">
-      <div style={{ 
-        marginBottom: 16,
-        paddingBottom: 12,
-        borderBottom: '1px solid var(--border-light)',
-      }}>
-        <Button icon={<ArrowLeftOutlined />} onClick={onBack} style={{ marginBottom: 12 }}>
+      <div
+        style={{
+          marginBottom: 16,
+          paddingBottom: 12,
+          borderBottom: "1px solid var(--border-light)",
+        }}
+      >
+        <Button
+          icon={<ArrowLeftOutlined />}
+          onClick={onBack}
+          style={{ marginBottom: 12 }}
+        >
           Back to Files
         </Button>
-        
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text-primary)' }}>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 12,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                fontWeight: 600,
+                fontSize: 16,
+                color: "var(--text-primary)",
+              }}
+            >
               {diff.path}
             </div>
-            {showBinaryMessage && (
-              <Tag color="orange">Binary File</Tag>
-            )}
-            {showEmptyMessage && (
-              <Tag color="default">Empty/No Changes</Tag>
-            )}
+            {showBinaryMessage && <Tag color="orange">Binary File</Tag>}
+            {showEmptyMessage && <Tag color="default">Empty/No Changes</Tag>}
             {hasConflicts && (
               <Tag icon={<WarningOutlined />} color="error">
-                {conflictInfo.conflicts.length} Conflict{conflictInfo.conflicts.length > 1 ? 's' : ''}
+                {conflictInfo.conflicts.length} Conflict
+                {conflictInfo.conflicts.length > 1 ? "s" : ""}
               </Tag>
             )}
           </div>
           {isDiff && (
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              <span style={{ color: '#52c41a', marginRight: 8 }}>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              <span style={{ color: "#52c41a", marginRight: 8 }}>
                 +{diff.additions}
               </span>
-              <span style={{ color: '#ff4d4f' }}>
-                -{diff.deletions}
-              </span>
+              <span style={{ color: "#ff4d4f" }}>-{diff.deletions}</span>
             </div>
           )}
         </div>
@@ -462,7 +530,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                 size="small"
                 type="primary"
                 loading={resolving}
-                onClick={() => handleResolveAllConflicts('ours')}
+                onClick={() => handleResolveAllConflicts("ours")}
               >
                 Accept All Ours
               </Button>
@@ -472,7 +540,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                 size="small"
                 type="primary"
                 loading={resolving}
-                onClick={() => handleResolveAllConflicts('theirs')}
+                onClick={() => handleResolveAllConflicts("theirs")}
               >
                 Accept All Theirs
               </Button>
@@ -482,7 +550,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
                 size="small"
                 type="primary"
                 loading={resolving}
-                onClick={() => handleResolveAllConflicts('both')}
+                onClick={() => handleResolveAllConflicts("both")}
               >
                 Accept All Both
               </Button>
@@ -494,10 +562,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
             >
               Edit Manually
             </Button>
-            <Button
-              size="small"
-              onClick={handleLaunchMergeTool}
-            >
+            <Button size="small" onClick={handleLaunchMergeTool}>
               Launch Merge Tool
             </Button>
           </Space>
@@ -507,43 +572,54 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
       {/* Show conflict blocks if available */}
       {hasConflicts && (
         <div style={{ marginBottom: 16 }}>
-          {conflictInfo.conflicts.map((conflict, index) => renderConflictBlock(conflict, index))}
+          {conflictInfo.conflicts.map((conflict, index) =>
+            renderConflictBlock(conflict, index),
+          )}
         </div>
       )}
 
       {/* Show binary file message */}
       {showBinaryMessage ? (
-        <div style={{ 
-          backgroundColor: 'var(--bg-secondary)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 4,
-          padding: 40,
-          textAlign: 'center',
-        }}>
-          <Empty 
+        <div
+          style={{
+            backgroundColor: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: 4,
+            padding: 40,
+            textAlign: "center",
+          }}
+        >
+          <Empty
             description={
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Binary File</div>
-                <div style={{ color: 'var(--text-secondary)' }}>
-                  This file appears to be a binary file. Text diff is not available.
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+                  Binary File
+                </div>
+                <div style={{ color: "var(--text-secondary)" }}>
+                  This file appears to be a binary file. Text diff is not
+                  available.
                 </div>
               </div>
             }
           />
         </div>
       ) : showEmptyMessage ? (
-        <div style={{ 
-          backgroundColor: 'var(--bg-secondary)',
-          border: '1px solid var(--border-color)',
-          borderRadius: 4,
-          padding: 40,
-          textAlign: 'center',
-        }}>
-          <Empty 
+        <div
+          style={{
+            backgroundColor: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
+            borderRadius: 4,
+            padding: 40,
+            textAlign: "center",
+          }}
+        >
+          <Empty
             description={
               <div>
-                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Changes</div>
-                <div style={{ color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
+                  No Changes
+                </div>
+                <div style={{ color: "var(--text-secondary)" }}>
                   This file has no visible changes.
                 </div>
               </div>
@@ -552,38 +628,45 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
         </div>
       ) : (
         /* Show diff */
-        <div 
+        <div
           ref={diffContainerRef}
-          style={{ 
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
+          style={{
+            backgroundColor: "var(--bg-secondary)",
+            border: "1px solid var(--border-color)",
             borderRadius: 4,
-            overflow: 'auto',
-            maxHeight: 'calc(100vh - 300px)',
+            overflow: "auto",
           }}
         >
-          {visibleLines.map((line, index) => isDiff ? renderDiffLine(line, index) : renderContentLine(line, index))}
-          
+          {visibleLines.map((line, index) =>
+            isDiff
+              ? renderDiffLine(line, index)
+              : renderContentLine(line, index),
+          )}
+
           {/* Load more button for large diffs */}
           {hasMoreLines && (
-            <div style={{ 
-              padding: '16px', 
-              textAlign: 'center', 
-              borderTop: '1px solid var(--border-color)',
-              backgroundColor: 'var(--bg-primary)',
-            }}>
-              <Button 
-                type="primary" 
-                icon={<DownOutlined />} 
+            <div
+              style={{
+                padding: "16px",
+                textAlign: "center",
+                borderTop: "1px solid var(--border-color)",
+                backgroundColor: "var(--bg-primary)",
+              }}
+            >
+              <Button
+                type="primary"
+                icon={<DownOutlined />}
                 onClick={handleLoadMore}
               >
                 Load More Lines ({displayedLines} / {totalLines})
               </Button>
-              <div style={{ 
-                marginTop: 8, 
-                fontSize: 12, 
-                color: 'var(--text-secondary)' 
-              }}>
+              <div
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: "var(--text-secondary)",
+                }}
+              >
                 Showing {displayedLines} of {totalLines} lines
               </div>
             </div>
@@ -602,22 +685,29 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
         okText="Save & Stage"
         cancelText="Cancel"
       >
-        <div style={{ marginBottom: 12, color: 'var(--text-secondary)', fontSize: 13 }}>
-          Edit the file content below to resolve conflicts manually. When saved, the file will be staged automatically.
+        <div
+          style={{
+            marginBottom: 12,
+            color: "var(--text-secondary)",
+            fontSize: 13,
+          }}
+        >
+          Edit the file content below to resolve conflicts manually. When saved,
+          the file will be staged automatically.
         </div>
         <textarea
-          value={editingContent || ''}
+          value={editingContent || ""}
           onChange={(e) => setEditingContent(e.target.value)}
           style={{
-            width: '100%',
+            width: "100%",
             height: 400,
             fontFamily: 'Consolas, Monaco, "Courier New", monospace',
             fontSize: 13,
             padding: 8,
-            border: '1px solid var(--border-color)',
+            border: "1px solid var(--border-color)",
             borderRadius: 4,
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--text-primary)',
+            backgroundColor: "var(--bg-secondary)",
+            color: "var(--text-primary)",
           }}
         />
       </Modal>

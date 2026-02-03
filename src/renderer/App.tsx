@@ -808,13 +808,15 @@ const App: React.FC = () => {
     // First priority: show file diff if requested
     if (mainPanelView === 'diff' && fileDiff) {
       return (
-        <FileDiffPanel 
-          diff={fileDiff} 
-          onBack={() => setMainPanelView('graph')} 
-          repoPath={selectedRepo}
-          filePath={fileDiff.path}
-          onRefresh={handleConflictsRefresh}
-        />
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <FileDiffPanel 
+            diff={fileDiff} 
+            onBack={() => setMainPanelView('graph')} 
+            repoPath={selectedRepo}
+            filePath={fileDiff.path}
+            onRefresh={handleConflictsRefresh}
+          />
+        </div>
       );
     }
     
