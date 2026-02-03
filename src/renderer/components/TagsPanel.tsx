@@ -30,6 +30,7 @@ import {
   InfoCircleOutlined,
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
+import { useTheme } from "../ThemeContext";
 import { TagInfo } from "../types";
 
 const { TextArea } = Input;
@@ -39,14 +40,13 @@ const { Option } = Select;
 interface TagsPanelProps {
   repoPath: string | null;
   onRefresh?: () => void;
-  isDarkTheme?: boolean;
 }
 
 const TagsPanel: React.FC<TagsPanelProps> = ({
   repoPath,
   onRefresh,
-  isDarkTheme = false,
 }) => {
+  const { isDarkMode } = useTheme();
   const [tags, setTags] = useState<TagInfo[]>([]);
   const [filteredTags, setFilteredTags] = useState<TagInfo[]>([]);
   const [loading, setLoading] = useState(false);
@@ -246,42 +246,42 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
 
     Modal.confirm({
       title: (
-        <span style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+        <span style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
           Checkout Tag (Detached HEAD)
         </span>
       ),
       icon: (
         <ExclamationCircleOutlined
-          style={{ color: isDarkTheme ? "#faad14" : undefined }}
+          style={{ color: isDarkMode ? "#faad14" : undefined }}
         />
       ),
       content: (
         <div>
-          <Paragraph style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+          <Paragraph style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
             You are about to checkout tag{" "}
-            <Text strong style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+            <Text strong style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
               {tag.name}
             </Text>
             .
           </Paragraph>
           <Paragraph
             type="warning"
-            style={{ color: isDarkTheme ? "#faad14" : undefined }}
+            style={{ color: isDarkMode ? "#faad14" : undefined }}
           >
             This will put your repository in a{" "}
-            <Text strong style={{ color: isDarkTheme ? "#faad14" : undefined }}>
+            <Text strong style={{ color: isDarkMode ? "#faad14" : undefined }}>
               "detached HEAD"
             </Text>{" "}
             state. Any commits made in this state will not belong to any branch
             and may be lost.
           </Paragraph>
-          <Paragraph style={{ color: isDarkTheme ? "#d0d0d0" : undefined }}>
+          <Paragraph style={{ color: isDarkMode ? "#d0d0d0" : undefined }}>
             To create a new branch from this tag, use:{" "}
             <Text
               code
               style={{
-                backgroundColor: isDarkTheme ? "#3a3a3a" : undefined,
-                color: isDarkTheme ? "#e0e0e0" : undefined,
+                backgroundColor: isDarkMode ? "#3a3a3a" : undefined,
+                color: isDarkMode ? "#e0e0e0" : undefined,
               }}
             >
               git checkout -b branch-name {tag.name}
@@ -293,10 +293,10 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
       okType: "primary",
       cancelText: "Cancel",
       styles: {
-        body: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
-        header: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
-        content: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
-        footer: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+        body: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
+        header: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
+        content: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
+        footer: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
       },
       onOk: async () => {
         setLoading(true);
@@ -355,7 +355,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
         padding: "16px",
         height: "100%",
         overflow: "auto",
-        backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
+        backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
       }}
     >
       <div
@@ -373,9 +373,9 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
             flex: 1,
-            backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
-            color: isDarkTheme ? "#e0e0e0" : undefined,
-            borderColor: isDarkTheme ? "#3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
+            color: isDarkMode ? "#e0e0e0" : undefined,
+            borderColor: isDarkMode ? "#3a3a3a" : undefined,
           }}
           allowClear
         />
@@ -394,15 +394,15 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
             disabled={!repoPath || tags.length === 0 || remotes.length === 0}
             style={{
               backgroundColor:
-                isDarkTheme && repoPath && tags.length > 0 && remotes.length > 0
+                isDarkMode && repoPath && tags.length > 0 && remotes.length > 0
                   ? "#2a2a2a"
                   : undefined,
               borderColor:
-                isDarkTheme && repoPath && tags.length > 0 && remotes.length > 0
+                isDarkMode && repoPath && tags.length > 0 && remotes.length > 0
                   ? "#3a3a3a"
                   : undefined,
               color:
-                isDarkTheme && repoPath && tags.length > 0 && remotes.length > 0
+                isDarkMode && repoPath && tags.length > 0 && remotes.length > 0
                   ? "#e0e0e0"
                   : undefined,
             }}
@@ -416,9 +416,9 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
             onClick={handleRefresh}
             disabled={!repoPath}
             style={{
-              backgroundColor: isDarkTheme && repoPath ? "#2a2a2a" : undefined,
-              borderColor: isDarkTheme && repoPath ? "#3a3a3a" : undefined,
-              color: isDarkTheme && repoPath ? "#e0e0e0" : undefined,
+              backgroundColor: isDarkMode && repoPath ? "#2a2a2a" : undefined,
+              borderColor: isDarkMode && repoPath ? "#3a3a3a" : undefined,
+              color: isDarkMode && repoPath ? "#e0e0e0" : undefined,
             }}
           />
         </Tooltip>
@@ -444,8 +444,8 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
               size="small"
               style={{
                 marginBottom: "8px",
-                backgroundColor: isDarkTheme ? "#2a2a2a" : "#ffffff",
-                borderColor: isDarkTheme ? "#3a3a3a" : "#d9d9d9",
+                backgroundColor: isDarkMode ? "#2a2a2a" : "#ffffff",
+                borderColor: isDarkMode ? "#3a3a3a" : "#d9d9d9",
               }}
               hoverable
             >
@@ -471,18 +471,18 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                     >
                       {tag.type === "annotated" ? (
                         <TagsOutlined
-                          style={{ color: isDarkTheme ? "#4a9eff" : "#1890ff" }}
+                          style={{ color: isDarkMode ? "#4a9eff" : "#1890ff" }}
                         />
                       ) : (
                         <TagOutlined
-                          style={{ color: isDarkTheme ? "#73d13d" : "#52c41a" }}
+                          style={{ color: isDarkMode ? "#73d13d" : "#52c41a" }}
                         />
                       )}
                       <Text
                         strong
                         style={{
                           fontSize: "16px",
-                          color: isDarkTheme ? "#e0e0e0" : undefined,
+                          color: isDarkMode ? "#e0e0e0" : undefined,
                         }}
                       >
                         {tag.name}
@@ -497,17 +497,17 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                         type="secondary"
                         style={{
                           fontSize: "12px",
-                          color: isDarkTheme ? "#a0a0a0" : undefined,
+                          color: isDarkMode ? "#a0a0a0" : undefined,
                         }}
                       >
                         Commit:{" "}
                         <Text
                           code
                           style={{
-                            backgroundColor: isDarkTheme
+                            backgroundColor: isDarkMode
                               ? "#3a3a3a"
                               : undefined,
-                            color: isDarkTheme ? "#e0e0e0" : undefined,
+                            color: isDarkMode ? "#e0e0e0" : undefined,
                           }}
                         >
                           {tag.commitHash.substring(0, 7)}
@@ -520,7 +520,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                         <Text
                           style={{
                             fontSize: "13px",
-                            color: isDarkTheme ? "#d0d0d0" : undefined,
+                            color: isDarkMode ? "#d0d0d0" : undefined,
                           }}
                         >
                           {tag.message}
@@ -534,7 +534,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                           type="secondary"
                           style={{
                             fontSize: "12px",
-                            color: isDarkTheme ? "#a0a0a0" : undefined,
+                            color: isDarkMode ? "#a0a0a0" : undefined,
                           }}
                         >
                           By {tag.tagger}
@@ -553,9 +553,9 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                       icon={<InfoCircleOutlined />}
                       onClick={() => handleViewDetails(tag)}
                       style={{
-                        backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
-                        borderColor: isDarkTheme ? "#3a3a3a" : undefined,
-                        color: isDarkTheme ? "#e0e0e0" : undefined,
+                        backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
+                        borderColor: isDarkMode ? "#3a3a3a" : undefined,
+                        color: isDarkMode ? "#e0e0e0" : undefined,
                       }}
                     />
                   </Tooltip>
@@ -565,9 +565,9 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                       icon={<CheckOutlined />}
                       onClick={() => handleCheckoutTag(tag)}
                       style={{
-                        backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
-                        borderColor: isDarkTheme ? "#3a3a3a" : undefined,
-                        color: isDarkTheme ? "#e0e0e0" : undefined,
+                        backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
+                        borderColor: isDarkMode ? "#3a3a3a" : undefined,
+                        color: isDarkMode ? "#e0e0e0" : undefined,
                       }}
                     />
                   </Tooltip>
@@ -579,15 +579,15 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                       disabled={remotes.length === 0}
                       style={{
                         backgroundColor:
-                          isDarkTheme && remotes.length > 0
+                          isDarkMode && remotes.length > 0
                             ? "#2a2a2a"
                             : undefined,
                         borderColor:
-                          isDarkTheme && remotes.length > 0
+                          isDarkMode && remotes.length > 0
                             ? "#3a3a3a"
                             : undefined,
                         color:
-                          isDarkTheme && remotes.length > 0
+                          isDarkMode && remotes.length > 0
                             ? "#e0e0e0"
                             : undefined,
                       }}
@@ -596,14 +596,14 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                   <Popconfirm
                     title={
                       <span
-                        style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}
+                        style={{ color: isDarkMode ? "#e0e0e0" : undefined }}
                       >
                         Delete Local Tag
                       </span>
                     }
                     description={
                       <span
-                        style={{ color: isDarkTheme ? "#d0d0d0" : undefined }}
+                        style={{ color: isDarkMode ? "#d0d0d0" : undefined }}
                       >{`Are you sure you want to delete tag '${tag.name}' locally?`}</span>
                     }
                     onConfirm={() => handleDeleteTag(tag)}
@@ -611,10 +611,10 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                     cancelText="Cancel"
                     okButtonProps={{ danger: true }}
                     overlayStyle={{
-                      backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
+                      backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
                     }}
                     overlayInnerStyle={{
-                      backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
+                      backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
                     }}
                   >
                     <Tooltip title="Delete Local Tag">
@@ -629,17 +629,17 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                       onClick={() => openDeleteRemoteModal(tag)}
                       disabled={remotes.length === 0}
                       style={{
-                        backgroundColor: isDarkTheme
+                        backgroundColor: isDarkMode
                           ? remotes.length === 0
                             ? "#1a1a1a"
                             : "#2a2a2a"
                           : undefined,
-                        borderColor: isDarkTheme
+                        borderColor: isDarkMode
                           ? remotes.length === 0
                             ? "#3a3a3a"
                             : "#ff4d4f"
                           : undefined,
-                        color: isDarkTheme
+                        color: isDarkMode
                           ? remotes.length === 0
                             ? "#666666"
                             : "#ff7875"
@@ -659,7 +659,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
       {/* Create Tag Modal */}
       <Modal
         title={
-          <span style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+          <span style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
             Create New Tag
           </span>
         }
@@ -673,21 +673,21 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
         cancelText="Cancel"
         width={600}
         styles={{
-          body: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+          body: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
           header: {
-            backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
-            borderBottom: isDarkTheme ? "1px solid #3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+            borderBottom: isDarkMode ? "1px solid #3a3a3a" : undefined,
           },
-          content: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+          content: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
           footer: {
-            backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
-            borderTop: isDarkTheme ? "1px solid #3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+            borderTop: isDarkMode ? "1px solid #3a3a3a" : undefined,
           },
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>
           <div>
-            <Text style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+            <Text style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
               Tag Type:
             </Text>
             <Radio.Group
@@ -698,16 +698,16 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
               <Radio value="lightweight">
                 <Space>
                   <TagOutlined
-                    style={{ color: isDarkTheme ? "#73d13d" : undefined }}
+                    style={{ color: isDarkMode ? "#73d13d" : undefined }}
                   />
-                  <span style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+                  <span style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
                     Lightweight
                   </span>
                   <Text
                     type="secondary"
                     style={{
                       fontSize: "12px",
-                      color: isDarkTheme ? "#a0a0a0" : undefined,
+                      color: isDarkMode ? "#a0a0a0" : undefined,
                     }}
                   >
                     (Simple pointer to a commit)
@@ -717,16 +717,16 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
               <Radio value="annotated">
                 <Space>
                   <TagsOutlined
-                    style={{ color: isDarkTheme ? "#4a9eff" : undefined }}
+                    style={{ color: isDarkMode ? "#4a9eff" : undefined }}
                   />
-                  <span style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+                  <span style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
                     Annotated
                   </span>
                   <Text
                     type="secondary"
                     style={{
                       fontSize: "12px",
-                      color: isDarkTheme ? "#a0a0a0" : undefined,
+                      color: isDarkMode ? "#a0a0a0" : undefined,
                     }}
                   >
                     (Full object with message and metadata)
@@ -737,7 +737,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
           </div>
 
           <div>
-            <Text style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+            <Text style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
               Tag Name: <Text type="danger">*</Text>
             </Text>
             <Input
@@ -746,16 +746,16 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
               onChange={(e) => setTagName(e.target.value)}
               style={{
                 marginTop: "8px",
-                backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
-                color: isDarkTheme ? "#e0e0e0" : undefined,
-                borderColor: isDarkTheme ? "#3a3a3a" : undefined,
+                backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
+                color: isDarkMode ? "#e0e0e0" : undefined,
+                borderColor: isDarkMode ? "#3a3a3a" : undefined,
               }}
             />
           </div>
 
           {tagType === "annotated" && (
             <div>
-              <Text style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+              <Text style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
                 Message: <Text type="danger">*</Text>
               </Text>
               <TextArea
@@ -765,16 +765,16 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                 rows={4}
                 style={{
                   marginTop: "8px",
-                  backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
-                  color: isDarkTheme ? "#e0e0e0" : undefined,
-                  borderColor: isDarkTheme ? "#3a3a3a" : undefined,
+                  backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
+                  color: isDarkMode ? "#e0e0e0" : undefined,
+                  borderColor: isDarkMode ? "#3a3a3a" : undefined,
                 }}
               />
             </div>
           )}
 
           <div>
-            <Text style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+            <Text style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
               Commit Hash (optional):
             </Text>
             <Input
@@ -783,16 +783,16 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
               onChange={(e) => setCommitHash(e.target.value)}
               style={{
                 marginTop: "8px",
-                backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
-                color: isDarkTheme ? "#e0e0e0" : undefined,
-                borderColor: isDarkTheme ? "#3a3a3a" : undefined,
+                backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
+                color: isDarkMode ? "#e0e0e0" : undefined,
+                borderColor: isDarkMode ? "#3a3a3a" : undefined,
               }}
             />
             <Text
               type="secondary"
               style={{
                 fontSize: "12px",
-                color: isDarkTheme ? "#a0a0a0" : undefined,
+                color: isDarkMode ? "#a0a0a0" : undefined,
               }}
             >
               If not specified, the tag will be created at the current HEAD
@@ -804,7 +804,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
       {/* Tag Details Modal */}
       <Modal
         title={
-          <span style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+          <span style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
             Tag Details
           </span>
         }
@@ -826,15 +826,15 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
         ]}
         width={700}
         styles={{
-          body: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+          body: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
           header: {
-            backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
-            borderBottom: isDarkTheme ? "1px solid #3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+            borderBottom: isDarkMode ? "1px solid #3a3a3a" : undefined,
           },
-          content: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+          content: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
           footer: {
-            backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
-            borderTop: isDarkTheme ? "1px solid #3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+            borderTop: isDarkMode ? "1px solid #3a3a3a" : undefined,
           },
         }}
       >
@@ -844,20 +844,20 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
             column={1}
             size="small"
             labelStyle={{
-              backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
-              color: isDarkTheme ? "#e0e0e0" : undefined,
-              borderColor: isDarkTheme ? "#3a3a3a" : undefined,
+              backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
+              color: isDarkMode ? "#e0e0e0" : undefined,
+              borderColor: isDarkMode ? "#3a3a3a" : undefined,
             }}
             contentStyle={{
-              backgroundColor: isDarkTheme ? "#1f1f1f" : undefined,
-              color: isDarkTheme ? "#e0e0e0" : undefined,
-              borderColor: isDarkTheme ? "#3a3a3a" : undefined,
+              backgroundColor: isDarkMode ? "#1f1f1f" : undefined,
+              color: isDarkMode ? "#e0e0e0" : undefined,
+              borderColor: isDarkMode ? "#3a3a3a" : undefined,
             }}
           >
             <Descriptions.Item label="Name">
               <Text
                 strong
-                style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}
+                style={{ color: isDarkMode ? "#e0e0e0" : undefined }}
               >
                 {selectedTag.name}
               </Text>
@@ -871,8 +871,8 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
               <Text
                 code
                 style={{
-                  backgroundColor: isDarkTheme ? "#3a3a3a" : undefined,
-                  color: isDarkTheme ? "#e0e0e0" : undefined,
+                  backgroundColor: isDarkMode ? "#3a3a3a" : undefined,
+                  color: isDarkMode ? "#e0e0e0" : undefined,
                 }}
               >
                 {selectedTag.commitHash}
@@ -884,8 +884,8 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
                   style={{
                     margin: 0,
                     whiteSpace: "pre-wrap",
-                    backgroundColor: isDarkTheme ? "#2a2a2a" : "#fafafa",
-                    color: isDarkTheme ? "#e0e0e0" : "#000000",
+                    backgroundColor: isDarkMode ? "#2a2a2a" : "#fafafa",
+                    color: isDarkMode ? "#e0e0e0" : "#000000",
                     padding: "8px",
                     borderRadius: "4px",
                   }}
@@ -911,7 +911,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
       {/* Push Tags Modal */}
       <Modal
         title={
-          <span style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+          <span style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
             Push Tags to Remote
           </span>
         }
@@ -925,50 +925,50 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
         okText="Push"
         cancelText="Cancel"
         styles={{
-          body: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+          body: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
           header: {
-            backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
-            borderBottom: isDarkTheme ? "1px solid #3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+            borderBottom: isDarkMode ? "1px solid #3a3a3a" : undefined,
           },
-          content: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+          content: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
           footer: {
-            backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
-            borderTop: isDarkTheme ? "1px solid #3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+            borderTop: isDarkMode ? "1px solid #3a3a3a" : undefined,
           },
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>
           {pushAllTags ? (
-            <Paragraph style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+            <Paragraph style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
               Push{" "}
               <Text
                 strong
-                style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}
+                style={{ color: isDarkMode ? "#e0e0e0" : undefined }}
               >
                 all tags
               </Text>{" "}
               to remote{" "}
               <Text
                 strong
-                style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}
+                style={{ color: isDarkMode ? "#e0e0e0" : undefined }}
               >
                 {remoteName}
               </Text>
               ?
             </Paragraph>
           ) : (
-            <Paragraph style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+            <Paragraph style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
               Push tag{" "}
               <Text
                 strong
-                style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}
+                style={{ color: isDarkMode ? "#e0e0e0" : undefined }}
               >
                 {selectedTag?.name}
               </Text>{" "}
               to remote{" "}
               <Text
                 strong
-                style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}
+                style={{ color: isDarkMode ? "#e0e0e0" : undefined }}
               >
                 {remoteName}
               </Text>
@@ -977,7 +977,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
           )}
 
           <div>
-            <Text style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+            <Text style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
               Remote:
             </Text>
             <Select
@@ -985,7 +985,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
               onChange={setRemoteName}
               style={{ width: "100%", marginTop: "8px" }}
               dropdownStyle={{
-                backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
+                backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
               }}
             >
               {remotes.map((remote) => (
@@ -1001,7 +1001,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
       {/* Delete Remote Tag Modal */}
       <Modal
         title={
-          <span style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+          <span style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
             Delete Remote Tag
           </span>
         }
@@ -1015,35 +1015,35 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
         okButtonProps={{ danger: true }}
         cancelText="Cancel"
         styles={{
-          body: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+          body: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
           header: {
-            backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
-            borderBottom: isDarkTheme ? "1px solid #3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+            borderBottom: isDarkMode ? "1px solid #3a3a3a" : undefined,
           },
-          content: { backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff" },
+          content: { backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff" },
           footer: {
-            backgroundColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
-            borderTop: isDarkTheme ? "1px solid #3a3a3a" : undefined,
+            backgroundColor: isDarkMode ? "#1f1f1f" : "#ffffff",
+            borderTop: isDarkMode ? "1px solid #3a3a3a" : undefined,
           },
         }}
       >
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>
           <Paragraph
             type="danger"
-            style={{ color: isDarkTheme ? "#ff7875" : undefined }}
+            style={{ color: isDarkMode ? "#ff7875" : undefined }}
           >
             <ExclamationCircleOutlined /> This will delete tag{" "}
-            <Text strong style={{ color: isDarkTheme ? "#ff7875" : undefined }}>
+            <Text strong style={{ color: isDarkMode ? "#ff7875" : undefined }}>
               {selectedTag?.name}
             </Text>{" "}
             from the remote repository.
           </Paragraph>
-          <Paragraph style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+          <Paragraph style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
             This action cannot be undone. The local tag will remain intact.
           </Paragraph>
 
           <div>
-            <Text style={{ color: isDarkTheme ? "#e0e0e0" : undefined }}>
+            <Text style={{ color: isDarkMode ? "#e0e0e0" : undefined }}>
               Remote:
             </Text>
             <Select
@@ -1051,7 +1051,7 @@ const TagsPanel: React.FC<TagsPanelProps> = ({
               onChange={setRemoteName}
               style={{ width: "100%", marginTop: "8px" }}
               dropdownStyle={{
-                backgroundColor: isDarkTheme ? "#2a2a2a" : undefined,
+                backgroundColor: isDarkMode ? "#2a2a2a" : undefined,
               }}
             >
               {remotes.map((remote) => (

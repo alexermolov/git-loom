@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Button, message, Spin, Switch } from 'antd';
-import { FolderOpenOutlined, BulbOutlined, BulbFilled } from '@ant-design/icons';
+import { Button, message, Spin } from 'antd';
+import { FolderOpenOutlined } from '@ant-design/icons';
+import { useTheme } from './ThemeContext';
 import Sidebar from './components/Sidebar';
 import IconSidebar, { ViewType } from './components/IconSidebar';
 import MiddlePanel from './components/MiddlePanel';
@@ -26,7 +27,9 @@ const App: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [repoOps, setRepoOps] = useState<Record<string, 'pull' | 'push' | undefined>>({});
   const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  
+  // Use theme context
+  const { isDarkMode, toggleTheme } = useTheme();
   
   // New three-panel state management
   const [activeView, setActiveView] = useState<ViewType>('commits');
@@ -51,32 +54,13 @@ const App: React.FC = () => {
   const [selectedSearchCommit, setSelectedSearchCommit] = useState<SearchResult | null>(null);
   const [searchCommitFiles, setSearchCommitFiles] = useState<CommitFile[]>([]);
 
-  // Load theme from localStorage
+  // Load saved panel width
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      setIsDarkTheme(true);
-    }
     const savedWidth = localStorage.getItem('middlePanelWidth');
     if (savedWidth) {
       setMiddlePanelWidth(parseInt(savedWidth, 10));
     }
   }, []);
-
-  // Toggle dark theme
-  useEffect(() => {
-    if (isDarkTheme) {
-      document.body.classList.add('dark-theme');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.body.classList.remove('dark-theme');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkTheme]);
-
-  const toggleTheme = () => {
-    setIsDarkTheme(!isDarkTheme);
-  };
 
   const handleMiddlePanelResize = (newWidth: number) => {
     const clampedWidth = Math.max(200, Math.min(800, newWidth));
@@ -786,7 +770,6 @@ const App: React.FC = () => {
           <RemoteManagementPanel
             repoPath={selectedRepo}
             onRefresh={handleRefresh}
-            isDarkTheme={isDarkTheme}
           />
         </div>
       );
@@ -799,7 +782,6 @@ const App: React.FC = () => {
           <TagsPanel
             repoPath={selectedRepo}
             onRefresh={handleRefresh}
-            isDarkTheme={isDarkTheme}
           />
         </div>
       );
@@ -869,7 +851,6 @@ const App: React.FC = () => {
         repoOps={repoOps}
         scanning={scanningRepos}
         refreshing={refreshing}
-        isDarkTheme={isDarkTheme}
         onToggleTheme={toggleTheme}
         loadingProgress={loadingProgress}
       />
@@ -885,7 +866,7 @@ const App: React.FC = () => {
                 <div style={{ 
                   fontSize: '14px', 
                   marginBottom: '8px',
-                  color: isDarkTheme ? '#d4d4d4' : '#333'
+                  color: isDarkMode ? '#d4d4d4' : '#333'
                 }}>
                   Loading repositories: {loadingProgress.current} / {loadingProgress.total} 
                   ({Math.round((loadingProgress.current / loadingProgress.total) * 100)}%)
@@ -893,7 +874,7 @@ const App: React.FC = () => {
                 <div style={{ 
                   width: '100%', 
                   height: '8px', 
-                  backgroundColor: isDarkTheme ? '#333' : '#e0e0e0',
+                  backgroundColor: isDarkMode ? '#333' : '#e0e0e0',
                   borderRadius: '4px',
                   overflow: 'hidden'
                 }}>
@@ -962,7 +943,6 @@ const App: React.FC = () => {
             loadingConflicts={loadingConflicts}
             showingCommitFiles={showingCommitFiles}
             onBackToCommits={handleBackToCommits}
-            isDarkTheme={isDarkTheme}
             width={middlePanelWidth}
             onResize={handleMiddlePanelResize}
             repositories={repositories}

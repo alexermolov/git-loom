@@ -140,7 +140,7 @@ const [commits, setCommits] = useState<CommitInfo[]>([]);
 const [branches, setBranches] = useState<BranchInfo[]>([]);
 
 // UI state
-const [isDarkTheme, setIsDarkTheme] = useState(false);
+const [isDarkMode, setisDarkMode] = useState(false);
 const [loading, setLoading] = useState(false);
 ```
 

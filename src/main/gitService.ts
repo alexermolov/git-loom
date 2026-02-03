@@ -308,11 +308,18 @@ export async function mergeBranch(repoPath: string, branchName: string): Promise
   }
 
   try {
-    await git.merge([targetBranch]);
+    // Use --no-ff to always create a merge commit (not fast-forward)
+    // This makes merges more visible in the history
+    const result = await git.merge([targetBranch, '--no-ff', '--no-edit']);
+    console.log('Merge result:', result);
+    
     // Invalidate cache after successful merge
     gitCache.invalidate(repoPath);
   } catch (error: any) {
-    if (error.message && error.message.includes('CONFLICT')) {
+    // Invalidate cache even on error (to refresh conflict state)
+    gitCache.invalidate(repoPath);
+    
+    if (error.message && (error.message.includes('CONFLICT') || error.message.includes('Automatic merge failed'))) {
       throw new Error('Merge conflict detected. Please resolve conflicts manually.');
     }
     throw error;

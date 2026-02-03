@@ -61,9 +61,6 @@ interface MiddlePanelProps {
   onStashSelect?: (stash: StashEntry) => void;
   selectedStashIndex?: number | null;
 
-  // Theme
-  isDarkTheme?: boolean;
-
   // Conflicts view
   onConflictFileClick?: (filePath: string) => void;
   onConflictsRefresh?: () => void;
@@ -123,7 +120,6 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   loadingReflog = false,
   loadingStash = false,
   loadingConflicts = false,
-  isDarkTheme = false,
   width = 350,
   onResize,
   repositories,

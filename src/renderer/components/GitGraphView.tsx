@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { Empty, Spin, Select } from "antd";
 import { Gitgraph, templateExtend, TemplateName } from "@gitgraph/react";
 import { CommitDetail } from "../types";
+import { useTheme } from "../ThemeContext";
 
 interface GitGraphViewProps {
   repoPath: string;
@@ -12,9 +13,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
   const [commitDetails, setCommitDetails] = useState<CommitDetail[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState<string>("--all--");
-  const [isDarkTheme, setIsDarkTheme] = useState(
-    document.body.classList.contains("dark-theme")
-  );
+  const { isDarkMode } = useTheme();
 
   // In React 18 dev mode, render callbacks may be invoked twice (StrictMode).
   // `buildGraph` is imperative and would otherwise append nodes twice.
@@ -24,37 +23,9 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
   const oldestHash = commitDetails[commitDetails.length - 1]?.hash ?? "";
   const graphKey = useMemo(
     () =>
-      `${repoPath}|${selectedBranch}|${commitDetails.length}|${newestHash}|${oldestHash}|${isDarkTheme}`,
-    [repoPath, selectedBranch, commitDetails.length, newestHash, oldestHash, isDarkTheme],
+      `${repoPath}|${selectedBranch}|${commitDetails.length}|${newestHash}|${oldestHash}|${isDarkMode}`,
+    [repoPath, selectedBranch, commitDetails.length, newestHash, oldestHash, isDarkMode],
   );
-
-  // Отслеживание смены темы и полная очистка при изменении
-  useEffect(() => {
-    const handleThemeChange = () => {
-      const newTheme = document.body.classList.contains("dark-theme");
-      if (newTheme !== isDarkTheme) {
-        // Полная очистка при смене темы
-        lastBuiltKeyRef.current = null;
-        setIsDarkTheme(newTheme);
-      }
-    };
-
-    // Создаем MutationObserver для отслеживания изменений класса body
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.attributeName === "class") {
-          handleThemeChange();
-        }
-      });
-    });
-
-    observer.observe(document.body, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, [isDarkTheme]);
 
   useEffect(() => {
     loadCommits();
@@ -365,7 +336,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
         commitBranchMap.set(commit.hash, targetBranch);
       }
     },
-    [commitDetails, branches, graphKey, isDarkTheme],
+    [commitDetails, branches, graphKey, isDarkMode],
   );
 
   const customTemplate = useMemo(
@@ -386,7 +357,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
           spacing: 50,
           label: {
             display: true,
-            bgColor: isDarkTheme ? "#1f1f1f" : "#ffffff",
+            bgColor: isDarkMode ? "#1f1f1f" : "#ffffff",
             borderRadius: 5,
           },
         },
@@ -394,7 +365,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
           message: {
             displayAuthor: false,
             displayHash: true,
-            color: isDarkTheme ? "#e0e0e0" : "#000000",
+            color: isDarkMode ? "#e0e0e0" : "#000000",
           },
           spacing: 50,
           dot: {
@@ -402,7 +373,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
           },
         },
       }),
-    [isDarkTheme],
+    [isDarkMode],
   );
 
   const branchOptions = [

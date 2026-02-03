@@ -29,6 +29,7 @@ import {
   ClearOutlined,
   CloudUploadOutlined,
 } from "@ant-design/icons";
+import { useTheme } from "../ThemeContext";
 import { RemoteInfo } from "../types";
 
 const { TextArea } = Input;
@@ -38,14 +39,13 @@ const { Option } = Select;
 interface RemoteManagementPanelProps {
   repoPath: string | null;
   onRefresh?: () => void;
-  isDarkTheme?: boolean;
 }
 
 const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
   repoPath,
   onRefresh,
-  isDarkTheme = false,
 }) => {
+  const { isDarkMode } = useTheme();
   const [remotes, setRemotes] = useState<RemoteInfo[]>([]);
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -317,8 +317,8 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
           size="small"
           style={{ 
             marginBottom: 16, 
-            background: isDarkTheme ? "rgba(255, 255, 255, 0.04)" : "#f6f8fa",
-            borderColor: isDarkTheme ? "rgba(255, 255, 255, 0.12)" : "#d9d9d9"
+            background: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "#f6f8fa",
+            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "#d9d9d9"
           }}
           title={
             <Space>
@@ -343,8 +343,8 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
           size="small" 
           style={{ 
             marginBottom: 16, 
-            background: isDarkTheme ? "rgba(250, 173, 20, 0.1)" : "#fff7e6", 
-            borderColor: isDarkTheme ? "rgba(250, 173, 20, 0.3)" : "#ffc53d"
+            background: isDarkMode ? "rgba(250, 173, 20, 0.1)" : "#fff7e6", 
+            borderColor: isDarkMode ? "rgba(250, 173, 20, 0.3)" : "#ffc53d"
           }}
         >
           <Space>
@@ -375,8 +375,8 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
                 key={remote.name}
                 style={{ 
                   marginBottom: 12,
-                  background: isDarkTheme ? "rgba(255, 255, 255, 0.02)" : "#fff",
-                  borderColor: isDarkTheme ? "rgba(255, 255, 255, 0.1)" : "#d9d9d9"
+                  background: isDarkMode ? "rgba(255, 255, 255, 0.02)" : "#fff",
+                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "#d9d9d9"
                 }}
                 bodyStyle={{ padding: 16 }}
               >

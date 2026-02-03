@@ -9,6 +9,7 @@ import {
   ThunderboltOutlined,
   DownOutlined,
 } from "@ant-design/icons";
+import { useTheme } from "../ThemeContext";
 import { FileDiff, ConflictFile, ConflictMarker } from "../types";
 
 interface FileDiffPanelProps {
@@ -26,6 +27,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   filePath,
   onRefresh,
 }) => {
+  const { isDarkMode } = useTheme();
   const [conflictInfo, setConflictInfo] = useState<ConflictFile | null>(null);
   const [resolving, setResolving] = useState(false);
   const [editingContent, setEditingContent] = useState<string | null>(null);
@@ -170,7 +172,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   };
 
   const renderDiffLine = (line: string, index: number) => {
-    const isDarkTheme = document.body.classList.contains("dark-theme");
     let backgroundColor = "transparent";
     let color = "inherit";
     let icon = null;
@@ -183,23 +184,23 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
       line.startsWith(">>>>>>>") ||
       line.startsWith("|||||||")
     ) {
-      backgroundColor = isDarkTheme ? "#4a2a2a" : "#fff1f0";
+      backgroundColor = isDarkMode ? "#4a2a2a" : "#fff1f0";
       color = "#ff4d4f";
       isConflictMarker = true;
       icon = <WarningOutlined style={{ fontSize: 10, marginRight: 8 }} />;
     } else if (line.startsWith("+") && !line.startsWith("+++")) {
-      backgroundColor = isDarkTheme ? "#1a3a1a" : "#f6ffed";
+      backgroundColor = isDarkMode ? "#1a3a1a" : "#f6ffed";
       color = "#52c41a";
       icon = <PlusOutlined style={{ fontSize: 10, marginRight: 8 }} />;
     } else if (line.startsWith("-") && !line.startsWith("---")) {
-      backgroundColor = isDarkTheme ? "#3a1a1a" : "#fff2f0";
+      backgroundColor = isDarkMode ? "#3a1a1a" : "#fff2f0";
       color = "#ff4d4f";
       icon = <MinusOutlined style={{ fontSize: 10, marginRight: 8 }} />;
     } else if (line.startsWith("@@")) {
-      backgroundColor = isDarkTheme ? "#1a2a3a" : "#e6f7ff";
+      backgroundColor = isDarkMode ? "#1a2a3a" : "#e6f7ff";
       color = "#1890ff";
     } else if (line.startsWith("+++") || line.startsWith("---")) {
-      color = isDarkTheme ? "#a0a0a0" : "#8c8c8c";
+      color = isDarkMode ? "#a0a0a0" : "#8c8c8c";
       fontWeight: 600;
     }
 
@@ -234,8 +235,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     conflict: ConflictMarker,
     conflictIndex: number,
   ) => {
-    const isDarkTheme = document.body.classList.contains("dark-theme");
-
     return (
       <div
         key={`conflict-${conflictIndex}`}
@@ -243,7 +242,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           margin: "16px 0",
           border: "2px solid #ff4d4f",
           borderRadius: 8,
-          backgroundColor: isDarkTheme ? "#2a1a1a" : "#fff7f7",
+          backgroundColor: isDarkMode ? "#2a1a1a" : "#fff7f7",
           overflow: "hidden",
         }}
       >
@@ -311,7 +310,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             </Tag>
             <div
               style={{
-                backgroundColor: isDarkTheme ? "#1a3a1a" : "#f6ffed",
+                backgroundColor: isDarkMode ? "#1a3a1a" : "#f6ffed",
                 padding: 8,
                 borderRadius: 4,
                 border: "1px solid #52c41a",
@@ -340,7 +339,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
               </Tag>
               <div
                 style={{
-                  backgroundColor: isDarkTheme ? "#2a2a2a" : "#f5f5f5",
+                  backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
                   padding: 8,
                   borderRadius: 4,
                   border: "1px solid #d9d9d9",
@@ -369,7 +368,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             </Tag>
             <div
               style={{
-                backgroundColor: isDarkTheme ? "#3a2a1a" : "#fffbe6",
+                backgroundColor: isDarkMode ? "#3a2a1a" : "#fffbe6",
                 padding: 8,
                 borderRadius: 4,
                 border: "1px solid #faad14",
