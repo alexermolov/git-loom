@@ -635,12 +635,22 @@ const App: React.FC = () => {
     }
   };
 
-  const handleMergeBranch = async (branchName: string) => {
+  const handleMergeBranch = async (branchName: string, mergeMode: 'auto' | 'no-ff' | 'ff-only' = 'no-ff') => {
     if (!selectedRepo) return;
     
     try {
-      const info = await window.electronAPI.mergeBranch(selectedRepo, branchName);
+      const info = await window.electronAPI.mergeBranch(selectedRepo, branchName, mergeMode);
       updateRepoInfo(selectedRepo, info);
+      
+      // Force refresh commits after merge
+      const commitsData = await window.electronAPI.getCommits(selectedRepo, undefined, 0, 25);
+      setCommits(commitsData);
+      setHasMoreCommits(commitsData.length === 25);
+      
+      // Refresh branches
+      const branchesData = await window.electronAPI.getBranches(selectedRepo);
+      setBranches(branchesData);
+      
       await refreshSelectedRepoPanels(selectedRepo, info);
       message.success(`Merged branch: ${branchName}`);
       

@@ -149,10 +149,28 @@ export class GitWorkerPool {
     if (commitHash) {
       // Compare commit with its parent (commitHash^..commitHash)
       // Using commitHash^! is shorthand for showing changes in that commit
-      args.push(`${commitHash}^!`);
+      // However, for initial commits (no parent), we need --root flag
+      try {
+        // Try with parent reference first
+        args.push(`${commitHash}^!`);
+        const output = await git.raw([...args, '--', filePath]);
+        
+        // If maxLines is specified, truncate the output
+        if (maxLines && typeof maxLines === 'number') {
+          const lines = output.split('\n');
+          if (lines.length > maxLines) {
+            return lines.slice(0, maxLines).join('\n') + '\n... (truncated)';
+          }
+        }
+        
+        return output;
+      } catch (error) {
+        // If that fails, try with --root for initial commits
+        args = ['diff', '--no-color', '--root', commitHash, '--', filePath];
+      }
+    } else {
+      args.push('--', filePath);
     }
-    
-    args.push('--', filePath);
 
     const output = await git.raw(args);
     

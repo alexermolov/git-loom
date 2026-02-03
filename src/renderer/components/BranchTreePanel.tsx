@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Empty, Tree, Dropdown, Modal, Spin, Input, Form, Select, message } from 'antd';
+import { Empty, Tree, Dropdown, Modal, Spin, Input, Form, Select, message, Radio, Space } from 'antd';
 import type { MenuProps } from 'antd';
 import { BranchesOutlined, CheckCircleOutlined, ClockCircleOutlined, MergeCellsOutlined, SwapOutlined, SearchOutlined, PlusOutlined, DeleteOutlined, EditOutlined, LinkOutlined, DisconnectOutlined, DiffOutlined } from '@ant-design/icons';
 import { BranchInfo } from '../types';
@@ -10,7 +10,7 @@ interface BranchTreePanelProps {
   branches: BranchInfo[];
   currentBranch: string;
   onCheckoutBranch?: (branchName: string) => void;
-  onMergeBranch?: (branchName: string) => void;
+  onMergeBranch?: (branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => void;
   onRefresh?: () => void;
   loading?: boolean;
 }
@@ -304,13 +304,43 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
         return;
       }
       
+      let selectedMode: 'auto' | 'no-ff' | 'ff-only' = 'no-ff';
+      
       Modal.confirm({
         title: 'Merge Branch',
-        content: `Merge branch "${displayName}" into current branch "${currentBranch}"?`,
+        content: (
+          <div>
+            <p>Merge branch <strong>{displayName}</strong> into current branch <strong>{currentBranch}</strong></p>
+            <Form layout="vertical" style={{ marginTop: 16 }}>
+              <Form.Item label="Merge Mode">
+                <Radio.Group 
+                  defaultValue="no-ff" 
+                  onChange={(e) => selectedMode = e.target.value}
+                >
+                  <Space direction="vertical">
+                    <Radio value="no-ff">
+                      <strong>Create merge commit (--no-ff)</strong>
+                      <div style={{ fontSize: 12, color: '#666', marginLeft: 24 }}>Always create a merge commit, even if fast-forward is possible</div>
+                    </Radio>
+                    <Radio value="auto">
+                      <strong>Auto (default Git behavior)</strong>
+                      <div style={{ fontSize: 12, color: '#666', marginLeft: 24 }}>Fast-forward if possible, otherwise create merge commit</div>
+                    </Radio>
+                    <Radio value="ff-only">
+                      <strong>Fast-forward only (--ff-only)</strong>
+                      <div style={{ fontSize: 12, color: '#666', marginLeft: 24 }}>Only merge if fast-forward is possible, fail otherwise</div>
+                    </Radio>
+                  </Space>
+                </Radio.Group>
+              </Form.Item>
+            </Form>
+          </div>
+        ),
         okText: 'Merge',
         cancelText: 'Cancel',
+        width: 600,
         onOk: () => {
-          onMergeBranch?.(branchName);
+          onMergeBranch?.(branchName, selectedMode);
         },
       });
     }

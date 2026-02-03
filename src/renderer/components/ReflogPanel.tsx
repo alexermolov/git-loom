@@ -16,6 +16,7 @@ import {
   ClearOutlined,
   PullRequestOutlined,
 } from '@ant-design/icons';
+import { useTheme } from '../ThemeContext';
 import { ReflogEntry } from '../types';
 import dayjs, { Dayjs } from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
@@ -32,6 +33,7 @@ interface ReflogPanelProps {
 }
 
 const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => {
+  const { isDarkMode } = useTheme();
   const [reflogEntries, setReflogEntries] = useState<ReflogEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedRef, setSelectedRef] = useState<string>('HEAD');
@@ -798,55 +800,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
           border-color: #3a3a3a;
         }
 
-        body.dark-theme .reflog-entry:hover,
-        body.dark-theme .timeline-entry:hover {
-          background: #2a2a2a;
-          border-color: #4a9eff;
-        }
 
-        body.dark-theme .reflog-hash {
-          background: #2a2a2a;
-          color: #a0a0a0;
-        }
-
-        body.dark-theme .reflog-panel-header {
-          background: #121212;
-          border-bottom-color: #3a3a3a;
-        }
-
-        body.dark-theme .ant-timeline-item-label {
-          color: #a0a0a0 !important;
-        }
-
-        body.dark-theme .ant-timeline-item-tail {
-          background-color: #3a3a3a !important;
-        }
-
-        body.dark-theme .ant-timeline-item-head {
-          background-color: transparent !important;
-        }
-
-        body.dark-theme .ant-timeline .anticon {
-          color: inherit !important;
-          background: transparent !important;
-        }
-
-        body.dark-theme .ant-timeline-item-head-custom {
-          background: transparent !important;
-        }
-
-        /* Light theme */
-        .reflog-panel {
-          --bg-primary: #ffffff;
-          --bg-secondary: #fafafa;
-          --bg-hover: #f5f5f5;
-          --bg-code: #f5f5f5;
-          --border-color: #d9d9d9;
-          --text-primary: #000000;
-          --text-secondary: #595959;
-          --text-tertiary: #8c8c8c;
-          --primary-color: #1890ff;
-        }
       `}</style>
     </div>
   );

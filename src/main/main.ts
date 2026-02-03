@@ -241,9 +241,9 @@ function setupIpcHandlers() {
   });
 
   // Merge branch
-  ipcMain.handle('git:mergeBranch', async (_event, repoPath: string, branchName: string) => {
+  ipcMain.handle('git:mergeBranch', async (_event, repoPath: string, branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => {
     try {
-      await mergeBranch(repoPath, branchName);
+      await mergeBranch(repoPath, branchName, mergeMode);
       const info = await getRepositoryInfo(repoPath);
       return info;
     } catch (error) {

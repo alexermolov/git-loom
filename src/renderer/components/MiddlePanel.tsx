@@ -42,7 +42,7 @@ interface MiddlePanelProps {
   branches?: BranchInfo[];
   currentBranch?: string;
   onCheckoutBranch?: (branchName: string) => void;
-  onMergeBranch?: (branchName: string) => void;
+  onMergeBranch?: (branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => void;
   onBranchesRefresh?: () => void;
 
   // Commit files view

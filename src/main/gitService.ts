@@ -281,7 +281,7 @@ export async function checkoutBranch(repoPath: string, branchName: string): Prom
   gitCache.invalidate(repoPath);
 }
 
-export async function mergeBranch(repoPath: string, branchName: string): Promise<void> {
+export async function mergeBranch(repoPath: string, branchName: string, mergeMode: 'auto' | 'no-ff' | 'ff-only' = 'no-ff'): Promise<void> {
   const git: SimpleGit = simpleGit(repoPath);
 
   // Check if there are uncommitted changes
@@ -308,9 +308,21 @@ export async function mergeBranch(repoPath: string, branchName: string): Promise
   }
 
   try {
-    // Use --no-ff to always create a merge commit (not fast-forward)
-    // This makes merges more visible in the history
-    const result = await git.merge([targetBranch, '--no-ff', '--no-edit']);
+    // Build merge options based on selected mode
+    const mergeOptions: string[] = [targetBranch];
+    
+    if (mergeMode === 'no-ff') {
+      // Always create a merge commit (not fast-forward)
+      mergeOptions.push('--no-ff', '--no-edit');
+    } else if (mergeMode === 'ff-only') {
+      // Only allow fast-forward merges
+      mergeOptions.push('--ff-only');
+    } else {
+      // 'auto' mode - use default Git behavior (fast-forward when possible)
+      mergeOptions.push('--no-edit');
+    }
+    
+    const result = await git.merge(mergeOptions);
     console.log('Merge result:', result);
     
     // Invalidate cache after successful merge
@@ -322,6 +334,11 @@ export async function mergeBranch(repoPath: string, branchName: string): Promise
     if (error.message && (error.message.includes('CONFLICT') || error.message.includes('Automatic merge failed'))) {
       throw new Error('Merge conflict detected. Please resolve conflicts manually.');
     }
+    
+    if (error.message && error.message.includes('Not possible to fast-forward')) {
+      throw new Error('Cannot fast-forward merge. Use a different merge mode or resolve conflicts manually.');
+    }
+    
     throw error;
   }
 }
@@ -824,8 +841,21 @@ export async function getCommitFiles(repoPath: string, commitHash: string): Prom
   const git: SimpleGit = simpleGit(repoPath);
 
   try {
-    // Get the diff stat for the commit
-    const diffSummary = await git.diffSummary([`${commitHash}^`, commitHash]);
+    // Check if the commit exists and has a parent
+    let diffSummary;
+    try {
+      // Try to get the diff with parent commit
+      diffSummary = await git.diffSummary([`${commitHash}^`, commitHash]);
+    } catch (error) {
+      // If that fails, it might be the initial commit or the commit doesn't exist
+      // Try using --root flag for initial commits
+      try {
+        diffSummary = await git.diffSummary(['--root', commitHash]);
+      } catch (rootError) {
+        // If both fail, try comparing against empty tree (works for any commit without parent)
+        diffSummary = await git.diffSummary(['4b825dc642cb6eb9a060e54bf8d69288fbee4904', commitHash]);
+      }
+    }
     
     const files: CommitFile[] = diffSummary.files.map(file => {
       let status: 'added' | 'modified' | 'deleted' | 'renamed' = 'modified';

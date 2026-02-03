@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { message } from "antd";
 import { FileTextOutlined } from "@ant-design/icons";
+import { useTheme } from "../ThemeContext";
 import { StashEntry, CommitFile } from "../types";
 
 interface StashDetailsPanelProps {
@@ -12,6 +13,7 @@ const StashDetailsPanel: React.FC<StashDetailsPanelProps> = ({
   repoPath,
   selectedStash,
 }) => {
+  const { isDarkMode } = useTheme();
   const [stashDiff, setStashDiff] = useState<string>("");
   const [stashFiles, setStashFiles] = useState<CommitFile[]>([]);
   const [loadingDiff, setLoadingDiff] = useState(false);
