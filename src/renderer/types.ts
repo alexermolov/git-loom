@@ -62,6 +62,15 @@ export interface ElectronAPI {
   pruneRemote: (repoPath: string, remoteName: string) => Promise<string[]>;
   setUpstream: (repoPath: string, remoteName: string, remoteBranch: string) => Promise<void>;
   getUpstream: (repoPath: string) => Promise<{ remote: string; branch: string } | null>;
+  // Tag management
+  getTags: (repoPath: string) => Promise<TagInfo[]>;
+  createLightweightTag: (repoPath: string, tagName: string, commitHash?: string) => Promise<void>;
+  createAnnotatedTag: (repoPath: string, tagName: string, message: string, commitHash?: string) => Promise<void>;
+  deleteTag: (repoPath: string, tagName: string) => Promise<void>;
+  deleteRemoteTag: (repoPath: string, remoteName: string, tagName: string) => Promise<void>;
+  pushTags: (repoPath: string, remoteName: string, tagName?: string) => Promise<void>;
+  checkoutTag: (repoPath: string, tagName: string) => Promise<void>;
+  getTagDetails: (repoPath: string, tagName: string) => Promise<TagInfo | null>;
 }
 
 export interface SearchFilter {
@@ -199,6 +208,15 @@ export interface RemoteInfo {
   fetchUrl: string;
   pushUrl: string;
   branches: string[];
+}
+
+export interface TagInfo {
+  name: string;
+  commitHash: string;
+  message?: string;
+  type: 'lightweight' | 'annotated';
+  tagger?: string;
+  date?: string;
 }
 
 declare global {

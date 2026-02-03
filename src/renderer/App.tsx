@@ -10,6 +10,7 @@ import ReflogPanel from './components/ReflogPanel';
 import StashDetailsPanel from './components/StashDetailsPanel';
 import SearchPanel from './components/SearchPanel';
 import RemoteManagementPanel from './components/RemoteManagementPanel';
+import TagsPanel from './components/TagsPanel';
 import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry, StashEntry, SearchResult } from './types';
 
 const App: React.FC = () => {
@@ -711,6 +712,19 @@ const App: React.FC = () => {
       return (
         <div style={{ height: '100%', overflow: 'auto' }}>
           <RemoteManagementPanel
+            repoPath={selectedRepo}
+            onRefresh={handleRefresh}
+            isDarkTheme={isDarkTheme}
+          />
+        </div>
+      );
+    }
+
+    // Show tags management panel when tags view is active
+    if (activeView === 'tags' && selectedRepo) {
+      return (
+        <div style={{ height: '100%', overflow: 'auto' }}>
+          <TagsPanel
             repoPath={selectedRepo}
             onRefresh={handleRefresh}
             isDarkTheme={isDarkTheme}

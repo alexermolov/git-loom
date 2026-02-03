@@ -63,5 +63,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pruneRemote: (repoPath: string, remoteName: string) => ipcRenderer.invoke('git:pruneRemote', repoPath, remoteName),
   setUpstream: (repoPath: string, remoteName: string, remoteBranch: string) => ipcRenderer.invoke('git:setUpstream', repoPath, remoteName, remoteBranch),
   getUpstream: (repoPath: string) => ipcRenderer.invoke('git:getUpstream', repoPath),
+  // Tag management
+  getTags: (repoPath: string) => ipcRenderer.invoke('git:getTags', repoPath),
+  createLightweightTag: (repoPath: string, tagName: string, commitHash?: string) => ipcRenderer.invoke('git:createLightweightTag', repoPath, tagName, commitHash),
+  createAnnotatedTag: (repoPath: string, tagName: string, message: string, commitHash?: string) => ipcRenderer.invoke('git:createAnnotatedTag', repoPath, tagName, message, commitHash),
+  deleteTag: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:deleteTag', repoPath, tagName),
+  deleteRemoteTag: (repoPath: string, remoteName: string, tagName: string) => ipcRenderer.invoke('git:deleteRemoteTag', repoPath, remoteName, tagName),
+  pushTags: (repoPath: string, remoteName: string, tagName?: string) => ipcRenderer.invoke('git:pushTags', repoPath, remoteName, tagName),
+  checkoutTag: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:checkoutTag', repoPath, tagName),
+  getTagDetails: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:getTagDetails', repoPath, tagName),
 });
 

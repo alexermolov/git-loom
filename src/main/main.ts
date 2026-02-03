@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches, getTags, createLightweightTag, createAnnotatedTag, deleteTag, deleteRemoteTag, pushTags, checkoutTag, getTagDetails } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -653,6 +653,88 @@ function setupIpcHandlers() {
     } catch (error) {
       console.error('Error getting upstream:', error);
       return null;
+    }
+  });
+
+  // ==================== TAG MANAGEMENT ====================
+
+  // Get all tags
+  ipcMain.handle('git:getTags', async (_event, repoPath: string) => {
+    try {
+      return await getTags(repoPath);
+    } catch (error) {
+      console.error('Error getting tags:', error);
+      throw error;
+    }
+  });
+
+  // Create lightweight tag
+  ipcMain.handle('git:createLightweightTag', async (_event, repoPath: string, tagName: string, commitHash?: string) => {
+    try {
+      await createLightweightTag(repoPath, tagName, commitHash);
+    } catch (error) {
+      console.error('Error creating lightweight tag:', error);
+      throw error;
+    }
+  });
+
+  // Create annotated tag
+  ipcMain.handle('git:createAnnotatedTag', async (_event, repoPath: string, tagName: string, message: string, commitHash?: string) => {
+    try {
+      await createAnnotatedTag(repoPath, tagName, message, commitHash);
+    } catch (error) {
+      console.error('Error creating annotated tag:', error);
+      throw error;
+    }
+  });
+
+  // Delete local tag
+  ipcMain.handle('git:deleteTag', async (_event, repoPath: string, tagName: string) => {
+    try {
+      await deleteTag(repoPath, tagName);
+    } catch (error) {
+      console.error('Error deleting tag:', error);
+      throw error;
+    }
+  });
+
+  // Delete remote tag
+  ipcMain.handle('git:deleteRemoteTag', async (_event, repoPath: string, remoteName: string, tagName: string) => {
+    try {
+      await deleteRemoteTag(repoPath, remoteName, tagName);
+    } catch (error) {
+      console.error('Error deleting remote tag:', error);
+      throw error;
+    }
+  });
+
+  // Push tags to remote
+  ipcMain.handle('git:pushTags', async (_event, repoPath: string, remoteName: string, tagName?: string) => {
+    try {
+      await pushTags(repoPath, remoteName, tagName);
+    } catch (error) {
+      console.error('Error pushing tags:', error);
+      throw error;
+    }
+  });
+
+  // Checkout tag
+  ipcMain.handle('git:checkoutTag', async (_event, repoPath: string, tagName: string) => {
+    try {
+      await checkoutTag(repoPath, tagName);
+    } catch (error) {
+      console.error('Error checking out tag:', error);
+      throw error;
+    }
+  });
+
+  // Get tag details
+  ipcMain.handle('git:getTagDetails', async (_event, repoPath: string, tagName: string) => {
+    try {
+      return await getTagDetails(repoPath, tagName);
+    } catch (error) {
+      console.error('Error getting tag details:', error);
+      throw error;
     }
   });
 }

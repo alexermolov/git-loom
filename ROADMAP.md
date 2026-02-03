@@ -10,6 +10,7 @@ This document outlines the planned features and improvements for GitLoom. Items 
 - **Conflict Resolution Interface** (6/6 features) - Visual conflict markers, quick actions, merge tool integration
 - **Branch Creation & Management** (9/9 features) - Complete branch operations including create, delete, rename, tracking, compare
 - **Remote Management** (8/8 features) - Full remote CRUD operations
+- **Tags Management** (7/7 features) - Full tag operations with UI
 - **Advanced History Visualization** (4/8 features) - Git graph with branch filtering
 - **Search & Filter System** (4/4 features) - Global search, branch/file filtering
 - **Reflog Support** - View and interact with reflog entries
@@ -17,12 +18,12 @@ This document outlines the planned features and improvements for GitLoom. Items 
 - **File Operations** - File tree, diff viewer, working directory changes
 
 ### 🔄 In Progress
-- **Tags Management** (0/7 features) - Not started
+- None at the moment
 
 ### 📈 Progress Overview
-- **v0.2.0 Must-Have Features**: 86% complete (6/7 fully done)
+- **v0.2.0 Must-Have Features**: 100% complete (7/7 fully done) ✅
 - **v0.3.0 Enhanced Workflow**: 17% complete (1/6 partial)
-- **Overall Roadmap**: ~40% complete
+- **Overall Roadmap**: ~43% complete
 
 ---
 
@@ -143,17 +144,27 @@ These are essential features that significantly improve the core Git workflow ex
 - Automatic staging after resolution
 
 ### 6. Tags Management
-**Priority: MEDIUM** ⏳ **NOT STARTED**
+**Priority: MEDIUM** ✅ **COMPLETED**
 
-- ⏳ **View all tags** (local and remote) with annotations
-- ⏳ **Create lightweight tags**
-- ⏳ **Create annotated tags** with messages
-- ⏳ **Delete tags** locally and remotely
-- ⏳ **Push tags** to remote
-- ⏳ **Checkout tags** (detached HEAD warning)
-- ⏳ **Tag filtering and search**
+- ✅ **View all tags** (local and remote) with annotations
+- ✅ **Create lightweight tags**
+- ✅ **Create annotated tags** with messages
+- ✅ **Delete tags** locally and remotely
+- ✅ **Push tags** to remote
+- ✅ **Checkout tags** (detached HEAD warning)
+- ✅ **Tag filtering and search**
 
-**Why**: Tags are essential for release management and versioning.
+**Status**: Fully implemented with TagsPanel component.
+
+**Implementation**:
+- Complete tag CRUD operations
+- Visual tag list with metadata (type, message, tagger, date)
+- Create lightweight and annotated tags
+- Delete local and remote tags
+- Push individual or all tags to remote
+- Checkout tags with detached HEAD warning
+- Tag filtering and search by name, hash, message, or author
+- Integration with main UI and sidebar
 
 ### 7. Performance Optimizations
 **Priority: HIGH** ✅ **COMPLETED**
