@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, createCommit, getWorkingFileDiff, checkoutBranch, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -484,6 +484,88 @@ function setupIpcHandlers() {
     } catch (error) {
       console.error('Error getting authors:', error);
       throw error;
+    }
+  });
+
+  // Remote management
+  ipcMain.handle('git:getRemotes', async (_event, repoPath: string) => {
+    try {
+      return await getRemotes(repoPath);
+    } catch (error) {
+      console.error('Error getting remotes:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('git:addRemote', async (_event, repoPath: string, name: string, url: string) => {
+    try {
+      await addRemote(repoPath, name, url);
+    } catch (error) {
+      console.error('Error adding remote:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('git:removeRemote', async (_event, repoPath: string, name: string) => {
+    try {
+      await removeRemote(repoPath, name);
+    } catch (error) {
+      console.error('Error removing remote:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('git:renameRemote', async (_event, repoPath: string, oldName: string, newName: string) => {
+    try {
+      await renameRemote(repoPath, oldName, newName);
+    } catch (error) {
+      console.error('Error renaming remote:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('git:setRemoteUrl', async (_event, repoPath: string, name: string, url: string, isPushUrl?: boolean) => {
+    try {
+      await setRemoteUrl(repoPath, name, url, isPushUrl);
+    } catch (error) {
+      console.error('Error setting remote URL:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('git:fetchRemote', async (_event, repoPath: string, remoteName: string, prune?: boolean) => {
+    try {
+      await fetchRemote(repoPath, remoteName, prune);
+    } catch (error) {
+      console.error('Error fetching from remote:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('git:pruneRemote', async (_event, repoPath: string, remoteName: string) => {
+    try {
+      return await pruneRemote(repoPath, remoteName);
+    } catch (error) {
+      console.error('Error pruning remote:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('git:setUpstream', async (_event, repoPath: string, remoteName: string, remoteBranch: string) => {
+    try {
+      await setUpstream(repoPath, remoteName, remoteBranch);
+    } catch (error) {
+      console.error('Error setting upstream:', error);
+      throw error;
+    }
+  });
+
+  ipcMain.handle('git:getUpstream', async (_event, repoPath: string) => {
+    try {
+      return await getUpstream(repoPath);
+    } catch (error) {
+      console.error('Error getting upstream:', error);
+      return null;
     }
   });
 }

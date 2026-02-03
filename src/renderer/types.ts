@@ -44,6 +44,16 @@ export interface ElectronAPI {
   searchCommits: (repoPath: string, filter: SearchFilter, limit?: number) => Promise<SearchResult[]>;
   searchCommitsMultiRepo: (repoPaths: string[], filter: SearchFilter, limit?: number) => Promise<Record<string, SearchResult[]>>;
   getAuthors: (repoPath: string) => Promise<string[]>;
+  // Remote management
+  getRemotes: (repoPath: string) => Promise<RemoteInfo[]>;
+  addRemote: (repoPath: string, name: string, url: string) => Promise<void>;
+  removeRemote: (repoPath: string, name: string) => Promise<void>;
+  renameRemote: (repoPath: string, oldName: string, newName: string) => Promise<void>;
+  setRemoteUrl: (repoPath: string, name: string, url: string, isPushUrl?: boolean) => Promise<void>;
+  fetchRemote: (repoPath: string, remoteName: string, prune?: boolean) => Promise<void>;
+  pruneRemote: (repoPath: string, remoteName: string) => Promise<string[]>;
+  setUpstream: (repoPath: string, remoteName: string, remoteBranch: string) => Promise<void>;
+  getUpstream: (repoPath: string) => Promise<{ remote: string; branch: string } | null>;
 }
 
 export interface SearchFilter {
@@ -163,6 +173,13 @@ export interface ConflictFile {
   path: string;
   conflicts: ConflictMarker[];
   content: string;
+}
+
+export interface RemoteInfo {
+  name: string;
+  fetchUrl: string;
+  pushUrl: string;
+  branches: string[];
 }
 
 declare global {

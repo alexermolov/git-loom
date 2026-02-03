@@ -9,6 +9,7 @@ import GitGraphView from './components/GitGraphView';
 import ReflogPanel from './components/ReflogPanel';
 import StashDetailsPanel from './components/StashDetailsPanel';
 import SearchPanel from './components/SearchPanel';
+import RemoteManagementPanel from './components/RemoteManagementPanel';
 import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry, StashEntry, SearchResult } from './types';
 
 const App: React.FC = () => {
@@ -685,6 +686,19 @@ const App: React.FC = () => {
               };
               handleCommitClick(commitInfo);
             }}
+          />
+        </div>
+      );
+    }
+
+    // Show remote management panel when remotes view is active
+    if (activeView === 'remotes' && selectedRepo) {
+      return (
+        <div style={{ height: '100%', overflow: 'auto' }}>
+          <RemoteManagementPanel
+            repoPath={selectedRepo}
+            onRefresh={handleRefresh}
+            isDarkTheme={isDarkTheme}
           />
         </div>
       );

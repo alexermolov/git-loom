@@ -46,5 +46,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   searchCommits: (repoPath: string, filter: any, limit?: number) => ipcRenderer.invoke('git:searchCommits', repoPath, filter, limit),
   searchCommitsMultiRepo: (repoPaths: string[], filter: any, limit?: number) => ipcRenderer.invoke('git:searchCommitsMultiRepo', repoPaths, filter, limit),
   getAuthors: (repoPath: string) => ipcRenderer.invoke('git:getAuthors', repoPath),
+  // Remote management
+  getRemotes: (repoPath: string) => ipcRenderer.invoke('git:getRemotes', repoPath),
+  addRemote: (repoPath: string, name: string, url: string) => ipcRenderer.invoke('git:addRemote', repoPath, name, url),
+  removeRemote: (repoPath: string, name: string) => ipcRenderer.invoke('git:removeRemote', repoPath, name),
+  renameRemote: (repoPath: string, oldName: string, newName: string) => ipcRenderer.invoke('git:renameRemote', repoPath, oldName, newName),
+  setRemoteUrl: (repoPath: string, name: string, url: string, isPushUrl?: boolean) => ipcRenderer.invoke('git:setRemoteUrl', repoPath, name, url, isPushUrl),
+  fetchRemote: (repoPath: string, remoteName: string, prune?: boolean) => ipcRenderer.invoke('git:fetchRemote', repoPath, remoteName, prune),
+  pruneRemote: (repoPath: string, remoteName: string) => ipcRenderer.invoke('git:pruneRemote', repoPath, remoteName),
+  setUpstream: (repoPath: string, remoteName: string, remoteBranch: string) => ipcRenderer.invoke('git:setUpstream', repoPath, remoteName, remoteBranch),
+  getUpstream: (repoPath: string) => ipcRenderer.invoke('git:getUpstream', repoPath),
 });
 

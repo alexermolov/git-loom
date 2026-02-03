@@ -1086,3 +1086,107 @@ body.dark-theme .search-panel .ant-empty-description {
   color: var(--text-secondary);
 }
 
+/* Remote Management Panel - Dark Theme */
+body.dark-theme .remote-management-panel .ant-card {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-card-head {
+  background-color: var(--bg-primary) !important;
+  border-bottom-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-card-head-title {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-card-body {
+  background-color: var(--bg-secondary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-descriptions-item-label {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-descriptions-item-content {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-typography {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-typography code {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-tag {
+  background-color: var(--bg-active) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-modal-content {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-modal-header {
+  background-color: var(--bg-primary) !important;
+  border-bottom-color: var(--border-color) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-modal-title {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-modal-footer {
+  border-top-color: var(--border-color) !important;
+  background-color: var(--bg-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-input,
+body.dark-theme .remote-management-panel .ant-input-textarea textarea {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-input::placeholder,
+body.dark-theme .remote-management-panel .ant-input-textarea textarea::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-input:focus,
+body.dark-theme .remote-management-panel .ant-input-textarea textarea:focus {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-switch {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-switch-checked {
+  background-color: var(--accent-color) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-popconfirm {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-popconfirm-inner {
+  background-color: var(--bg-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-popconfirm-message {
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .remote-management-panel .ant-popconfirm-buttons {
+  border-top-color: var(--border-color) !important;
+}

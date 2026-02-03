@@ -16,13 +16,12 @@ This document outlines the planned features and improvements for GitLoom. Items 
 
 ### 🔄 In Progress
 - **Branch Creation & Management** (3/9 features) - Basic operations complete, advanced pending
-- **Remote Management** (0/7 features) - Not started
 - **Tags Management** (0/7 features) - Not started
 
 ### 📈 Progress Overview
-- **v0.2.0 Must-Have Features**: 57% complete (4/7 fully done, 1 partial)
+- **v0.2.0 Must-Have Features**: 71% complete (5/7 fully done, 1 partial)
 - **v0.3.0 Enhanced Workflow**: 17% complete (1/6 partial)
-- **Overall Roadmap**: ~30% complete
+- **Overall Roadmap**: ~35% complete
 
 ---
 
@@ -78,17 +77,26 @@ These are essential features that significantly improve the core Git workflow ex
 - Integration with main UI
 
 ### 3. Remote Management
-**Priority: HIGH** ⏳ **NOT STARTED**
+**Priority: HIGH** ✅ **COMPLETED**
 
-- ⏳ **View all remotes** for a repository
-- ⏳ **Add new remotes** with validation
-- ⏳ **Edit remote URLs**
-- ⏳ **Remove remotes** with safety checks
-- ⏳ **Fetch from specific remotes**
-- ⏳ **Prune remote-tracking branches**
-- ⏳ **Set upstream branches**
+- ✅ **View all remotes** for a repository
+- ✅ **Add new remotes** with validation
+- ✅ **Edit remote URLs** (both fetch and push URLs)
+- ✅ **Remove remotes** with safety checks
+- ✅ **Fetch from specific remotes** with optional prune
+- ✅ **Prune remote-tracking branches**
+- ✅ **Set upstream branches** with UI for selecting remote and branch
+- ✅ **Rename remotes**
 
-**Why**: Modern development often involves multiple remotes (origin, upstream, mirrors), and managing them is essential.
+**Status**: Fully implemented with RemoteManagementPanel component.
+
+**Implementation**:
+- Complete remote CRUD operations
+- Visual remote list with metadata (fetch/push URLs, branches)
+- Fetch and prune operations
+- Upstream branch management
+- URL validation and safety checks
+- Integration with main UI and sidebar
 
 ### 4. Branch Creation & Management
 **Priority: HIGH** ⚠️ **PARTIALLY COMPLETED**
@@ -427,7 +435,7 @@ This roadmap is a living document and will be updated:
 - **Quarterly** - Revision of upcoming milestones
 - **As needed** - Based on community feedback and priorities
 
-**Last Updated:** February 2, 2026
+**Last Updated:** February 3, 2026
 
 ---
 

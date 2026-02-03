@@ -9,10 +9,11 @@ import {
   ClockCircleOutlined,
   SaveOutlined,
   WarningOutlined,
-  SearchOutlined
+  SearchOutlined,
+  CloudServerOutlined
 } from '@ant-design/icons';
 
-export type ViewType = 'changes' | 'commits' | 'graph' | 'branches' | 'fileTree' | 'reflog' | 'stash' | 'conflicts' | 'search';
+export type ViewType = 'changes' | 'commits' | 'graph' | 'branches' | 'fileTree' | 'reflog' | 'stash' | 'conflicts' | 'search' | 'remotes';
 
 interface IconSidebarProps {
   activeView: ViewType;
@@ -26,6 +27,7 @@ const IconSidebar: React.FC<IconSidebarProps> = ({ activeView, onViewChange, con
     { key: 'changes' as ViewType, icon: <FileTextOutlined />, tooltip: 'Source Control' },
     { key: 'commits' as ViewType, icon: <HistoryOutlined />, tooltip: 'Commits History' },
     { key: 'branches' as ViewType, icon: <BranchesOutlined />, tooltip: 'Branches' },
+    { key: 'remotes' as ViewType, icon: <CloudServerOutlined />, tooltip: 'Remotes' },
     { key: 'conflicts' as ViewType, icon: <WarningOutlined />, tooltip: 'Merge Conflicts', badge: conflictCount },
     { key: 'stash' as ViewType, icon: <SaveOutlined />, tooltip: 'Stashes' },
     { key: 'reflog' as ViewType, icon: <ClockCircleOutlined />, tooltip: 'Reflog' },
