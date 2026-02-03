@@ -263,9 +263,9 @@ function setupIpcHandlers() {
   });
 
   // Create branch
-  ipcMain.handle('git:createBranch', async (_event, repoPath: string, branchName: string, startPoint?: string) => {
+  ipcMain.handle('git:createBranch', async (_event, repoPath: string, branchName: string, startPoint?: string, switchAfterCreate?: boolean, pushAfterCreate?: boolean) => {
     try {
-      await createBranch(repoPath, branchName, startPoint);
+      await createBranch(repoPath, branchName, startPoint, switchAfterCreate, pushAfterCreate);
       const branches = await getBranches(repoPath);
       return branches;
     } catch (error) {

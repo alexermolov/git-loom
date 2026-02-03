@@ -20,7 +20,7 @@ export interface ElectronAPI {
   checkoutBranch: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
   mergeBranch: (repoPath: string, branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => Promise<RepositoryInfo>;
   // Branch management
-  createBranch: (repoPath: string, branchName: string, startPoint?: string) => Promise<BranchInfo[]>;
+  createBranch: (repoPath: string, branchName: string, startPoint?: string, switchAfterCreate?: boolean, pushAfterCreate?: boolean) => Promise<BranchInfo[]>;
   deleteBranch: (repoPath: string, branchName: string, force: boolean) => Promise<{ success: boolean; branches?: BranchInfo[]; warning?: string }>;
   deleteRemoteBranch: (repoPath: string, remoteName: string, branchName: string) => Promise<BranchInfo[]>;
   renameBranch: (repoPath: string, oldName: string, newName: string, renameRemote: boolean) => Promise<BranchInfo[]>;

@@ -33,13 +33,39 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
               <Input value={fromCommit} disabled />
             </Form.Item>
           )}
+          <Form.Item>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                id="switch-after-create-checkbox" 
+                defaultChecked={true}
+                style={{ marginRight: 8 }} 
+              />
+              Switch to new branch after creation
+            </label>
+          </Form.Item>
+          <Form.Item>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+              <input 
+                type="checkbox" 
+                id="push-after-create-checkbox" 
+                style={{ marginRight: 8 }} 
+              />
+              Push new branch to remote (origin)
+            </label>
+          </Form.Item>
         </Form>
       ),
       okText: 'Create',
       cancelText: 'Cancel',
       onOk: async () => {
         const input = document.getElementById('new-branch-name') as HTMLInputElement;
+        const switchCheckbox = document.getElementById('switch-after-create-checkbox') as HTMLInputElement;
+        const pushCheckbox = document.getElementById('push-after-create-checkbox') as HTMLInputElement;
+        
         const branchName = input?.value.trim();
+        const switchAfterCreate = switchCheckbox?.checked || false;
+        const pushAfterCreate = pushCheckbox?.checked || false;
         
         if (!branchName) {
           message.error('Branch name is required');
@@ -47,8 +73,17 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({ repoPath, branches, c
         }
 
         try {
-          await window.electronAPI.createBranch(repoPath, branchName, fromCommit);
-          message.success(`Branch "${branchName}" created successfully`);
+          await window.electronAPI.createBranch(repoPath, branchName, fromCommit, switchAfterCreate, pushAfterCreate);
+          
+          let successMessage = `Branch "${branchName}" created successfully`;
+          if (switchAfterCreate) {
+            successMessage += ' and checked out';
+          }
+          if (pushAfterCreate) {
+            successMessage += ', pushed to remote';
+          }
+          
+          message.success(successMessage);
           onRefresh?.();
         } catch (error: any) {
           message.error(error.message || 'Failed to create branch');

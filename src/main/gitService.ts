@@ -343,7 +343,13 @@ export async function mergeBranch(repoPath: string, branchName: string, mergeMod
   }
 }
 
-export async function createBranch(repoPath: string, branchName: string, startPoint?: string): Promise<void> {
+export async function createBranch(
+  repoPath: string, 
+  branchName: string, 
+  startPoint?: string, 
+  switchAfterCreate: boolean = false, 
+  pushAfterCreate: boolean = false
+): Promise<void> {
   const git: SimpleGit = simpleGit(repoPath);
 
   // Validate branch name
@@ -362,6 +368,28 @@ export async function createBranch(repoPath: string, branchName: string, startPo
     await git.branch([branchName, startPoint]);
   } else {
     await git.branch([branchName]);
+  }
+
+  // Switch to new branch if requested
+  if (switchAfterCreate) {
+    await git.checkout(branchName);
+  }
+
+  // Push new branch to remote if requested
+  if (pushAfterCreate) {
+    const remotes = await git.getRemotes(true);
+    const hasOrigin = remotes.some((r) => r.name === 'origin');
+    if (hasOrigin) {
+      // If we switched to the branch, just push it with upstream
+      if (switchAfterCreate) {
+        await git.push(['-u', 'origin', branchName]);
+      } else {
+        // If we didn't switch, push the branch without switching
+        await git.push(['origin', branchName]);
+      }
+    } else {
+      throw new Error('Cannot push: no origin remote configured');
+    }
   }
 
   // Invalidate cache after creating branch
