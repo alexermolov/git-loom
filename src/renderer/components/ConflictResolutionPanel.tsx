@@ -7,6 +7,7 @@ import {
   ToolOutlined,
   FileTextOutlined,
   ThunderboltOutlined,
+  ReloadOutlined,
 } from '@ant-design/icons';
 import { ConflictFile } from '../types';
 
@@ -182,6 +183,15 @@ const ConflictResolutionPanel: React.FC<ConflictResolutionPanelProps> = ({
             </span>
             <Tag color="warning">{conflictedFiles.length}</Tag>
           </div>
+          <Tooltip title="Refresh conflicts list">
+            <Button
+              type="text"
+              icon={<ReloadOutlined />}
+              loading={loading}
+              onClick={loadConflictedFiles}
+              size="small"
+            />
+          </Tooltip>
         </div>
 
         <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12 }}>
