@@ -47,6 +47,10 @@ const App: React.FC = () => {
   const [loadingStash, setLoadingStash] = useState(false);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
 
+  // Search view state
+  const [selectedSearchCommit, setSelectedSearchCommit] = useState<SearchResult | null>(null);
+  const [searchCommitFiles, setSearchCommitFiles] = useState<CommitFile[]>([]);
+
   // Load theme from localStorage
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -297,6 +301,8 @@ const App: React.FC = () => {
     setLoadingReflog(false);
     setLoadingStash(false);
     setLoadingConflicts(false);
+    setSelectedSearchCommit(null);
+    setSearchCommitFiles([]);
 
     try {
       const repo = repositories.get(repoPath);
@@ -452,6 +458,15 @@ const App: React.FC = () => {
     try {
       const diff = await window.electronAPI.getFileDiff(selectedRepo, selectedCommit.hash, file.path);
       
+      console.log('Loaded diff for regular commit:', {
+        path: file.path,
+        commitHash: selectedCommit.hash,
+        diffLength: diff.diff?.length,
+        diffPreview: diff.diff?.substring(0, 200),
+        additions: diff.additions,
+        deletions: diff.deletions
+      });
+      
       // Check if diff is empty or file is binary
       if (!diff.diff || diff.diff.trim() === '') {
         if (file.status === 'added') {
@@ -518,6 +533,12 @@ const App: React.FC = () => {
     // Reset stash selection when leaving stash view
     if (view !== 'stash') {
       setSelectedStash(null);
+    }
+    
+    // Reset search state when leaving search view
+    if (view !== 'search') {
+      setSelectedSearchCommit(null);
+      setSearchCommitFiles([]);
     }
     
     // Reset right panel state and show appropriate view for the mode
@@ -701,30 +722,63 @@ const App: React.FC = () => {
     setSelectedStash(stash);
   };
 
-  const renderMainPanel = () => {
-    // Show search panel when search view is active
-    if (activeView === 'search') {
-      return (
-        <div style={{ height: '100%', overflow: 'auto', padding: '20px' }}>
-          <SearchPanel
-            selectedRepo={selectedRepo}
-            repositories={repositories}
-            onCommitClick={(commit: SearchResult) => {
-              // Convert SearchResult to CommitInfo and handle click
-              const commitInfo: CommitInfo = {
-                hash: commit.hash,
-                date: commit.date,
-                message: commit.message,
-                author: commit.author,
-                refs: commit.refs,
-              };
-              handleCommitClick(commitInfo);
-            }}
-          />
-        </div>
-      );
+  const handleSearchCommitClick = async (commit: SearchResult) => {
+    if (!selectedRepo) return;
+    
+    setSelectedSearchCommit(commit);
+    
+    try {
+      const files = await window.electronAPI.getCommitFiles(selectedRepo, commit.hash);
+      setSearchCommitFiles(files);
+    } catch (error) {
+      console.error('Error loading search commit files:', error);
+      message.error('Failed to load commit files');
     }
+  };
 
+  const handleSearchFileClick = async (file: CommitFile) => {
+    if (!selectedRepo || !selectedSearchCommit) return;
+    
+    setSelectedFile(file);
+    setLoadingFileDiff(true);
+    setMainPanelView('diff');
+    
+    try {
+      const diff = await window.electronAPI.getFileDiff(selectedRepo, selectedSearchCommit.hash, file.path);
+      
+      console.log('Loaded diff for search:', {
+        path: file.path,
+        commitHash: selectedSearchCommit.hash,
+        diffLength: diff.diff?.length,
+        diffPreview: diff.diff?.substring(0, 200),
+        additions: diff.additions,
+        deletions: diff.deletions
+      });
+      
+      // Always set the diff, even if it appears empty
+      setFileDiff(diff);
+      
+      // Check if diff is empty or file is binary (but don't block display)
+      if (!diff.diff || diff.diff.trim() === '') {
+        console.warn('Empty diff for file:', file.path);
+        if (file.status === 'added') {
+          message.warning('New file added - diff may be large or binary');
+        } else if (file.status === 'deleted') {
+          message.info('File was deleted');
+        } else {
+          message.warning('Diff appears empty - may be binary or too large');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading file diff:', error);
+      message.error('Failed to load file diff');
+      setFileDiff(null);
+    } finally {
+      setLoadingFileDiff(false);
+    }
+  };
+
+  const renderMainPanel = () => {
     // Show remote management panel when remotes view is active
     if (activeView === 'remotes' && selectedRepo) {
       return (
@@ -909,6 +963,11 @@ const App: React.FC = () => {
             isDarkTheme={isDarkTheme}
             width={middlePanelWidth}
             onResize={handleMiddlePanelResize}
+            repositories={repositories}
+            onSearchCommitClick={handleSearchCommitClick}
+            onSearchFileClick={handleSearchFileClick}
+            selectedSearchCommit={selectedSearchCommit}
+            searchCommitFiles={searchCommitFiles}
           />
           
           <div className="main-panel">

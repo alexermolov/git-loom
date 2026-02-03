@@ -393,7 +393,8 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
 
   // Check if diff is empty or file is binary
   const diffContent = diff.diff?.trim() || '';
-  const isBinary = diffContent.includes('Binary files') || diffContent === '';
+  // Only mark as binary if explicitly stated, not just empty
+  const isBinary = diffContent.includes('Binary files');
   const isEmpty = diffContent === '' && diff.additions === 0 && diff.deletions === 0;
 
   const isDiff = diff && (diff.additions > 0 || diff.deletions > 0 || diff.diff.includes('@@'));

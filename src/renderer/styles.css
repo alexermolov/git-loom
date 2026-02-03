@@ -1048,6 +1048,45 @@ body.dark-theme .ant-statistic-content {
   color: var(--text-secondary) !important;
 }
 
+/* Search Commits Panel - New layout with split view */
+.search-commits-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: var(--bg-primary);
+}
+
+.search-commits-panel .search-section {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.search-commits-panel .files-section {
+  flex: 0 0 50%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-top: 1px solid var(--border-color);
+}
+
+.search-commits-panel .search-results {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.search-commits-panel .search-result-item {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.search-commits-panel .search-result-item:hover {
+  background-color: var(--bg-hover);
+}
+
 /* Dark theme specific overrides */
 body.dark-theme .search-panel {
   background-color: var(--bg-primary);

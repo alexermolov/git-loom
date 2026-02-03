@@ -147,7 +147,9 @@ export class GitWorkerPool {
     let args = ['diff', '--no-color'];
     
     if (commitHash) {
-      args.push(commitHash);
+      // Compare commit with its parent (commitHash^..commitHash)
+      // Using commitHash^! is shorthand for showing changes in that commit
+      args.push(`${commitHash}^!`);
     }
     
     args.push('--', filePath);
