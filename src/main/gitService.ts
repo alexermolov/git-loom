@@ -477,8 +477,8 @@ export async function compareBranches(repoPath: string, baseBranch: string, comp
   const files = diffSummary.files.map(file => ({
     path: file.file,
     status: file.binary ? 'binary' : 'modified',
-    additions: file.insertions,
-    deletions: file.deletions
+    additions: 'insertions' in file ? file.insertions : 0,
+    deletions: 'deletions' in file ? file.deletions : 0
   }));
 
   return { ahead, behind, files };
