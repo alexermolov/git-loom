@@ -1707,16 +1707,10 @@ export async function searchCommits(
       args.push(`--until=${filter.dateTo}`);
     }
     
-    // Add message/hash filter (grep)
-    if (filter.query) {
-      // Check if query looks like a hash
-      if (/^[0-9a-f]{6,40}$/i.test(filter.query)) {
-        args.push(`--grep=${filter.query}`);
-        args.push(`--regexp-ignore-case`);
-      } else {
-        args.push(`--grep=${filter.query}`);
-        args.push(`--regexp-ignore-case`);
-      }
+    // Add message filter (grep) - only for non-hash queries
+    if (filter.query && !/^[0-9a-f]{6,40}$/i.test(filter.query)) {
+      args.push(`--grep=${filter.query}`);
+      args.push(`--regexp-ignore-case`);
     }
     
     const result = await git.raw(args);
@@ -1731,13 +1725,21 @@ export async function searchCommits(
       return { hash, date, message, author, refs: refs || '' };
     });
     
-    // Additional fuzzy search on results if query provided
-    if (filter.query && !/^[0-9a-f]{6,40}$/i.test(filter.query)) {
+    // Filter by query after getting results
+    if (filter.query) {
       const query = filter.query.toLowerCase();
-      return commits.filter(c => 
-        c.message.toLowerCase().includes(query) ||
-        c.hash.toLowerCase().includes(query)
-      );
+      const isHashQuery = /^[0-9a-f]{6,40}$/i.test(filter.query);
+      
+      return commits.filter(c => {
+        if (isHashQuery) {
+          // For hash queries, check if commit hash starts with the query
+          return c.hash.toLowerCase().startsWith(query);
+        } else {
+          // For text queries, search in both message and hash
+          return c.message.toLowerCase().includes(query) ||
+                 c.hash.toLowerCase().includes(query);
+        }
+      });
     }
     
     return commits;

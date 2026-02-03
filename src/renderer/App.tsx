@@ -36,6 +36,7 @@ const App: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<CommitFile | null>(null);
   const [fileDiff, setFileDiff] = useState<FileDiff | null>(null);
   const [showingCommitFiles, setShowingCommitFiles] = useState(false);
+  const [loadingFileDiff, setLoadingFileDiff] = useState(false);
   const [middlePanelWidth, setMiddlePanelWidth] = useState(350);
   const [conflictCount, setConflictCount] = useState(0);
   const [selectedStash, setSelectedStash] = useState<StashEntry | null>(null);
@@ -445,14 +446,31 @@ const App: React.FC = () => {
     if (!selectedRepo || !selectedCommit) return;
     
     setSelectedFile(file);
+    setLoadingFileDiff(true);
+    setMainPanelView('diff');
     
     try {
       const diff = await window.electronAPI.getFileDiff(selectedRepo, selectedCommit.hash, file.path);
+      
+      // Check if diff is empty or file is binary
+      if (!diff.diff || diff.diff.trim() === '') {
+        if (file.status === 'added') {
+          message.info('New file added (binary or empty)');
+        } else if (file.status === 'deleted') {
+          message.info('File was deleted');
+        } else {
+          message.info('No text diff available (binary file or no changes)');
+        }
+      }
+      
       setFileDiff(diff);
-      setMainPanelView('diff');
     } catch (error) {
       console.error('Error loading file diff:', error);
       message.error('Failed to load file diff');
+      // Clear diff on error to show empty state
+      setFileDiff(null);
+    } finally {
+      setLoadingFileDiff(false);
     }
   };
 
@@ -874,6 +892,8 @@ const App: React.FC = () => {
             commitFiles={commitFiles}
             selectedCommitHash={selectedCommit?.hash}
             onFileClick={handleFileClick}
+            selectedFile={selectedFile}
+            loadingFile={loadingFileDiff}
             onReflogEntryClick={handleReflogEntryClick}
             onStashRefresh={handleChangesRefresh}
             onStashSelect={handleStashSelect}

@@ -16,10 +16,20 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
   const [resolving, setResolving] = useState(false);
   const [editingContent, setEditingContent] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const diffContainerRef = React.useRef<HTMLDivElement>(null);
   
   // Incremental loading state
   const [displayedLines, setDisplayedLines] = useState(500); // Show first 500 lines by default
   const LINES_PER_LOAD = 500;
+
+  // Reset displayed lines when diff changes
+  useEffect(() => {
+    setDisplayedLines(500);
+    // Scroll to top when diff changes
+    if (diffContainerRef.current) {
+      diffContainerRef.current.scrollTop = 0;
+    }
+  }, [diff?.path]);
 
   useEffect(() => {
     loadConflicts();
@@ -121,9 +131,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
       message.error(`Failed to launch merge tool: ${error}`);
     }
   };
-
-  const isDiff = diff && (diff.additions > 0 || diff.deletions > 0 || diff.diff.includes('@@'));
-  const hasConflicts = conflictInfo && conflictInfo.conflicts.length > 0;
   
   const renderDiffLine = (line: string, index: number) => {
     const isDarkTheme = document.body.classList.contains('dark-theme');
@@ -376,10 +383,21 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
             Back to Files
           </Button>
         </div>
-        <Empty description="No diff available" />
+        <Empty 
+          description="Select a file to view its changes"
+          style={{ marginTop: 60 }}
+        />
       </div>
     );
   }
+
+  // Check if diff is empty or file is binary
+  const diffContent = diff.diff?.trim() || '';
+  const isBinary = diffContent.includes('Binary files') || diffContent === '';
+  const isEmpty = diffContent === '' && diff.additions === 0 && diff.deletions === 0;
+
+  const isDiff = diff && (diff.additions > 0 || diff.deletions > 0 || diff.diff.includes('@@'));
+  const hasConflicts = conflictInfo && conflictInfo.conflicts.length > 0;
 
   // Split diff into lines and apply incremental loading
   const diffLines = useMemo(() => diff.diff.split('\n'), [diff.diff]);
@@ -388,8 +406,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
   const hasMoreLines = displayedLines < totalLines;
 
   const handleLoadMore = () => {
-    setDisplayedLines(prev => Math.min(prev + LINES_PER_LOAD, totalLines));
+    setDisplayedLines((prev: number) => Math.min(prev + LINES_PER_LOAD, totalLines));
   };
+
+  // Check if this is a binary or empty file
+  const showBinaryMessage = isBinary && !hasConflicts;
+  const showEmptyMessage = isEmpty && !hasConflicts;
 
   return (
     <div className="file-diff-panel">
@@ -407,6 +429,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
             <div style={{ fontWeight: 600, fontSize: 16, color: 'var(--text-primary)' }}>
               {diff.path}
             </div>
+            {showBinaryMessage && (
+              <Tag color="orange">Binary File</Tag>
+            )}
+            {showEmptyMessage && (
+              <Tag color="default">Empty/No Changes</Tag>
+            )}
             {hasConflicts && (
               <Tag icon={<WarningOutlined />} color="error">
                 {conflictInfo.conflicts.length} Conflict{conflictInfo.conflicts.length > 1 ? 's' : ''}
@@ -482,40 +510,85 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({ diff, onBack, repoPath, f
         </div>
       )}
 
-      {/* Show diff */}
-      <div style={{ 
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 4,
-        overflow: 'auto',
-      }}>
-        {visibleLines.map((line, index) => isDiff ? renderDiffLine(line, index) : renderContentLine(line, index))}
-        
-        {/* Load more button for large diffs */}
-        {hasMoreLines && (
-          <div style={{ 
-            padding: '16px', 
-            textAlign: 'center', 
-            borderTop: '1px solid var(--border-color)',
-            backgroundColor: 'var(--bg-primary)',
-          }}>
-            <Button 
-              type="primary" 
-              icon={<DownOutlined />} 
-              onClick={handleLoadMore}
-            >
-              Load More Lines ({displayedLines} / {totalLines})
-            </Button>
+      {/* Show binary file message */}
+      {showBinaryMessage ? (
+        <div style={{ 
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 4,
+          padding: 40,
+          textAlign: 'center',
+        }}>
+          <Empty 
+            description={
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Binary File</div>
+                <div style={{ color: 'var(--text-secondary)' }}>
+                  This file appears to be a binary file. Text diff is not available.
+                </div>
+              </div>
+            }
+          />
+        </div>
+      ) : showEmptyMessage ? (
+        <div style={{ 
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 4,
+          padding: 40,
+          textAlign: 'center',
+        }}>
+          <Empty 
+            description={
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>No Changes</div>
+                <div style={{ color: 'var(--text-secondary)' }}>
+                  This file has no visible changes.
+                </div>
+              </div>
+            }
+          />
+        </div>
+      ) : (
+        /* Show diff */
+        <div 
+          ref={diffContainerRef}
+          style={{ 
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 4,
+            overflow: 'auto',
+            maxHeight: 'calc(100vh - 300px)',
+          }}
+        >
+          {visibleLines.map((line, index) => isDiff ? renderDiffLine(line, index) : renderContentLine(line, index))}
+          
+          {/* Load more button for large diffs */}
+          {hasMoreLines && (
             <div style={{ 
-              marginTop: 8, 
-              fontSize: 12, 
-              color: 'var(--text-secondary)' 
+              padding: '16px', 
+              textAlign: 'center', 
+              borderTop: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-primary)',
             }}>
-              Showing {displayedLines} of {totalLines} lines
+              <Button 
+                type="primary" 
+                icon={<DownOutlined />} 
+                onClick={handleLoadMore}
+              >
+                Load More Lines ({displayedLines} / {totalLines})
+              </Button>
+              <div style={{ 
+                marginTop: 8, 
+                fontSize: 12, 
+                color: 'var(--text-secondary)' 
+              }}>
+                Showing {displayedLines} of {totalLines} lines
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Manual edit modal */}
       <Modal

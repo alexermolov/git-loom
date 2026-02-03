@@ -1062,6 +1062,61 @@ body.dark-theme .search-filters {
   border-color: var(--border-color);
 }
 
+/* Filters block - all inputs and selects */
+body.dark-theme .search-filters .ant-select-selector {
+  background-color: var(--bg-hover) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .search-filters .ant-select-selection-placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+body.dark-theme .search-filters .ant-select-arrow {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .search-filters .ant-select:hover .ant-select-selector {
+  border-color: var(--accent-color) !important;
+}
+
+body.dark-theme .search-filters .ant-select-focused .ant-select-selector {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
+}
+
+body.dark-theme .search-filters .ant-picker {
+  background-color: var(--bg-hover) !important;
+  border-color: var(--border-color) !important;
+}
+
+body.dark-theme .search-filters .ant-picker input {
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .search-filters .ant-picker input::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+body.dark-theme .search-filters .ant-picker:hover {
+  border-color: var(--accent-color) !important;
+}
+
+body.dark-theme .search-filters .ant-picker-focused {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
+}
+
+body.dark-theme .search-filters .ant-picker-suffix {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .search-filters .ant-picker-separator {
+  color: var(--text-secondary) !important;
+}
+
 body.dark-theme .search-result-item {
   border-bottom-color: var(--border-color);
   background-color: var(--bg-primary);
@@ -1076,6 +1131,10 @@ body.dark-theme .search-result-item .ant-list-item-meta-title {
 }
 
 body.dark-theme .search-result-item .ant-list-item-meta-description {
+  color: var(--text-secondary) !important;
+}
+
+body.dark-theme .search-result-item .anticon {
   color: var(--text-secondary) !important;
 }
 
@@ -1110,8 +1169,112 @@ body.dark-theme .search-panel .ant-picker input {
   color: var(--text-primary);
 }
 
+body.dark-theme .search-panel .ant-picker input::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+body.dark-theme .search-panel .ant-picker:hover {
+  border-color: var(--accent-color) !important;
+}
+
+body.dark-theme .search-panel .ant-picker-focused {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
+}
+
+body.dark-theme .search-panel .ant-select:hover .ant-select-selector {
+  border-color: var(--accent-color) !important;
+}
+
+body.dark-theme .search-panel .ant-select-focused .ant-select-selector {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
+}
+
+body.dark-theme .search-panel .ant-input-search:hover .ant-input {
+  border-color: var(--accent-color) !important;
+}
+
+body.dark-theme .search-panel .ant-input-search-focused .ant-input {
+  border-color: var(--accent-color) !important;
+  box-shadow: 0 0 0 2px rgba(74, 158, 255, 0.2) !important;
+}
+
 body.dark-theme .search-panel .ant-empty-description {
   color: var(--text-secondary);
+}
+
+/* Search button specific styles */
+body.dark-theme .search-panel .ant-input-search-button {
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .search-panel .ant-input-search-button:hover {
+  background-color: #66b2ff !important;
+  border-color: #66b2ff !important;
+}
+
+/* Icons in search panel */
+body.dark-theme .search-panel .anticon {
+  color: var(--text-secondary);
+}
+
+body.dark-theme .search-panel .ant-space {
+  color: var(--text-primary);
+}
+
+/* Button styles in search panel */
+body.dark-theme .search-panel .ant-btn {
+  background-color: var(--bg-hover) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .search-panel .ant-btn:hover {
+  background-color: var(--bg-active) !important;
+  border-color: var(--accent-color) !important;
+  color: var(--text-primary) !important;
+}
+
+body.dark-theme .search-panel .ant-btn-primary {
+  background-color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .search-panel .ant-btn-primary:hover {
+  background-color: #66b2ff !important;
+  border-color: #66b2ff !important;
+}
+
+/* Results count header */
+body.dark-theme .search-panel .search-results > div[style*="fontWeight"] {
+  color: var(--text-primary) !important;
+}
+
+/* Tags in search results - adjust colors for dark theme */
+body.dark-theme .search-panel .ant-tag {
+  border-color: transparent !important;
+}
+
+body.dark-theme .search-panel .ant-tag[color="blue"] {
+  background-color: rgba(74, 158, 255, 0.2) !important;
+  color: #66b2ff !important;
+  border: 1px solid rgba(74, 158, 255, 0.4) !important;
+}
+
+body.dark-theme .search-panel .ant-tag[color="green"] {
+  background-color: rgba(82, 196, 26, 0.2) !important;
+  color: #95de64 !important;
+  border: 1px solid rgba(82, 196, 26, 0.4) !important;
+}
+
+/* Repo group header in multi-repo search */
+body.dark-theme .search-panel .search-results > div > div[style*="border-left"] {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Remote Management Panel - Dark Theme */

@@ -48,6 +48,8 @@ interface MiddlePanelProps {
   selectedCommitHash?: string;
   onFileClick?: (file: CommitFile) => void;
   onBackToBranches?: () => void;
+  selectedFile?: CommitFile | null;
+  loadingFile?: boolean;
 
   // Reflog view
   onReflogEntryClick?: (entry: ReflogEntry) => void;
@@ -102,6 +104,8 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   selectedCommitHash = "",
   onFileClick,
   onBackToBranches,
+  selectedFile,
+  loadingFile,
   showingCommitFiles = false,
   onBackToCommits,
   onConflictFileClick,
@@ -171,6 +175,8 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
             commitHash={selectedCommitHash}
             onFileClick={onFileClick}
             onBack={onBackToCommits}
+            selectedFile={selectedFile}
+            loadingFile={loadingFile}
           />
         </div>
       );
