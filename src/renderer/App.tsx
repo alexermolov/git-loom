@@ -432,6 +432,29 @@ const App: React.FC = () => {
     }
   };
 
+  const handleGraphCommitClick = async (commitHash: string, messageText?: string) => {
+    if (!selectedRepo) return;
+
+    const commitInfo: CommitInfo = {
+      hash: commitHash,
+      date: '',
+      message: messageText ?? '',
+      author: '',
+      refs: '',
+    };
+
+    setSelectedCommit(commitInfo);
+
+    try {
+      const files = await window.electronAPI.getCommitFiles(selectedRepo, commitHash);
+      setCommitFiles(files);
+      setShowingCommitFiles(true);
+    } catch (error) {
+      console.error('Error loading commit files from graph:', error);
+      message.error('Failed to load commit files');
+    }
+  };
+
   const handleFileClick = async (file: CommitFile) => {
     if (!selectedRepo || !selectedCommit) return;
     
@@ -894,7 +917,13 @@ const App: React.FC = () => {
     
     // Show git graph for normal view (when not showing diff)
     if (selectedRepo && branches.length > 0 && mainPanelView !== 'diff') {
-      return <GitGraphView repoPath={selectedRepo} branches={branches} />;
+      return (
+        <GitGraphView
+          repoPath={selectedRepo}
+          branches={branches}
+          onCommitClick={handleGraphCommitClick}
+        />
+      );
     }
     
     return (

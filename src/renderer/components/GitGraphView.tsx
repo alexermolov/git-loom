@@ -1,380 +1,176 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Empty, Spin, Select } from "antd";
-import { Gitgraph, templateExtend, TemplateName } from "@gitgraph/react";
-import { CommitDetail } from "../types";
+import { Empty, Input, Select, Spin } from "antd";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../ThemeContext";
+import { GitGraphRow } from "../types";
 
 interface GitGraphViewProps {
   repoPath: string;
   branches: Array<{ name: string }>;
+  onCommitClick?: (commitHash: string, message?: string) => void;
 }
 
-const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
-  const [commitDetails, setCommitDetails] = useState<CommitDetail[]>([]);
+const GitGraphView: React.FC<GitGraphViewProps> = ({
+  repoPath,
+  branches,
+  onCommitClick,
+}) => {
+  const [rows, setRows] = useState<GitGraphRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState<string>("--all--");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const { isDarkMode } = useTheme();
 
-  // In React 18 dev mode, render callbacks may be invoked twice (StrictMode).
-  // `buildGraph` is imperative and would otherwise append nodes twice.
-  const lastBuiltKeyRef = useRef<string | null>(null);
-
-  const newestHash = commitDetails[0]?.hash ?? "";
-  const oldestHash = commitDetails[commitDetails.length - 1]?.hash ?? "";
-  const graphKey = useMemo(
-    () =>
-      `${repoPath}|${selectedBranch}|${commitDetails.length}|${newestHash}|${oldestHash}|${isDarkMode}`,
-    [repoPath, selectedBranch, commitDetails.length, newestHash, oldestHash, isDarkMode],
-  );
-
   useEffect(() => {
-    loadCommits();
+    loadGraph();
   }, [repoPath, selectedBranch]);
 
-  const loadCommits = async () => {
+  // Reset local search when switching repos/branches
+  useEffect(() => {
+    setSearchQuery("");
+  }, [repoPath, selectedBranch]);
+
+  const loadGraph = async () => {
     if (!repoPath) return;
 
     setLoading(true);
     try {
       const branch = selectedBranch === "--all--" ? undefined : selectedBranch;
-      const data = await window.electronAPI.getCommitDetails(
-        repoPath,
-        branch,
-        100,
-      );
-      setCommitDetails(data);
+      const data = await window.electronAPI.getGitGraph(repoPath, branch);
+      setRows(data);
     } catch (error) {
-      console.error("Failed to load commits:", error);
-      setCommitDetails([]);
+      console.error("Failed to load git graph:", error);
+      setRows([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const buildGraph = useCallback(
-    (gitgraph: any) => {
-      if (commitDetails.length === 0) return;
-      if (lastBuiltKeyRef.current === graphKey) return;
-      lastBuiltKeyRef.current = graphKey;
+  const renderGraphAscii = useMemo(() => {
+    const classForChar = (ch: string) => {
+      switch (ch) {
+        case "|":
+          return "git-graph-cell git-graph-cell-vert";
+        case "-":
+        case "_":
+          return "git-graph-cell git-graph-cell-horiz";
+        case "/":
+          return "git-graph-cell git-graph-cell-diag-fwd";
+        case "\\":
+          return "git-graph-cell git-graph-cell-diag-back";
+        case "*":
+        case "o":
+        case "●":
+        case "+":
+          return "git-graph-cell git-graph-cell-node";
+        case " ":
+          return "git-graph-cell git-graph-cell-space";
+        default:
+          return "git-graph-cell git-graph-cell-char";
+      }
+    };
 
-      const normalizeBranchName = (ref: string) =>
-        ref
-          .replace(/^remotes\/[^\/]+\//, "")
-          .replace(/^origin\//, "")
-          .trim();
+    return (graph: string) => {
+      const chars = Array.from(graph ?? "");
+      return chars.map((ch, i) => (
+        <span key={`g-${i}`} className={classForChar(ch)}>
+          {ch === " " ? "\u00A0" : ch}
+        </span>
+      ));
+    };
+  }, []);
 
-      const extractBranchNames = (refs: string[]) => {
-        const names: string[] = [];
-        for (const ref of refs) {
-          if (ref.includes("HEAD ->")) {
-            const branchName = ref
-              .replace(/.*HEAD -> /, "")
-              .split(",")[0]
-              .trim();
-            if (branchName.length > 0) names.push(branchName);
-            continue;
-          }
-          if (ref.includes("tag:")) continue;
-          const branchName = normalizeBranchName(ref.split(",")[0]);
-          if (branchName && !branchName.includes("->")) names.push(branchName);
-        }
-        return Array.from(new Set(names));
-      };
+  const renderDecorations = useMemo(() => {
+    const escapeRegExp = (value: string) =>
+      value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-      const formatRefsForCommit = (refs: string[]) => {
-        if (!refs || refs.length === 0) return { branches: [], tags: [] };
+    const highlightText = (text: string, query: string) => {
+      const q = query.trim();
+      if (!q) return text;
+      const re = new RegExp(escapeRegExp(q), "ig");
+      const parts = text.split(re);
+      const matches = text.match(re);
+      if (!matches || parts.length === 1) return text;
 
-        const branches: string[] = [];
-        const tags: string[] = [];
-
-        for (const ref of refs) {
-          const trimmedRef = ref.trim();
-          if (trimmedRef.includes("tag:")) {
-            const tagName = trimmedRef
-              .replace(/.*tag:\s*/, "")
-              .split(",")[0]
-              .trim();
-            if (tagName) tags.push(tagName);
-          } else if (trimmedRef.includes("HEAD ->")) {
-            const branchName = trimmedRef
-              .replace(/.*HEAD -> /, "")
-              .split(",")[0]
-              .trim();
-            if (branchName) branches.push(branchName);
-          } else {
-            const branchName = normalizeBranchName(trimmedRef.split(",")[0]);
-            if (branchName && !branchName.includes("->"))
-              branches.push(branchName);
-          }
-        }
-
-        return {
-          branches: Array.from(new Set(branches)),
-          tags: Array.from(new Set(tags)),
-        };
-      };
-
-      const branchNameSet = new Set(branches.map((b) => b.name));
-      const pickPreferredBranchName = (names: string[]) =>
-        names.find((n) => branchNameSet.has(n)) ?? names[0];
-
-      const newestRefs = commitDetails[0]?.refs || [];
-      let mainBranchName = "master";
-      for (const ref of newestRefs) {
-        if (ref.includes("HEAD ->")) {
-          mainBranchName = ref
-            .replace(/.*HEAD -> /, "")
-            .split(",")[0]
-            .trim();
-          break;
+      const out: React.ReactNode[] = [];
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i]) out.push(parts[i]);
+        if (i < (matches?.length ?? 0)) {
+          out.push(
+            <span key={`h-${i}`} className="git-graph-highlight">
+              {matches[i]}
+            </span>,
+          );
         }
       }
+      return out;
+    };
 
-      if (!mainBranchName || mainBranchName === "master") {
-        if (branches.some((b) => b.name === "main")) {
-          mainBranchName = "main";
-        } else if (branches.length > 0) {
-          mainBranchName = branches[0].name;
-        }
+    const render = (message: string, query: string) => {
+      const match = message.match(/^\(([^)]+)\)\s*(.*)$/);
+      if (!match) {
+        return (
+          <span className="git-graph-subject">
+            {highlightText(message, query)}
+          </span>
+        );
       }
 
-      const commitByHash = new Map<string, CommitDetail>();
-      const tipByBranch = new Map<string, string>();
-      for (const commit of commitDetails) {
-        commitByHash.set(commit.hash, commit);
-        const names = extractBranchNames(commit.refs || []);
-        for (const name of names) {
-          if (!tipByBranch.has(name)) {
-            tipByBranch.set(name, commit.hash);
-          }
-        }
-      }
+      const decorationsRaw = match[1];
+      const subject = match[2] ?? "";
 
-      const branchByCommit = new Map<string, string>();
-      for (const [branchName, tipHash] of tipByBranch.entries()) {
-        const preferredName = pickPreferredBranchName([branchName]);
-        let currentHash: string | undefined = tipHash;
-        while (currentHash) {
-          if (branchByCommit.has(currentHash)) break;
-          branchByCommit.set(currentHash, preferredName ?? branchName);
-          const current = commitByHash.get(currentHash);
-          const parent = current?.parents?.[0];
-          if (!parent) break;
-          currentHash = parent;
-        }
-      }
+      const tokens = decorationsRaw
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t.length > 0);
 
-      const branchMap = new Map<string, any>();
-      const commitBranchMap = new Map<string, any>();
+      return (
+        <>
+          <span className="git-graph-paren">(</span>
+          {tokens.map((token, index) => {
+            const lower = token.toLowerCase();
+            const isTag = lower.startsWith("tag:");
+            const isHead = token.includes("HEAD ->");
+            const isRemote = !isTag && !isHead && token.includes("/");
 
-      const mainBranch = gitgraph.branch(mainBranchName);
-      branchMap.set(mainBranchName, mainBranch);
+            const className = isTag
+              ? "git-graph-deco git-graph-deco-tag"
+              : isHead
+                ? "git-graph-deco git-graph-deco-head"
+                : isRemote
+                  ? "git-graph-deco git-graph-deco-remote"
+                  : "git-graph-deco git-graph-deco-branch";
 
-      const getOrCreateBranch = (name: string, parentBranch: any) => {
-        if (branchMap.has(name)) return branchMap.get(name);
-        const created = parentBranch.branch(name);
-        branchMap.set(name, created);
-        return created;
-      };
+            return (
+              <React.Fragment key={`${token}-${index}`}>
+                {index > 0 ? <span className="git-graph-comma">, </span> : null}
+                <span className={className}>{highlightText(token, query)}</span>
+              </React.Fragment>
+            );
+          })}
+          <span className="git-graph-paren">)</span>
+          {subject.length > 0 ? (
+            <>
+              <span> </span>
+              <span className="git-graph-subject">
+                {highlightText(subject, query)}
+              </span>
+            </>
+          ) : null}
+        </>
+      );
+    };
 
-      // Defensive: ensure we never try to render the same commit twice.
-      // `@gitgraph/react` uses commit hash as a React key internally.
-      const seenHashes = new Set<string>();
-      const orderedCommits = [...commitDetails]
-        .reverse()
-        .filter((c) => !!c?.hash)
-        .filter((c) => {
-          if (seenHashes.has(c.hash)) return false;
-          seenHashes.add(c.hash);
-          return true;
-        });
+    return render;
+  }, [isDarkMode]);
 
-      for (const commit of orderedCommits) {
-        const firstParent = commit.parents[0];
-        const parentBranch = firstParent
-          ? (commitBranchMap.get(firstParent) ?? mainBranch)
-          : mainBranch;
-
-        const assignedBranchName =
-          branchByCommit.get(commit.hash) ||
-          (firstParent ? branchByCommit.get(firstParent) : undefined) ||
-          mainBranchName;
-
-        const targetBranch =
-          assignedBranchName === mainBranchName
-            ? mainBranch
-            : getOrCreateBranch(assignedBranchName, parentBranch);
-
-        if (commit.parents.length > 1) {
-          const mergeParents = commit.parents.slice(1);
-          let merged = false;
-          for (const parentHash of mergeParents) {
-            const mergeFrom = commitBranchMap.get(parentHash);
-            if (mergeFrom && mergeFrom !== targetBranch) {
-              try {
-                const refs = formatRefsForCommit(commit.refs || []);
-                targetBranch.merge(mergeFrom, {
-                  subject: commit.message.substring(0, 50),
-                  hash: commit.hash,
-                  author: commit.author,
-                  renderMessage: (commit: any) => {
-                    return (
-                      <text
-                        alignmentBaseline="central"
-                        fill={commit.style.message.color}
-                      >
-                        {commit.hashAbbrev} {commit.subject}
-                        {refs.branches.map((b, i) => (
-                          <tspan
-                            key={`b-${i}`}
-                            fill="#52c41a"
-                            fontWeight="bold"
-                            dx="8"
-                          >
-                            [{b}]
-                          </tspan>
-                        ))}
-                        {refs.tags.map((t, i) => (
-                          <tspan
-                            key={`t-${i}`}
-                            fill="#faad14"
-                            fontWeight="bold"
-                            dx="8"
-                          >
-                            🏷️{t}
-                          </tspan>
-                        ))}
-                      </text>
-                    );
-                  },
-                });
-                merged = true;
-                break;
-              } catch (e) {
-                // continue to fallback
-              }
-            }
-          }
-
-          if (!merged) {
-            const refs = formatRefsForCommit(commit.refs || []);
-            targetBranch.commit({
-              subject: commit.message.substring(0, 50),
-              hash: commit.hash,
-              author: commit.author,
-              renderMessage: (commit: any) => {
-                return (
-                  <text
-                    alignmentBaseline="central"
-                    fill={commit.style.message.color}
-                  >
-                    {commit.hashAbbrev} {commit.subject}
-                    {refs.branches.map((b, i) => (
-                      <tspan
-                        key={`b-${i}`}
-                        fill="#52c41a"
-                        fontWeight="bold"
-                        dx="8"
-                      >
-                        [{b}]
-                      </tspan>
-                    ))}
-                    {refs.tags.map((t, i) => (
-                      <tspan
-                        key={`t-${i}`}
-                        fill="#faad14"
-                        fontWeight="bold"
-                        dx="8"
-                      >
-                        🏷️{t}
-                      </tspan>
-                    ))}
-                  </text>
-                );
-              },
-            });
-          }
-        } else {
-          const refs = formatRefsForCommit(commit.refs || []);
-          targetBranch.commit({
-            subject: commit.message.substring(0, 50),
-            hash: commit.hash,
-            author: commit.author,
-            renderMessage: (commit: any) => {
-              return (
-                <text
-                  alignmentBaseline="central"
-                  fill={commit.style.message.color}
-                >
-                  {commit.hashAbbrev} {commit.subject}
-                  {refs.branches.map((b, i) => (
-                    <tspan
-                      key={`b-${i}`}
-                      fill="#52c41a"
-                      fontWeight="bold"
-                      dx="8"
-                    >
-                      [{b}]
-                    </tspan>
-                  ))}
-                  {refs.tags.map((t, i) => (
-                    <tspan
-                      key={`t-${i}`}
-                      fill="#faad14"
-                      fontWeight="bold"
-                      dx="8"
-                    >
-                      🏷️{t}
-                    </tspan>
-                  ))}
-                </text>
-              );
-            },
-          });
-        }
-
-        commitBranchMap.set(commit.hash, targetBranch);
-      }
-    },
-    [commitDetails, branches, graphKey, isDarkMode],
-  );
-
-  const customTemplate = useMemo(
-    () =>
-      templateExtend(TemplateName.Metro, {
-        colors: [
-          "#1890ff",
-          "#52c41a",
-          "#faad14",
-          "#f5222d",
-          "#722ed1",
-          "#13c2c2",
-          "#eb2f96",
-          "#fa8c16",
-        ],
-        branch: {
-          lineWidth: 3,
-          spacing: 50,
-          label: {
-            display: true,
-            bgColor: isDarkMode ? "#1f1f1f" : "#ffffff",
-            borderRadius: 5,
-          },
-        },
-        commit: {
-          message: {
-            displayAuthor: false,
-            displayHash: true,
-            color: isDarkMode ? "#e0e0e0" : "#000000",
-          },
-          spacing: 50,
-          dot: {
-            size: 6,
-          },
-        },
-      }),
-    [isDarkMode],
-  );
+  const filteredRows = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) => {
+      const hay = `${r.hash} ${r.message}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [rows, searchQuery]);
 
   const branchOptions = [
     { label: "All Branches", value: "--all--" },
@@ -391,7 +187,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
     );
   }
 
-  if (commitDetails.length === 0) {
+  if (rows.length === 0) {
     return (
       <div style={{ padding: 20 }}>
         <Empty description="No commits in graph" />
@@ -418,10 +214,59 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({ repoPath, branches }) => {
           placeholder="Filter by branch"
         />
       </div>
+      <div style={{ marginBottom: 12 }}>
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search in graph (hash, branch, tag, subject)"
+          allowClear
+        />
+      </div>
+      {searchQuery.trim().length > 0 ? (
+        <div
+          style={{
+            marginBottom: 8,
+            fontSize: 12,
+            color: "var(--text-secondary)",
+          }}
+        >
+          Showing {filteredRows.length} of {rows.length}
+        </div>
+      ) : null}
       <div className="git-graph-container-gitgraph">
-        <Gitgraph key={graphKey} options={{ template: customTemplate }}>
-          {buildGraph}
-        </Gitgraph>
+        <div className="git-graph-text" role="log" aria-label="Git graph">
+          {filteredRows.map((row, index) => (
+            <div
+              key={`${row.hash}-${index}`}
+              className="git-graph-line"
+              title={row.hash}
+              role={onCommitClick ? "button" : undefined}
+              tabIndex={onCommitClick ? 0 : -1}
+              onClick={
+                onCommitClick
+                  ? () => onCommitClick(row.hash, row.message)
+                  : undefined
+              }
+              onKeyDown={
+                onCommitClick
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onCommitClick(row.hash, row.message);
+                      }
+                    }
+                  : undefined
+              }
+            >
+              <span className="git-graph-ascii git-graph-ascii-cells">
+                {renderGraphAscii(row.graph)}
+              </span>
+              <span className="git-graph-hash">{row.hash}</span>
+              <span> </span>
+              {renderDecorations(row.message, searchQuery)}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
