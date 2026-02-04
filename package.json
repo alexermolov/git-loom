@@ -82,15 +82,15 @@
           ]
         }
       ],
-      "icon": "build/logo.png"
+      "icon": "build/logo.ico"
     },
     "mac": {
       "target": "dmg",
-      "icon": "build/logo.png"
+      "icon": "build/logo.ico"
     },
     "linux": {
       "target": "AppImage",
-      "icon": "build/logo.png"
+      "icon": "build/logo.ico"
     }
   }
 }
