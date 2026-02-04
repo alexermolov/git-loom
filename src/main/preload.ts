@@ -75,5 +75,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   pushTags: (repoPath: string, remoteName: string, tagName?: string) => ipcRenderer.invoke('git:pushTags', repoPath, remoteName, tagName),
   checkoutTag: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:checkoutTag', repoPath, tagName),
   getTagDetails: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:getTagDetails', repoPath, tagName),
+  // File editor operations
+  getFileBlame: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileBlame', repoPath, filePath),
 });
 

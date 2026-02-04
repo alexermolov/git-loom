@@ -6,6 +6,7 @@ import Sidebar from './components/Sidebar';
 import IconSidebar, { ViewType } from './components/IconSidebar';
 import MiddlePanel from './components/MiddlePanel';
 import FileDiffPanel from './components/FileDiffPanel';
+import FileEditorPanel from './components/FileEditorPanel';
 import GitGraphView from './components/GitGraphView';
 import ReflogPanel from './components/ReflogPanel';
 import StashDetailsPanel from './components/StashDetailsPanel';
@@ -33,7 +34,7 @@ const App: React.FC = () => {
   
   // New three-panel state management
   const [activeView, setActiveView] = useState<ViewType>('commits');
-  const [mainPanelView, setMainPanelView] = useState<'graph' | 'diff'>('graph');
+  const [mainPanelView, setMainPanelView] = useState<'graph' | 'diff' | 'editor'>('graph');
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null);
   const [commitFiles, setCommitFiles] = useState<CommitFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<CommitFile | null>(null);
@@ -43,6 +44,9 @@ const App: React.FC = () => {
   const [middlePanelWidth, setMiddlePanelWidth] = useState(350);
   const [conflictCount, setConflictCount] = useState(0);
   const [selectedStash, setSelectedStash] = useState<StashEntry | null>(null);
+  
+  // File explorer state
+  const [selectedExplorerFile, setSelectedExplorerFile] = useState<string | null>(null);
   
   // Loading states for different panels
   const [loadingBranches, setLoadingBranches] = useState(false);
@@ -627,21 +631,9 @@ const App: React.FC = () => {
   const handleFileExplorerFileClick = async (filePath: string) => {
     if (!selectedRepo) return;
     
-    try {
-      // For file explorer, show file content
-      const content = await window.electronAPI.getFileContent(selectedRepo, filePath);
-      const diff: FileDiff = {
-        path: filePath,
-        diff: content,
-        additions: 0,
-        deletions: 0,
-      };
-      setFileDiff(diff);
-      setMainPanelView('diff');
-    } catch (error) {
-      console.error('Error loading file content:', error);
-      message.error('Failed to load file content');
-    }
+    // Set the file to view in the FileEditorPanel
+    setSelectedExplorerFile(filePath);
+    setMainPanelView('editor');
   };
 
   const handleCheckoutBranch = async (branchName: string) => {
@@ -809,6 +801,44 @@ const App: React.FC = () => {
     }
   };
 
+  const handleBlameCommitClick = async (commitHash: string) => {
+    if (!selectedRepo) return;
+
+    // Switch to commits view to show the commit
+    setActiveView('commits');
+    setMainPanelView('graph');
+    setSelectedExplorerFile(null);
+
+    // Try to find commit in current commits list
+    const existingCommit = commits.find(c => c.hash.startsWith(commitHash));
+    
+    if (existingCommit) {
+      // If found, use it directly
+      await handleCommitClick(existingCommit);
+    } else {
+      // If not found, load commit details
+      try {
+        const commitInfo: CommitInfo = {
+          hash: commitHash,
+          date: '',
+          message: '',
+          author: '',
+          refs: '',
+        };
+
+        setSelectedCommit(commitInfo);
+        const files = await window.electronAPI.getCommitFiles(selectedRepo, commitHash);
+        setCommitFiles(files);
+        setShowingCommitFiles(true);
+        
+        message.success(`Navigated to commit ${commitHash.substring(0, 7)}`);
+      } catch (error) {
+        console.error('Error loading commit from blame:', error);
+        message.error('Failed to load commit details');
+      }
+    }
+  };
+
   const handleSearchFileClick = async (file: CommitFile) => {
     if (!selectedRepo || !selectedSearchCommit) return;
     
@@ -876,7 +906,24 @@ const App: React.FC = () => {
       );
     }
 
-    // First priority: show file diff if requested
+    // Show file editor when viewing file from explorer
+    if (mainPanelView === 'editor' && selectedExplorerFile && selectedRepo) {
+      return (
+        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <FileEditorPanel 
+            repoPath={selectedRepo}
+            filePath={selectedExplorerFile}
+            onBack={() => {
+              setSelectedExplorerFile(null);
+              setMainPanelView('graph');
+            }}
+            onCommitClick={handleBlameCommitClick}
+          />
+        </div>
+      );
+    }
+
+    // Show file diff if requested (for commits)
     if (mainPanelView === 'diff' && fileDiff) {
       return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>

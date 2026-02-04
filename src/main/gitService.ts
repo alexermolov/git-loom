@@ -95,6 +95,15 @@ export interface ReflogEntry {
   author: string;
 }
 
+export interface BlameLine {
+  lineNumber: number;
+  hash: string;
+  author: string;
+  date: string;
+  content: string;
+  summary: string;
+}
+
 export interface TagInfo {
   name: string;
   commitHash: string;
@@ -1373,18 +1382,6 @@ export async function cherryPickCommit(repoPath: string, commitHash: string): Pr
   }
 }
 
-// Get file content from the working directory
-export async function getFileContent(repoPath: string, filePath: string): Promise<string> {
-  try {
-    const fullPath = path.join(repoPath, filePath);
-    const content = await fs.promises.readFile(fullPath, 'utf-8');
-    return content;
-  } catch (error) {
-    console.error('Error reading file content:', error);
-    throw error;
-  }
-}
-
 // ==================== STASH MANAGEMENT ====================
 
 // Create a stash with optional message
@@ -2475,3 +2472,92 @@ export async function getTagDetails(repoPath: string, tagName: string): Promise<
     throw error;
   }
 }
+
+// Get file content at HEAD
+export async function getFileContent(repoPath: string, filePath: string): Promise<string> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // Get file content from HEAD
+    const content = await git.show([`HEAD:${filePath}`]);
+    return content;
+  } catch (error) {
+    console.error('Error getting file content:', error);
+    // If file doesn't exist in HEAD, try to read from working directory
+    try {
+      const fullPath = path.join(repoPath, filePath);
+      if (fs.existsSync(fullPath)) {
+        return fs.readFileSync(fullPath, 'utf8');
+      }
+    } catch (fsError) {
+      console.error('Error reading file from filesystem:', fsError);
+    }
+    throw error;
+  }
+}
+
+// Get git blame for a file
+export async function getFileBlame(repoPath: string, filePath: string): Promise<BlameLine[]> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // Run git blame with porcelain format for easier parsing
+    const result = await git.raw([
+      'blame',
+      '--line-porcelain',
+      'HEAD',
+      '--',
+      filePath
+    ]);
+    
+    const lines = result.split('\n');
+    const blameData: BlameLine[] = [];
+    let currentBlame: Partial<BlameLine> = {};
+    let lineNumber = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      if (!line) continue;
+      
+      // New blame block starts with a commit hash
+      if (line.match(/^[0-9a-f]{40}/)) {
+        const parts = line.split(' ');
+        currentBlame.hash = parts[0];
+        lineNumber = parseInt(parts[2], 10);
+        currentBlame.lineNumber = lineNumber;
+      } else if (line.startsWith('author ')) {
+        currentBlame.author = line.substring(7);
+      } else if (line.startsWith('author-time ')) {
+        const timestamp = parseInt(line.substring(12), 10);
+        currentBlame.date = new Date(timestamp * 1000).toISOString();
+      } else if (line.startsWith('summary ')) {
+        currentBlame.summary = line.substring(8);
+      } else if (line.startsWith('\t')) {
+        // This is the actual line content
+        currentBlame.content = line.substring(1);
+        
+        // We have all the data for this line, add it
+        if (currentBlame.hash && currentBlame.author && currentBlame.date && currentBlame.lineNumber) {
+          blameData.push({
+            lineNumber: currentBlame.lineNumber,
+            hash: currentBlame.hash,
+            author: currentBlame.author,
+            date: currentBlame.date,
+            content: currentBlame.content || '',
+            summary: currentBlame.summary || '',
+          });
+        }
+        
+        // Reset for next line
+        currentBlame = {};
+      }
+    }
+    
+    return blameData;
+  } catch (error) {
+    console.error('Error getting file blame:', error);
+    throw error;
+  }
+}
+

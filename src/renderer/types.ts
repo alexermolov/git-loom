@@ -74,6 +74,8 @@ export interface ElectronAPI {
   pushTags: (repoPath: string, remoteName: string, tagName?: string) => Promise<void>;
   checkoutTag: (repoPath: string, tagName: string) => Promise<void>;
   getTagDetails: (repoPath: string, tagName: string) => Promise<TagInfo | null>;
+  // File editor operations
+  getFileBlame: (repoPath: string, filePath: string) => Promise<BlameLine[]>;
 }
 
 export interface SearchFilter {
@@ -220,6 +222,15 @@ export interface TagInfo {
   type: 'lightweight' | 'annotated';
   tagger?: string;
   date?: string;
+}
+
+export interface BlameLine {
+  lineNumber: number;
+  hash: string;
+  author: string;
+  date: string;
+  content: string;
+  summary: string;
 }
 
 declare global {
