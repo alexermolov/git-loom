@@ -576,3 +576,182 @@ body {
 .search-commits-panel .search-result-item:hover {
   background-color: var(--bg-hover);
 }
+
+/* Diff2Html custom styles for dark mode support */
+[data-theme="dark"] .d2h-wrapper {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .d2h-file-header {
+  background-color: #252526 !important;
+  border-bottom: 1px solid #3e3e42 !important;
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .d2h-file-name {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .d2h-file-stats {
+  color: #cccccc !important;
+}
+
+[data-theme="dark"] .d2h-code-line,
+[data-theme="dark"] .d2h-code-side-line {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .d2h-code-line-ctn {
+  color: #d4d4d4 !important;
+}
+
+/* Insertion styles (added lines) */
+[data-theme="dark"] .d2h-ins,
+[data-theme="dark"] .d2h-code-line-prefix.d2h-ins,
+[data-theme="dark"] .d2h-code-side-line.d2h-ins {
+  background-color: #1e3a1e !important;
+  border-color: #3ea13e !important;
+}
+
+[data-theme="dark"] .d2h-code-line.d2h-ins,
+[data-theme="dark"] .d2h-code-side-line.d2h-ins {
+  background-color: #1e3a1e !important;
+}
+
+[data-theme="dark"] .d2h-code-line.d2h-ins .d2h-code-line-ctn {
+  background-color: #1e3a1e !important;
+  color: #b5cea8 !important;
+}
+
+/* Deletion styles (removed lines) */
+[data-theme="dark"] .d2h-del,
+[data-theme="dark"] .d2h-code-line-prefix.d2h-del,
+[data-theme="dark"] .d2h-code-side-line.d2h-del {
+  background-color: #3a1e1e !important;
+  border-color: #d16969 !important;
+}
+
+[data-theme="dark"] .d2h-code-line.d2h-del,
+[data-theme="dark"] .d2h-code-side-line.d2h-del {
+  background-color: #3a1e1e !important;
+}
+
+[data-theme="dark"] .d2h-code-line.d2h-del .d2h-code-line-ctn {
+  background-color: #3a1e1e !important;
+  color: #f48771 !important;
+}
+
+/* Changed lines highlighting */
+[data-theme="dark"] .d2h-ins.d2h-change {
+  background-color: #2e4a2e !important;
+}
+
+[data-theme="dark"] .d2h-del.d2h-change {
+  background-color: #4a2e2e !important;
+}
+
+[data-theme="dark"] .d2h-code-line.d2h-ins.d2h-change,
+[data-theme="dark"] .d2h-code-side-line.d2h-ins.d2h-change {
+  background-color: #2e4a2e !important;
+}
+
+[data-theme="dark"] .d2h-code-line.d2h-del.d2h-change,
+[data-theme="dark"] .d2h-code-side-line.d2h-del.d2h-change {
+  background-color: #4a2e2e !important;
+}
+
+/* Line numbers */
+[data-theme="dark"] .d2h-code-linenumber,
+[data-theme="dark"] .d2h-code-side-linenumber {
+  background-color: #1e1e1e !important;
+  border-color: #3e3e42 !important;
+  color: #858585 !important;
+  border-right: 1px solid #3e3e42 !important;
+}
+
+[data-theme="dark"] .d2h-code-side-linenumber {
+  border-left: 1px solid #3e3e42 !important;
+}
+
+/* Empty line numbers */
+[data-theme="dark"] .d2h-code-linenumber.d2h-ins,
+[data-theme="dark"] .d2h-code-side-linenumber.d2h-ins {
+  background-color: #1e3a1e !important;
+}
+
+[data-theme="dark"] .d2h-code-linenumber.d2h-del,
+[data-theme="dark"] .d2h-code-side-linenumber.d2h-del {
+  background-color: #3a1e1e !important;
+}
+
+/* Info lines (@@) */
+[data-theme="dark"] .d2h-info,
+[data-theme="dark"] .d2h-code-line.d2h-info,
+[data-theme="dark"] .d2h-code-side-line.d2h-info {
+  background-color: #2d2d30 !important;
+  color: #569cd6 !important;
+}
+
+[data-theme="dark"] .d2h-code-line.d2h-info .d2h-code-line-ctn {
+  background-color: transparent !important;
+  color: #569cd6 !important;
+}
+
+/* File diff container */
+[data-theme="dark"] .d2h-file-diff {
+  border-color: #3e3e42 !important;
+  background-color: #1e1e1e !important;
+}
+
+/* Diff table */
+[data-theme="dark"] .d2h-diff-table {
+  background-color: #1e1e1e !important;
+  border-color: #3e3e42 !important;
+}
+
+[data-theme="dark"] .d2h-diff-tbody {
+  background-color: #1e1e1e !important;
+}
+
+/* Context lines (unchanged) */
+[data-theme="dark"] .d2h-code-line.d2h-cxt,
+[data-theme="dark"] .d2h-code-side-line.d2h-cxt {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+}
+
+/* Emptyplaceholder */
+[data-theme="dark"] .d2h-emptyplaceholder {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+}
+
+/* Override diff2html colors for better integration */
+.d2h-wrapper {
+  font-family: Consolas, Monaco, 'Courier New', monospace !important;
+}
+
+.d2h-file-wrapper {
+  border: none;
+  margin: 0;
+}
+
+.d2h-diff-table {
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.d2h-code-linenumber {
+  cursor: pointer;
+  user-select: none;
+  padding: 0 8px;
+  min-width: 50px;
+  text-align: right;
+}
+
+.d2h-code-line-ctn {
+  padding-left: 8px;
+  white-space: pre;
+}

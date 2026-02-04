@@ -1,16 +1,31 @@
-import React, { useState, useEffect, useMemo } from "react";
-import { Button, Empty, Space, Tag, Tooltip, Modal, message, App } from "antd";
 import {
   ArrowLeftOutlined,
-  PlusOutlined,
-  MinusOutlined,
-  WarningOutlined,
-  CheckOutlined,
+  ColumnWidthOutlined,
+  MenuOutlined,
   ThunderboltOutlined,
-  DownOutlined,
+  WarningOutlined,
 } from "@ant-design/icons";
+import {
+  App,
+  Button,
+  Empty,
+  Modal,
+  Segmented,
+  Space,
+  Tag,
+  Tooltip,
+  message,
+} from "antd";
+import "diff2html/bundles/css/diff2html.min.css";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTheme } from "../ThemeContext";
-import { FileDiff, ConflictFile, ConflictMarker } from "../types";
+import { ConflictFile, ConflictMarker, FileDiff } from "../types";
+
+// Import diff2html with proper typing
+const Diff2Html = require("diff2html") as {
+  html: (diffInput: string, config?: any) => string;
+  parse: (diffInput: string, config?: any) => any[];
+};
 
 interface FileDiffPanelProps {
   diff: FileDiff | null;
@@ -33,22 +48,15 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   const [resolving, setResolving] = useState(false);
   const [editingContent, setEditingContent] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
-  const diffContainerRef = React.useRef<HTMLDivElement>(null);
-
-  // Incremental loading state
-  const [displayedLines, setDisplayedLines] = useState(500); // Show first 500 lines by default
-  const LINES_PER_LOAD = 500;
-
-  // Reset displayed lines when diff changes
-  useEffect(() => {
-    setDisplayedLines(500);
-    // Scroll to top when diff changes
-    if (diffContainerRef.current) {
-      diffContainerRef.current.scrollTop = 0;
-    }
-  }, [diff?.path]);
+  const [diffViewMode, setDiffViewMode] = useState<
+    "side-by-side" | "line-by-line"
+  >("side-by-side");
+  const diffContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Clear stale conflict state immediately when switching files
+    setConflictInfo(null);
+    setEditingContent(null);
     loadConflicts();
   }, [repoPath, filePath]);
 
@@ -172,65 +180,76 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     }
   };
 
-  const renderDiffLine = (line: string, index: number) => {
-    let backgroundColor = "transparent";
-    let color = "inherit";
-    let icon = null;
-    let isConflictMarker = false;
+  const diffText = diff?.diff ?? "";
+  const diffContent = diffText.trim();
+  const isBinary = diffContent.includes("Binary files");
+  const isEmpty =
+    diffContent === "" && diff?.additions === 0 && diff?.deletions === 0;
+  const hasConflicts =
+    conflictInfo !== null && conflictInfo.conflicts.length > 0;
+  const showBinaryMessage = isBinary && !hasConflicts;
+  const showEmptyMessage = isEmpty && !hasConflicts;
 
-    // Check for conflict markers
-    if (
-      line.startsWith("<<<<<<<") ||
-      line.startsWith("=======") ||
-      line.startsWith(">>>>>>>") ||
-      line.startsWith("|||||||")
-    ) {
-      backgroundColor = isDarkMode ? "#4a2a2a" : "#fff1f0";
-      color = "#ff4d4f";
-      isConflictMarker = true;
-      icon = <WarningOutlined style={{ fontSize: 10, marginRight: 8 }} />;
-    } else if (line.startsWith("+") && !line.startsWith("+++")) {
-      backgroundColor = isDarkMode ? "#1a3a1a" : "#f6ffed";
-      color = "#52c41a";
-      icon = <PlusOutlined style={{ fontSize: 10, marginRight: 8 }} />;
-    } else if (line.startsWith("-") && !line.startsWith("---")) {
-      backgroundColor = isDarkMode ? "#3a1a1a" : "#fff2f0";
-      color = "#ff4d4f";
-      icon = <MinusOutlined style={{ fontSize: 10, marginRight: 8 }} />;
-    } else if (line.startsWith("@@")) {
-      backgroundColor = isDarkMode ? "#1a2a3a" : "#e6f7ff";
-      color = "#1890ff";
-    } else if (line.startsWith("+++") || line.startsWith("---")) {
-      color = isDarkMode ? "#a0a0a0" : "#8c8c8c";
-      fontWeight: 600;
+  // Render diff using diff2html (layout effect prevents a flash of stale HTML)
+  useLayoutEffect(() => {
+    const container = diffContainerRef.current;
+    if (!container) return;
+
+    // Clear container first to prevent old diff from showing
+    container.innerHTML = "";
+
+    // Don't render diff for binary or empty files
+    if (showBinaryMessage || showEmptyMessage) {
+      return;
     }
 
-    return (
-      <div
-        key={index}
-        style={{
-          backgroundColor,
-          color,
-          padding: "2px 8px",
-          fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-          fontSize: 13,
-          lineHeight: "20px",
-          whiteSpace: "pre",
-          borderLeft: isConflictMarker
-            ? "3px solid #ff4d4f"
-            : line.startsWith("+") && !line.startsWith("+++")
-              ? "3px solid #52c41a"
-              : line.startsWith("-") && !line.startsWith("---")
-                ? "3px solid #ff4d4f"
-                : "none",
-          fontWeight: isConflictMarker ? 600 : "normal",
-        }}
-      >
-        {icon}
-        {line}
-      </div>
-    );
-  };
+    if (diffText) {
+      try {
+        const diffHtml = Diff2Html.html(diffText, {
+          drawFileList: false,
+          matching: "lines",
+          outputFormat: diffViewMode,
+          renderNothingWhenEmpty: false,
+          colorScheme: isDarkMode ? "dark" : "light",
+        });
+        container.innerHTML = diffHtml;
+
+        // Add theme class to wrapper
+        const wrapper = container.querySelector(".d2h-wrapper");
+        if (wrapper) {
+          wrapper.setAttribute("data-theme", isDarkMode ? "dark" : "light");
+        }
+      } catch (error) {
+        console.error("Error rendering diff:", error);
+        // Fallback to line-by-line view
+        try {
+          const diffHtml = Diff2Html.html(diffText, {
+            drawFileList: false,
+            matching: "lines",
+            outputFormat: "line-by-line",
+            renderNothingWhenEmpty: false,
+            colorScheme: isDarkMode ? "dark" : "light",
+          });
+          container.innerHTML = diffHtml;
+
+          // Add theme class to wrapper
+          const wrapper = container.querySelector(".d2h-wrapper");
+          if (wrapper) {
+            wrapper.setAttribute("data-theme", isDarkMode ? "dark" : "light");
+          }
+        } catch (fallbackError) {
+          console.error("Error rendering diff with fallback:", fallbackError);
+        }
+      }
+    }
+  }, [
+    diffText,
+    diff?.path,
+    isDarkMode,
+    diffViewMode,
+    showBinaryMessage,
+    showEmptyMessage,
+  ]);
 
   const renderConflictBlock = (
     conflict: ConflictMarker,
@@ -394,36 +413,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     );
   };
 
-  const renderContentLine = (line: string, index: number) => {
-    return (
-      <div
-        key={index}
-        style={{
-          padding: "2px 8px",
-          fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-          fontSize: 13,
-          lineHeight: "20px",
-          whiteSpace: "pre",
-          color: "var(--text-primary)",
-        }}
-      >
-        <span
-          style={{
-            display: "inline-block",
-            minWidth: "40px",
-            textAlign: "right",
-            marginRight: "12px",
-            color: "var(--text-secondary)",
-            userSelect: "none",
-          }}
-        >
-          {index + 1}
-        </span>
-        {line}
-      </div>
-    );
-  };
-
   if (!diff) {
     return (
       <div className="file-diff-panel">
@@ -440,33 +429,9 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     );
   }
 
-  // Check if diff is empty or file is binary
-  const diffContent = diff.diff?.trim() || "";
-  // Only mark as binary if explicitly stated, not just empty
-  const isBinary = diffContent.includes("Binary files");
-  const isEmpty =
-    diffContent === "" && diff.additions === 0 && diff.deletions === 0;
-
   const isDiff =
     diff &&
-    (diff.additions > 0 || diff.deletions > 0 || diff.diff.includes("@@"));
-  const hasConflicts = conflictInfo && conflictInfo.conflicts.length > 0;
-
-  // Split diff into lines and apply incremental loading
-  const diffLines = useMemo(() => diff.diff.split("\n"), [diff.diff]);
-  const totalLines = diffLines.length;
-  const visibleLines = diffLines.slice(0, displayedLines);
-  const hasMoreLines = displayedLines < totalLines;
-
-  const handleLoadMore = () => {
-    setDisplayedLines((prev: number) =>
-      Math.min(prev + LINES_PER_LOAD, totalLines),
-    );
-  };
-
-  // Check if this is a binary or empty file
-  const showBinaryMessage = isBinary && !hasConflicts;
-  const showEmptyMessage = isEmpty && !hasConflicts;
+    (diff.additions > 0 || diff.deletions > 0 || diffText.includes("@@"));
 
   return (
     <div className="file-diff-panel">
@@ -512,14 +477,43 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
               </Tag>
             )}
           </div>
-          {isDiff && (
-            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
-              <span style={{ color: "#52c41a", marginRight: 8 }}>
-                +{diff.additions}
-              </span>
-              <span style={{ color: "#ff4d4f" }}>-{diff.deletions}</span>
-            </div>
-          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {isDiff && !showBinaryMessage && !showEmptyMessage && (
+              <Segmented
+                size="small"
+                value={diffViewMode}
+                onChange={(value) =>
+                  setDiffViewMode(value as "side-by-side" | "line-by-line")
+                }
+                options={[
+                  {
+                    label: (
+                      <Tooltip title="Side by side view">
+                        <ColumnWidthOutlined />
+                      </Tooltip>
+                    ),
+                    value: "side-by-side",
+                  },
+                  {
+                    label: (
+                      <Tooltip title="Line by line view">
+                        <MenuOutlined />
+                      </Tooltip>
+                    ),
+                    value: "line-by-line",
+                  },
+                ]}
+              />
+            )}
+            {isDiff && (
+              <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                <span style={{ color: "#52c41a", marginRight: 8 }}>
+                  +{diff.additions}
+                </span>
+                <span style={{ color: "#ff4d4f" }}>-{diff.deletions}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Conflict resolution toolbar */}
@@ -626,53 +620,21 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             }
           />
         </div>
-      ) : (
-        /* Show diff */
-        <div
-          ref={diffContainerRef}
-          style={{
-            backgroundColor: "var(--bg-secondary)",
-            border: "1px solid var(--border-color)",
-            borderRadius: 4,
-            overflow: "auto",
-          }}
-        >
-          {visibleLines.map((line, index) =>
-            isDiff
-              ? renderDiffLine(line, index)
-              : renderContentLine(line, index),
-          )}
+      ) : null}
 
-          {/* Load more button for large diffs */}
-          {hasMoreLines && (
-            <div
-              style={{
-                padding: "16px",
-                textAlign: "center",
-                borderTop: "1px solid var(--border-color)",
-                backgroundColor: "var(--bg-primary)",
-              }}
-            >
-              <Button
-                type="primary"
-                icon={<DownOutlined />}
-                onClick={handleLoadMore}
-              >
-                Load More Lines ({displayedLines} / {totalLines})
-              </Button>
-              <div
-                style={{
-                  marginTop: 8,
-                  fontSize: 12,
-                  color: "var(--text-secondary)",
-                }}
-              >
-                Showing {displayedLines} of {totalLines} lines
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      {/* Always mount the diff container so we can reliably clear stale HTML */}
+      <div
+        key={`${diff.path}:${diffViewMode}:${isDarkMode ? "dark" : "light"}`}
+        ref={diffContainerRef}
+        style={{
+          display: showBinaryMessage || showEmptyMessage ? "none" : "block",
+          backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
+          border: "1px solid var(--border-color)",
+          borderRadius: 4,
+          overflow: "auto",
+          maxHeight: "calc(100vh - 300px)",
+        }}
+      />
 
       {/* Manual edit modal */}
       <Modal
@@ -716,4 +678,3 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
 };
 
 export default FileDiffPanel;
-
