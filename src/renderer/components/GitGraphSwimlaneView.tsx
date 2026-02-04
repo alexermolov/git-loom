@@ -1,22 +1,26 @@
-import { Empty } from 'antd';
-import React, { useMemo, useRef, useState } from 'react';
-import { CommitDetail } from '../types';
+import { Empty } from "antd";
+import React, { useMemo } from "react";
+import { CommitDetail } from "../types";
 
 // ===== Git Graph (Swimlanes) =====
 // This implementation mirrors the standalone HTML demo logic:
 // - commits come from parsing `git log --format=...` (see src/main/gitWorker.ts)
 // - lanes are calculated in JS and rendered as SVG
 
-const SWIMLANE_HEIGHT = 22;
+// Row/SVG height must match the rendered commit text height so
+// the vertical lanes stay visually connected between rows.
+const TEXT_LINE_HEIGHT = 18;
+const ROW_PADDING_Y = 4;
+const SWIMLANE_HEIGHT = TEXT_LINE_HEIGHT * 3 + ROW_PADDING_Y * 2;
 const SWIMLANE_WIDTH = 11;
 const SWIMLANE_CURVE_RADIUS = 5;
 const CIRCLE_RADIUS = 4;
 const CIRCLE_STROKE_WIDTH = 2;
-const CIRCLE_STROKE_COLOR = '#fff';
+const CIRCLE_STROKE_COLOR = "#fff";
 
-const COLOR_PALETTE = ['#FFB000', '#DC267F', '#994F00', '#40B0A6', '#B66DFF'];
+const COLOR_PALETTE = ["#FFB000", "#DC267F", "#994F00", "#40B0A6", "#B66DFF"];
 
-type RefCategory = 'branch' | 'remote' | 'tag' | 'head' | 'other';
+type RefCategory = "branch" | "remote" | "tag" | "head" | "other";
 
 interface CommitRef {
   id: string;
@@ -42,7 +46,7 @@ interface SwimlaneNode {
 
 interface ViewModel {
   commit: SwimlaneCommit;
-  kind: 'HEAD' | 'node';
+  kind: "HEAD" | "node";
   inputSwimlanes: SwimlaneNode[];
   outputSwimlanes: SwimlaneNode[];
 }
@@ -74,10 +78,14 @@ function buildGraphModel(commits: SwimlaneCommit[], headCommitId?: string) {
 
   for (let index = 0; index < commits.length; index++) {
     const commit = commits[index];
-    const kind: ViewModel['kind'] = commit.id === headCommitId ? 'HEAD' : 'node';
+    const kind: ViewModel["kind"] =
+      commit.id === headCommitId ? "HEAD" : "node";
 
-    const outputSwimlanesFromPreviousItem = viewModels.at(-1)?.outputSwimlanes ?? [];
-    const inputSwimlanes = outputSwimlanesFromPreviousItem.map((node) => ({ ...node }));
+    const outputSwimlanesFromPreviousItem =
+      viewModels.at(-1)?.outputSwimlanes ?? [];
+    const inputSwimlanes = outputSwimlanesFromPreviousItem.map((node) => ({
+      ...node,
+    }));
     const outputSwimlanes: SwimlaneNode[] = [];
 
     let firstParentAdded = false;
@@ -108,7 +116,9 @@ function buildGraphModel(commits: SwimlaneCommit[], headCommitId?: string) {
         color = getLabelColor(commit, colorMap);
       } else {
         const parentCommit = commitMap.get(commit.parentIds[i]);
-        color = parentCommit ? getLabelColor(parentCommit, colorMap) : undefined;
+        color = parentCommit
+          ? getLabelColor(parentCommit, colorMap)
+          : undefined;
       }
 
       if (!color) {
@@ -121,8 +131,11 @@ function buildGraphModel(commits: SwimlaneCommit[], headCommitId?: string) {
     const references = (commit.references ?? []).map((ref) => {
       let color = colorMap.get(ref.id);
       if (!color) {
-        const inputIndex = inputSwimlanes.findIndex((node) => node.id === commit.id);
-        const circleIndex = inputIndex !== -1 ? inputIndex : inputSwimlanes.length;
+        const inputIndex = inputSwimlanes.findIndex(
+          (node) => node.id === commit.id,
+        );
+        const circleIndex =
+          inputIndex !== -1 ? inputIndex : inputSwimlanes.length;
         color =
           circleIndex < outputSwimlanes.length
             ? outputSwimlanes[circleIndex].color
@@ -147,6 +160,7 @@ function buildGraphModel(commits: SwimlaneCommit[], headCommitId?: string) {
 
 function renderCommitGraph(viewModel: ViewModel) {
   const { commit, inputSwimlanes, outputSwimlanes, kind } = viewModel;
+  const midY = SWIMLANE_HEIGHT / 2;
   const inputIndex = inputSwimlanes.findIndex((node) => node.id === commit.id);
   const circleIndex = inputIndex !== -1 ? inputIndex : inputSwimlanes.length;
   const circleColor =
@@ -196,7 +210,7 @@ function renderCommitGraph(viewModel: ViewModel) {
             />,
           );
         } else {
-          const d = `M ${SWIMLANE_WIDTH * (index + 1)} 0 V 6 A ${SWIMLANE_CURVE_RADIUS} ${SWIMLANE_CURVE_RADIUS} 0 0 1 ${(SWIMLANE_WIDTH * (index + 1)) - SWIMLANE_CURVE_RADIUS} ${SWIMLANE_HEIGHT / 2} H ${(SWIMLANE_WIDTH * (outputSwimlaneIndex + 1)) + SWIMLANE_CURVE_RADIUS} A ${SWIMLANE_CURVE_RADIUS} ${SWIMLANE_CURVE_RADIUS} 0 0 0 ${SWIMLANE_WIDTH * (outputSwimlaneIndex + 1)} ${(SWIMLANE_HEIGHT / 2) + SWIMLANE_CURVE_RADIUS} V ${SWIMLANE_HEIGHT}`;
+          const d = `M ${SWIMLANE_WIDTH * (index + 1)} 0 V 6 A ${SWIMLANE_CURVE_RADIUS} ${SWIMLANE_CURVE_RADIUS} 0 0 1 ${SWIMLANE_WIDTH * (index + 1) - SWIMLANE_CURVE_RADIUS} ${midY} H ${SWIMLANE_WIDTH * (outputSwimlaneIndex + 1) + SWIMLANE_CURVE_RADIUS} A ${SWIMLANE_CURVE_RADIUS} ${SWIMLANE_CURVE_RADIUS} 0 0 0 ${SWIMLANE_WIDTH * (outputSwimlaneIndex + 1)} ${midY + SWIMLANE_CURVE_RADIUS} V ${SWIMLANE_HEIGHT}`;
           paths.push(
             <path
               key={`curve-${index}`}
@@ -214,10 +228,13 @@ function renderCommitGraph(viewModel: ViewModel) {
   }
 
   for (let i = 1; i < commit.parentIds.length; i++) {
-    const parentOutputIndex = findLastIndex(outputSwimlanes, commit.parentIds[i]);
+    const parentOutputIndex = findLastIndex(
+      outputSwimlanes,
+      commit.parentIds[i],
+    );
     if (parentOutputIndex !== -1) {
       const color = outputSwimlanes[parentOutputIndex].color;
-      const d = `M ${SWIMLANE_WIDTH * parentOutputIndex} ${SWIMLANE_HEIGHT / 2} A ${SWIMLANE_WIDTH} ${SWIMLANE_WIDTH} 0 0 1 ${SWIMLANE_WIDTH * (parentOutputIndex + 1)} ${SWIMLANE_HEIGHT} M ${SWIMLANE_WIDTH * parentOutputIndex} ${SWIMLANE_HEIGHT / 2} H ${SWIMLANE_WIDTH * (circleIndex + 1)}`;
+      const d = `M ${SWIMLANE_WIDTH * parentOutputIndex} ${midY} A ${SWIMLANE_WIDTH} ${SWIMLANE_WIDTH} 0 0 1 ${SWIMLANE_WIDTH * (parentOutputIndex + 1)} ${SWIMLANE_HEIGHT} M ${SWIMLANE_WIDTH * parentOutputIndex} ${midY} H ${SWIMLANE_WIDTH * (circleIndex + 1)}`;
       paths.push(
         <path
           key={`parent-${i}`}
@@ -235,7 +252,7 @@ function renderCommitGraph(viewModel: ViewModel) {
     paths.push(
       <path
         key="to-circle"
-        d={`M ${SWIMLANE_WIDTH * (circleIndex + 1)} 0 V ${SWIMLANE_HEIGHT / 2}`}
+        d={`M ${SWIMLANE_WIDTH * (circleIndex + 1)} 0 V ${midY}`}
         fill="none"
         stroke={inputSwimlanes[inputIndex].color}
         strokeWidth={1}
@@ -248,7 +265,7 @@ function renderCommitGraph(viewModel: ViewModel) {
     paths.push(
       <path
         key="from-circle"
-        d={`M ${SWIMLANE_WIDTH * (circleIndex + 1)} ${SWIMLANE_HEIGHT / 2} V ${SWIMLANE_HEIGHT}`}
+        d={`M ${SWIMLANE_WIDTH * (circleIndex + 1)} ${midY} V ${SWIMLANE_HEIGHT}`}
         fill="none"
         stroke={circleColor}
         strokeWidth={1}
@@ -257,12 +274,12 @@ function renderCommitGraph(viewModel: ViewModel) {
     );
   }
 
-  if (kind === 'HEAD') {
+  if (kind === "HEAD") {
     circles.push(
       <circle
         key="outer-head"
         cx={SWIMLANE_WIDTH * (circleIndex + 1)}
-        cy={SWIMLANE_WIDTH}
+        cy={midY}
         r={CIRCLE_RADIUS + 3}
         fill={circleColor}
         stroke={CIRCLE_STROKE_COLOR}
@@ -273,7 +290,7 @@ function renderCommitGraph(viewModel: ViewModel) {
       <circle
         key="inner-head"
         cx={SWIMLANE_WIDTH * (circleIndex + 1)}
-        cy={SWIMLANE_WIDTH}
+        cy={midY}
         r={CIRCLE_STROKE_WIDTH}
         fill="#fff"
         stroke={CIRCLE_STROKE_COLOR}
@@ -285,7 +302,7 @@ function renderCommitGraph(viewModel: ViewModel) {
       <circle
         key="outer-multi"
         cx={SWIMLANE_WIDTH * (circleIndex + 1)}
-        cy={SWIMLANE_WIDTH}
+        cy={midY}
         r={CIRCLE_RADIUS + 2}
         fill={circleColor}
         stroke={CIRCLE_STROKE_COLOR}
@@ -296,7 +313,7 @@ function renderCommitGraph(viewModel: ViewModel) {
       <circle
         key="inner-multi"
         cx={SWIMLANE_WIDTH * (circleIndex + 1)}
-        cy={SWIMLANE_WIDTH}
+        cy={midY}
         r={CIRCLE_RADIUS - 1}
         fill={circleColor}
         stroke={CIRCLE_STROKE_COLOR}
@@ -308,7 +325,7 @@ function renderCommitGraph(viewModel: ViewModel) {
       <circle
         key="normal"
         cx={SWIMLANE_WIDTH * (circleIndex + 1)}
-        cy={SWIMLANE_WIDTH}
+        cy={midY}
         r={CIRCLE_RADIUS + 1}
         fill={circleColor}
         stroke={CIRCLE_STROKE_COLOR}
@@ -317,10 +334,12 @@ function renderCommitGraph(viewModel: ViewModel) {
     );
   }
 
-  const width = SWIMLANE_WIDTH * (Math.max(inputSwimlanes.length, outputSwimlanes.length, 1) + 1);
+  const width =
+    SWIMLANE_WIDTH *
+    (Math.max(inputSwimlanes.length, outputSwimlanes.length, 1) + 1);
 
   return (
-    <svg width={width} height={SWIMLANE_HEIGHT} style={{ display: 'block' }}>
+    <svg width={width} height={SWIMLANE_HEIGHT} style={{ display: "block" }}>
       {paths}
       {circles}
     </svg>
@@ -336,77 +355,43 @@ function formatCommitDate(timestamp?: number) {
   }
 }
 
-function CommitHoverCard({ commit }: { commit: SwimlaneCommit }) {
-  const date = formatCommitDate(commit.timestamp);
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 520 }}>
-      <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-        {commit.subject}
-      </div>
-      {commit.displayId && <div style={{ fontSize: 12, color: '#666' }}>{commit.displayId}</div>}
-      {(commit.author || date) && (
-        <div style={{ fontSize: 12, color: '#666' }}>
-          {commit.author ? commit.author : ''}
-          {commit.author && date ? ' • ' : ''}
-          {date ? date : ''}
-        </div>
-      )}
-      {commit.references && commit.references.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
-          {commit.references.map((ref) => (
-            <span
-              key={ref.id}
-              style={{
-                display: 'inline-block',
-                backgroundColor: ref.color || '#e0e0e0',
-                color: '#fff',
-                padding: '2px 6px',
-                borderRadius: 3,
-                fontSize: 11,
-              }}
-            >
-              {ref.name}
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function parseRefs(refs: string[]): CommitRef[] {
   const out: CommitRef[] = [];
 
   for (const rawToken of refs) {
-    const token = (rawToken || '').trim();
+    const token = (rawToken || "").trim();
     if (!token) continue;
 
-    if (token.includes('HEAD ->')) {
-      out.push({ id: 'HEAD', name: 'HEAD', category: 'head' });
-      const branch = token.split('HEAD ->')[1]?.trim();
+    if (token.includes("HEAD ->")) {
+      out.push({ id: "HEAD", name: "HEAD", category: "head" });
+      const branch = token.split("HEAD ->")[1]?.trim();
       if (branch) {
-        out.push({ id: `branch:${branch}`, name: branch, category: 'branch' });
+        out.push({ id: `branch:${branch}`, name: branch, category: "branch" });
       }
       continue;
     }
 
-    if (token === 'HEAD') {
-      out.push({ id: 'HEAD', name: 'HEAD', category: 'head' });
+    if (token === "HEAD") {
+      out.push({ id: "HEAD", name: "HEAD", category: "head" });
       continue;
     }
 
     if (/^tag:\s*/i.test(token)) {
-      const name = token.replace(/^tag:\s*/i, '').trim();
-      out.push({ id: `tag:${name || token}`, name: name || token, category: 'tag' });
+      const name = token.replace(/^tag:\s*/i, "").trim();
+      out.push({
+        id: `tag:${name || token}`,
+        name: name || token,
+        category: "tag",
+      });
       continue;
     }
 
-    if (token.includes('/')) {
-      out.push({ id: `remote:${token}`, name: token, category: 'remote' });
+    if (token.includes("/")) {
+      out.push({ id: `remote:${token}`, name: token, category: "remote" });
       continue;
     }
 
-    out.push({ id: `branch:${token}`, name: token, category: 'branch' });
+    out.push({ id: `branch:${token}`, name: token, category: "branch" });
   }
 
   // De-dup by id (can happen with weird decorations)
@@ -427,7 +412,7 @@ function detailsToSwimlaneCommit(detail: CommitDetail): SwimlaneCommit {
   return {
     id: detail.hash,
     parentIds: detail.parents ?? [],
-    subject: detail.message,
+    subject: (detail.message ?? "").replace(/\r?\n/g, " ").trim(),
     displayId: detail.hash?.slice(0, 7),
     author: detail.author,
     timestamp,
@@ -438,8 +423,9 @@ function detailsToSwimlaneCommit(detail: CommitDetail): SwimlaneCommit {
 function commitMatchesQuery(commit: SwimlaneCommit, query: string) {
   const q = query.trim().toLowerCase();
   if (!q) return true;
-  const refs = (commit.references ?? []).map((r) => r.name).join(' ');
-  const hay = `${commit.id} ${commit.displayId ?? ''} ${commit.subject} ${commit.author ?? ''} ${refs}`.toLowerCase();
+  const refs = (commit.references ?? []).map((r) => r.name).join(" ");
+  const hay =
+    `${commit.id} ${commit.displayId ?? ""} ${commit.subject} ${commit.author ?? ""} ${refs}`.toLowerCase();
   return hay.includes(q);
 }
 
@@ -449,14 +435,15 @@ export default function GitGraphSwimlaneView(props: {
   onCommitClick?: (commitHash: string, message?: string) => void;
 }) {
   const { commitDetails, searchQuery, onCommitClick } = props;
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const [hover, setHover] = useState<{ commit: SwimlaneCommit; left: number; top: number } | undefined>(undefined);
 
-  const commits = useMemo(() => commitDetails.map(detailsToSwimlaneCommit), [commitDetails]);
+  const commits = useMemo(
+    () => commitDetails.map(detailsToSwimlaneCommit),
+    [commitDetails],
+  );
 
   const headCommitId = useMemo(() => {
     for (const c of commits) {
-      if ((c.references ?? []).some((r) => r.category === 'head')) return c.id;
+      if ((c.references ?? []).some((r) => r.category === "head")) return c.id;
     }
     return commits[0]?.id;
   }, [commits]);
@@ -472,103 +459,157 @@ export default function GitGraphSwimlaneView(props: {
     [filteredCommits, headCommitId],
   );
 
-  const hideHover = () => setHover(undefined);
-
   if (commitDetails.length === 0) {
     return <Empty description="No commits" />;
   }
 
   return (
     <div
-      ref={containerRef}
-      style={{ fontFamily: 'monospace', fontSize: 14, position: 'relative' }}
-      onMouseLeave={hideHover}
+      style={{ fontFamily: "monospace", fontSize: 14 }}
     >
-      {hover && (
-        <div
-          style={{
-            position: 'absolute',
-            left: hover.left,
-            top: hover.top,
-            zIndex: 10,
-            background: '#fff',
-            border: '1px solid rgba(0,0,0,0.12)',
-            borderRadius: 6,
-            boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
-            padding: 10,
-            pointerEvents: 'none',
-          }}
-        >
-          <CommitHoverCard commit={hover.commit} />
-        </div>
-      )}
-
       {viewModels.map((viewModel) => (
         <div
           key={viewModel.commit.id}
           style={{
-            display: 'flex',
-            alignItems: 'center',
+            display: "flex",
+            alignItems: "center",
             height: `${SWIMLANE_HEIGHT}px`,
-            borderBottom: '1px solid rgba(0,0,0,0.08)',
-            cursor: onCommitClick ? 'pointer' : 'default',
+            borderBottom: "1px solid rgba(0,0,0,0.08)",
             paddingRight: 8,
           }}
-          onMouseEnter={(e) => {
-            const container = containerRef.current;
-            if (!container) return;
-            const containerRect = container.getBoundingClientRect();
-            const rowRect = e.currentTarget.getBoundingClientRect();
-            const left = Math.min(containerRect.width - 20, Math.max(0, rowRect.right - containerRect.left + 12));
-            const top = Math.min(containerRect.height - 20, Math.max(0, rowRect.top - containerRect.top));
-            setHover({ commit: viewModel.commit, left, top });
-          }}
-          onFocus={(e) => {
-            const container = containerRef.current;
-            if (!container) return;
-            const containerRect = container.getBoundingClientRect();
-            const rowRect = e.currentTarget.getBoundingClientRect();
-            const left = Math.min(containerRect.width - 20, Math.max(0, rowRect.right - containerRect.left + 12));
-            const top = Math.min(containerRect.height - 20, Math.max(0, rowRect.top - containerRect.top));
-            setHover({ commit: viewModel.commit, left, top });
-          }}
-          onBlur={hideHover}
-          onClick={() => onCommitClick?.(viewModel.commit.id, viewModel.commit.subject)}
-          tabIndex={0}
         >
           <div style={{ flexShrink: 0 }}>{renderCommitGraph(viewModel)}</div>
-          <div style={{ marginLeft: 12, flexGrow: 1, overflow: 'hidden' }}>
+          <div
+            style={{
+              marginLeft: 12,
+              flexGrow: 1,
+              overflow: "hidden",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center",
+              gap: 2,
+              minWidth: 0,
+            }}
+          >
             <div
               style={{
-                fontWeight: viewModel.kind === 'HEAD' ? 700 : 400,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
+                fontWeight: viewModel.kind === "HEAD" ? 700 : 400,
+                lineHeight: `${TEXT_LINE_HEIGHT}px`,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
               }}
               title={viewModel.commit.subject}
             >
               {viewModel.commit.subject}
             </div>
-            {viewModel.commit.references && viewModel.commit.references.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 2 }}>
-                {viewModel.commit.references.map((ref) => (
-                  <span
-                    key={ref.id}
+
+            <div
+              style={{
+                lineHeight: `${TEXT_LINE_HEIGHT}px`,
+                fontSize: 12,
+                color: "#666",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+              title={[
+                viewModel.commit.author,
+                formatCommitDate(viewModel.commit.timestamp),
+              ]
+                .filter(Boolean)
+                .join(" • ")}
+            >
+              {(() => {
+                const date = formatCommitDate(viewModel.commit.timestamp);
+                const author = viewModel.commit.author;
+                if (author && date) return `${author} • ${date}`;
+                return author || date || "";
+              })()}
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                lineHeight: `${TEXT_LINE_HEIGHT}px`,
+                fontSize: 12,
+                minWidth: 0,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+              }}
+            >
+              {viewModel.commit.displayId && (
+                <span
+                  role={onCommitClick ? "button" : undefined}
+                  tabIndex={onCommitClick ? 0 : -1}
+                  onClick={
+                    onCommitClick
+                      ? (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onCommitClick(viewModel.commit.id, viewModel.commit.subject);
+                        }
+                      : undefined
+                  }
+                  onKeyDown={
+                    onCommitClick
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onCommitClick(viewModel.commit.id, viewModel.commit.subject);
+                          }
+                        }
+                      : undefined
+                  }
+                  style={{
+                    color: onCommitClick ? "var(--accent-color)" : "#666",
+                    cursor: onCommitClick ? "pointer" : "default",
+                    flexShrink: 0,
+                    textDecoration: onCommitClick ? "underline" : "none",
+                    textDecorationStyle: onCommitClick ? "dotted" : undefined,
+                    outline: "none",
+                  }}
+                  title={viewModel.commit.id}
+                >
+                  {viewModel.commit.displayId}
+                </span>
+              )}
+
+              {viewModel.commit.references &&
+                viewModel.commit.references.length > 0 && (
+                  <div
                     style={{
-                      display: 'inline-block',
-                      backgroundColor: ref.color || '#e0e0e0',
-                      color: '#fff',
-                      padding: '1px 6px',
-                      borderRadius: 3,
-                      fontSize: 11,
-                      lineHeight: '16px',
+                      display: "flex",
+                      flexWrap: "nowrap",
+                      gap: 4,
+                      overflow: "hidden",
+                      minWidth: 0,
                     }}
                   >
-                    {ref.name}
-                  </span>
-                ))}
-              </div>
-            )}
+                    {viewModel.commit.references.map((ref) => (
+                      <span
+                        key={ref.id}
+                        style={{
+                          display: "inline-block",
+                          backgroundColor: ref.color || "#e0e0e0",
+                          color: "#fff",
+                          padding: "1px 6px",
+                          borderRadius: 3,
+                          fontSize: 11,
+                          lineHeight: "16px",
+                          flexShrink: 0,
+                        }}
+                        title={ref.name}
+                      >
+                        {ref.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+            </div>
           </div>
         </div>
       ))}

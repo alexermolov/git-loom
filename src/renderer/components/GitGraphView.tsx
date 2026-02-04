@@ -15,7 +15,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   branches,
   onCommitClick,
 }) => {
-  const [viewMode, setViewMode] = useState<"ascii" | "swimlane">("ascii");
+  const [viewMode, setViewMode] = useState<"ascii" | "swimlane">("swimlane");
   const [rows, setRows] = useState<GitGraphRow[]>([]);
   const [commitDetails, setCommitDetails] = useState<CommitDetail[]>([]);
   const [loading, setLoading] = useState(false);
@@ -213,7 +213,8 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   }
 
   const totalCount = viewMode === "ascii" ? rows.length : commitDetails.length;
-  const filteredCount = viewMode === "ascii" ? filteredRows.length : filteredCommitDetails.length;
+  const filteredCount =
+    viewMode === "ascii" ? filteredRows.length : filteredCommitDetails.length;
 
   if (totalCount === 0) {
     return (
@@ -231,8 +232,8 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
           value={viewMode}
           onChange={(value) => setViewMode(value as "ascii" | "swimlane")}
           options={[
-            { label: "Current (ASCII)", value: "ascii" },
-            { label: "New (Swimlanes)", value: "swimlane" },
+            { label: "ASCII", value: "ascii" },
+            { label: "Swimlanes", value: "swimlane" },
           ]}
         />
       </div>
