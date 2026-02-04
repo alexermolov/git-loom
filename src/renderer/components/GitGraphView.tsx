@@ -1,7 +1,8 @@
-import { Empty, Input, Select, Spin } from "antd";
+import { Empty, Input, Segmented, Select, Spin } from "antd";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../ThemeContext";
-import { GitGraphRow } from "../types";
+import { CommitDetail, GitGraphRow } from "../types";
+import GitGraphSwimlaneView from "./GitGraphSwimlaneView";
 
 interface GitGraphViewProps {
   repoPath: string;
@@ -14,7 +15,9 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   branches,
   onCommitClick,
 }) => {
+  const [viewMode, setViewMode] = useState<"ascii" | "swimlane">("ascii");
   const [rows, setRows] = useState<GitGraphRow[]>([]);
+  const [commitDetails, setCommitDetails] = useState<CommitDetail[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState<string>("--all--");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -22,7 +25,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
 
   useEffect(() => {
     loadGraph();
-  }, [repoPath, selectedBranch]);
+  }, [repoPath, selectedBranch, viewMode]);
 
   // Reset local search when switching repos/branches
   useEffect(() => {
@@ -35,11 +38,23 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
     setLoading(true);
     try {
       const branch = selectedBranch === "--all--" ? undefined : selectedBranch;
-      const data = await window.electronAPI.getGitGraph(repoPath, branch);
-      setRows(data);
+      if (viewMode === "ascii") {
+        const data = await window.electronAPI.getGitGraph(repoPath, branch);
+        setRows(data);
+        setCommitDetails([]);
+      } else {
+        const details = await window.electronAPI.getCommitDetails(
+          repoPath,
+          branch,
+          200,
+        );
+        setCommitDetails(details);
+        setRows([]);
+      }
     } catch (error) {
       console.error("Failed to load git graph:", error);
       setRows([]);
+      setCommitDetails([]);
     } finally {
       setLoading(false);
     }
@@ -172,6 +187,16 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
     });
   }, [rows, searchQuery]);
 
+  const filteredCommitDetails = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return commitDetails;
+    return commitDetails.filter((c) => {
+      const refs = (c.refs ?? []).join(" ");
+      const hay = `${c.hash} ${c.message} ${c.author} ${refs}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [commitDetails, searchQuery]);
+
   const branchOptions = [
     { label: "All Branches", value: "--all--" },
     ...branches
@@ -187,7 +212,10 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
     );
   }
 
-  if (rows.length === 0) {
+  const totalCount = viewMode === "ascii" ? rows.length : commitDetails.length;
+  const filteredCount = viewMode === "ascii" ? filteredRows.length : filteredCommitDetails.length;
+
+  if (totalCount === 0) {
     return (
       <div style={{ padding: 20 }}>
         <Empty description="No commits in graph" />
@@ -197,6 +225,17 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
 
   return (
     <div className="git-graph-view">
+      <div style={{ marginBottom: 12 }}>
+        <Segmented
+          block
+          value={viewMode}
+          onChange={(value) => setViewMode(value as "ascii" | "swimlane")}
+          options={[
+            { label: "Current (ASCII)", value: "ascii" },
+            { label: "New (Swimlanes)", value: "swimlane" },
+          ]}
+        />
+      </div>
       <div style={{ marginBottom: 12 }}>
         <Select
           style={{
@@ -230,44 +269,54 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
             color: "var(--text-secondary)",
           }}
         >
-          Showing {filteredRows.length} of {rows.length}
+          Showing {filteredCount} of {totalCount}
         </div>
       ) : null}
-      <div className="git-graph-container-gitgraph">
-        <div className="git-graph-text" role="log" aria-label="Git graph">
-          {filteredRows.map((row, index) => (
-            <div
-              key={`${row.hash}-${index}`}
-              className="git-graph-line"
-              title={row.hash}
-              role={onCommitClick ? "button" : undefined}
-              tabIndex={onCommitClick ? 0 : -1}
-              onClick={
-                onCommitClick
-                  ? () => onCommitClick(row.hash, row.message)
-                  : undefined
-              }
-              onKeyDown={
-                onCommitClick
-                  ? (e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onCommitClick(row.hash, row.message);
+      {viewMode === "ascii" ? (
+        <div className="git-graph-container-gitgraph">
+          <div className="git-graph-text" role="log" aria-label="Git graph">
+            {filteredRows.map((row, index) => (
+              <div
+                key={`${row.hash}-${index}`}
+                className="git-graph-line"
+                title={row.hash}
+                role={onCommitClick ? "button" : undefined}
+                tabIndex={onCommitClick ? 0 : -1}
+                onClick={
+                  onCommitClick
+                    ? () => onCommitClick(row.hash, row.message)
+                    : undefined
+                }
+                onKeyDown={
+                  onCommitClick
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onCommitClick(row.hash, row.message);
+                        }
                       }
-                    }
-                  : undefined
-              }
-            >
-              <span className="git-graph-ascii git-graph-ascii-cells">
-                {renderGraphAscii(row.graph)}
-              </span>
-              <span className="git-graph-hash">{row.hash}</span>
-              <span> </span>
-              {renderDecorations(row.message, searchQuery)}
-            </div>
-          ))}
+                    : undefined
+                }
+              >
+                <span className="git-graph-ascii git-graph-ascii-cells">
+                  {renderGraphAscii(row.graph)}
+                </span>
+                <span className="git-graph-hash">{row.hash}</span>
+                <span> </span>
+                {renderDecorations(row.message, searchQuery)}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="git-graph-container-gitgraph">
+          <GitGraphSwimlaneView
+            commitDetails={filteredCommitDetails}
+            searchQuery={""}
+            onCommitClick={onCommitClick}
+          />
+        </div>
+      )}
     </div>
   );
 };
