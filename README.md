@@ -2,7 +2,7 @@
 
 <div align="center">
 
-<img src="logo.png" alt="GitLoom" width="140" />
+<img src="build/logo.png" alt="GitLoom" width="140" />
 
 ![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
