@@ -249,7 +249,11 @@ export async function checkoutBranch(repoPath: string, branchName: string): Prom
   // Check if there are uncommitted changes
   const status = await git.status();
   if (status.files.length > 0) {
-    throw new Error('Cannot checkout: you have uncommitted changes. Please commit or stash them first.');
+    // Throw structured error with file information
+    const error: any = new Error('Cannot checkout: you have uncommitted changes. Please commit or stash them first.');
+    error.hasUncommittedChanges = true;
+    error.modifiedFiles = status.files.map(f => f.path);
+    throw error;
   }
 
   // Remove 'remotes/' prefix if present
@@ -279,6 +283,91 @@ export async function checkoutBranch(repoPath: string, branchName: string): Prom
 
   // Invalidate cache after checkout
   gitCache.invalidate(repoPath);
+}
+
+// Stash changes and then checkout a branch
+export async function stashAndCheckout(repoPath: string, branchName: string, stashMessage?: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  // Check if there are uncommitted changes to stash
+  const status = await git.status();
+  if (status.files.length === 0) {
+    // No changes to stash, just checkout
+    await checkoutBranch(repoPath, branchName);
+    return;
+  }
+
+  try {
+    // Create stash with a descriptive message
+    const message = stashMessage || `Auto-stash before switching to ${branchName}`;
+    await createStash(repoPath, message, true);
+    
+    // Now checkout the branch (this should succeed now)
+    // We need to manually do the checkout here to avoid the uncommitted changes check
+    let targetBranch = branchName;
+    if (branchName.startsWith('remotes/')) {
+      targetBranch = branchName.replace('remotes/', '');
+    }
+
+    if (targetBranch.includes('/')) {
+      const parts = targetBranch.split('/');
+      const localBranchName = parts[parts.length - 1];
+      
+      const branches = await git.branch();
+      if (branches.all.includes(localBranchName)) {
+        await git.checkout(localBranchName);
+      } else {
+        await git.checkout(['-b', localBranchName, '--track', branchName.startsWith('remotes/') ? branchName.substring(8) : branchName]);
+      }
+    } else {
+      await git.checkout(targetBranch);
+    }
+
+    // Invalidate cache after stash and checkout
+    gitCache.invalidate(repoPath);
+  } catch (error) {
+    console.error('Error during stash and checkout:', error);
+    throw error;
+  }
+}
+
+// Discard all changes and then checkout a branch
+export async function discardAndCheckout(repoPath: string, branchName: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    // Reset all changes (staged and unstaged)
+    await git.reset(['--hard']);
+    
+    // Clean untracked files
+    await git.clean('f', ['-d']);
+    
+    // Now checkout the branch
+    let targetBranch = branchName;
+    if (branchName.startsWith('remotes/')) {
+      targetBranch = branchName.replace('remotes/', '');
+    }
+
+    if (targetBranch.includes('/')) {
+      const parts = targetBranch.split('/');
+      const localBranchName = parts[parts.length - 1];
+      
+      const branches = await git.branch();
+      if (branches.all.includes(localBranchName)) {
+        await git.checkout(localBranchName);
+      } else {
+        await git.checkout(['-b', localBranchName, '--track', branchName.startsWith('remotes/') ? branchName.substring(8) : branchName]);
+      }
+    } else {
+      await git.checkout(targetBranch);
+    }
+
+    // Invalidate cache after discard and checkout
+    gitCache.invalidate(repoPath);
+  } catch (error) {
+    console.error('Error during discard and checkout:', error);
+    throw error;
+  }
 }
 
 export async function mergeBranch(repoPath: string, branchName: string, mergeMode: 'auto' | 'no-ff' | 'ff-only' = 'no-ff'): Promise<void> {

@@ -631,7 +631,58 @@ const App: React.FC = () => {
       message.success(`Checked out branch: ${branchName}`);
     } catch (error: any) {
       console.error('Error checking out branch:', error);
-      message.error(error?.message ? `Checkout failed: ${error.message}` : 'Failed to checkout branch');
+      // Show error message for normal checkout (not from BranchSwitcher)
+      if (error?.hasUncommittedChanges) {
+        message.error(`Cannot checkout: you have ${error.modifiedFiles?.length || 0} uncommitted file(s). Please commit or stash them first.`);
+      } else {
+        message.error(error?.message ? `Checkout failed: ${error.message}` : 'Failed to checkout branch');
+      }
+    }
+  };
+
+  const handleBranchSwitch = async (repoPath: string, branchName: string) => {
+    try {
+      const info = await window.electronAPI.checkoutBranch(repoPath, branchName);
+      updateRepoInfo(repoPath, info);
+      
+      // If this is the selected repo, refresh panels
+      if (repoPath === selectedRepo) {
+        await refreshSelectedRepoPanels(repoPath, info);
+      }
+    } catch (error: any) {
+      console.error('Error switching branch:', error);
+      // Re-throw to let BranchSwitcher handle it
+      throw error;
+    }
+  };
+
+  const handleStashAndSwitch = async (repoPath: string, branchName: string) => {
+    try {
+      const info = await window.electronAPI.stashAndCheckout(repoPath, branchName);
+      updateRepoInfo(repoPath, info);
+      
+      // If this is the selected repo, refresh panels
+      if (repoPath === selectedRepo) {
+        await refreshSelectedRepoPanels(repoPath, info);
+      }
+    } catch (error: any) {
+      console.error('Error stashing and switching branch:', error);
+      throw error;
+    }
+  };
+
+  const handleDiscardAndSwitch = async (repoPath: string, branchName: string) => {
+    try {
+      const info = await window.electronAPI.discardAndCheckout(repoPath, branchName);
+      updateRepoInfo(repoPath, info);
+      
+      // If this is the selected repo, refresh panels
+      if (repoPath === selectedRepo) {
+        await refreshSelectedRepoPanels(repoPath, info);
+      }
+    } catch (error: any) {
+      console.error('Error discarding and switching branch:', error);
+      throw error;
     }
   };
 
@@ -868,6 +919,9 @@ const App: React.FC = () => {
         refreshing={refreshing}
         onToggleTheme={toggleTheme}
         loadingProgress={loadingProgress}
+        onBranchSwitch={handleBranchSwitch}
+        onStashAndSwitch={handleStashAndSwitch}
+        onDiscardAndSwitch={handleDiscardAndSwitch}
       />
       
       {!selectedRepo ? (

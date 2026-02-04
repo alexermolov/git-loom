@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   createCommit: (repoPath: string, message: string) => ipcRenderer.invoke('git:createCommit', repoPath, message),
   getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => ipcRenderer.invoke('git:getWorkingFileDiff', repoPath, filePath, staged),
   checkoutBranch: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:checkoutBranch', repoPath, branchName),
+  stashAndCheckout: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:stashAndCheckout', repoPath, branchName),
+  discardAndCheckout: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:discardAndCheckout', repoPath, branchName),
   mergeBranch: (repoPath: string, branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => ipcRenderer.invoke('git:mergeBranch', repoPath, branchName, mergeMode),
   createBranch: (repoPath: string, branchName: string, startPoint?: string, switchAfterCreate?: boolean, pushAfterCreate?: boolean) => ipcRenderer.invoke('git:createBranch', repoPath, branchName, startPoint, switchAfterCreate, pushAfterCreate),
   deleteBranch: (repoPath: string, branchName: string, force: boolean) => ipcRenderer.invoke('git:deleteBranch', repoPath, branchName, force),

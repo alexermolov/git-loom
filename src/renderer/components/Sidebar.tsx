@@ -18,6 +18,7 @@ import {
 } from "@ant-design/icons";
 import { useTheme } from "../ThemeContext";
 import { RepositoryInfo } from "../types";
+import BranchSwitcher from "./BranchSwitcher";
 
 interface SidebarProps {
   repositories: RepositoryInfo[];
@@ -32,6 +33,9 @@ interface SidebarProps {
   refreshing?: boolean;
   onToggleTheme?: () => void;
   loadingProgress?: { current: number; total: number };
+  onBranchSwitch?: (repoPath: string, branchName: string) => Promise<void>;
+  onStashAndSwitch?: (repoPath: string, branchName: string) => Promise<void>;
+  onDiscardAndSwitch?: (repoPath: string, branchName: string) => Promise<void>;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({
@@ -47,10 +51,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   refreshing = false,
   onToggleTheme,
   loadingProgress,
+  onBranchSwitch,
+  onStashAndSwitch,
+  onDiscardAndSwitch,
 }) => {
   const { isDarkMode } = useTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsed, setCollapsed] = useState(false);
+  const [branchSwitcherVisible, setBranchSwitcherVisible] = useState(false);
+  const [branchSwitcherRepo, setBranchSwitcherRepo] = useState<string | null>(null);
 
   // Filter repositories based on search query
   const filteredRepositories = repositories.filter(
@@ -58,6 +67,39 @@ const Sidebar: React.FC<SidebarProps> = ({
       repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       repo.path.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  const handleBranchLabelClick = (e: React.MouseEvent, repoPath: string) => {
+    e.stopPropagation();
+    setBranchSwitcherRepo(repoPath);
+    setBranchSwitcherVisible(true);
+  };
+
+  const handleBranchSwitchInternal = async (branchName: string) => {
+    if (!branchSwitcherRepo || !onBranchSwitch) {
+      throw new Error('Branch switch handler not available');
+    }
+    await onBranchSwitch(branchSwitcherRepo, branchName);
+  };
+
+  const handleStashAndSwitchInternal = async (branchName: string) => {
+    if (!branchSwitcherRepo || !onStashAndSwitch) {
+      throw new Error('Stash and switch handler not available');
+    }
+    await onStashAndSwitch(branchSwitcherRepo, branchName);
+  };
+
+  const handleDiscardAndSwitchInternal = async (branchName: string) => {
+    if (!branchSwitcherRepo || !onDiscardAndSwitch) {
+      throw new Error('Discard and switch handler not available');
+    }
+    await onDiscardAndSwitch(branchSwitcherRepo, branchName);
+  };
+
+  const getCurrentBranchForSwitcher = () => {
+    if (!branchSwitcherRepo) return '';
+    const repo = repositories.find(r => r.path === branchSwitcherRepo);
+    return repo?.currentBranch || '';
+  };
 
   const statPillStyle = (variant: "outgoing" | "incoming", active: boolean) => {
     if (active) {
@@ -244,9 +286,26 @@ const Sidebar: React.FC<SidebarProps> = ({
                     marginBottom: 4,
                   }}
                 >
-                  <div className="repository-branch">
-                    <BranchesOutlined /> {repo.currentBranch}
-                  </div>
+                  <Tooltip title="Click to switch branch">
+                    <div 
+                      className="repository-branch"
+                      onClick={(e) => handleBranchLabelClick(e, repo.path)}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        transition: 'background-color 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = isDarkMode ? '#333' : '#f0f0f0';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }}
+                    >
+                      <BranchesOutlined /> {repo.currentBranch}
+                    </div>
+                  </Tooltip>
                 </div>
 
                 {/* File status indicators */}
@@ -405,6 +464,21 @@ const Sidebar: React.FC<SidebarProps> = ({
             ))
           )}
         </div>
+      )}
+      
+      {branchSwitcherRepo && (
+        <BranchSwitcher
+          visible={branchSwitcherVisible}
+          repoPath={branchSwitcherRepo}
+          currentBranch={getCurrentBranchForSwitcher()}
+          onClose={() => {
+            setBranchSwitcherVisible(false);
+            setBranchSwitcherRepo(null);
+          }}
+          onBranchSwitch={handleBranchSwitchInternal}
+          onStashAndSwitch={onStashAndSwitch ? handleStashAndSwitchInternal : undefined}
+          onDiscardAndSwitch={onDiscardAndSwitch ? handleDiscardAndSwitchInternal : undefined}
+        />
       )}
     </div>
   );

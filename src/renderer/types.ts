@@ -18,6 +18,8 @@ export interface ElectronAPI {
   createCommit: (repoPath: string, message: string) => Promise<void>;
   getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => Promise<FileDiff>;
   checkoutBranch: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
+  stashAndCheckout: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
+  discardAndCheckout: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
   mergeBranch: (repoPath: string, branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => Promise<RepositoryInfo>;
   // Branch management
   createBranch: (repoPath: string, branchName: string, startPoint?: string, switchAfterCreate?: boolean, pushAfterCreate?: boolean) => Promise<BranchInfo[]>;
