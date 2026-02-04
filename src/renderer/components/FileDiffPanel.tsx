@@ -180,11 +180,20 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     }
   };
 
+  const looksLikeUnifiedDiff = (text: string) => {
+    if (!text) return false;
+    // Prefer strong signals to avoid mis-detecting frontmatter like "---" in markdown.
+    const hasDiffGitHeader = /^diff --git\s/m.test(text);
+    const hasClassicHeaders = /^---\s+a\//m.test(text) && /^\+\+\+\s+b\//m.test(text);
+    const hasHunks = /^@@\s/m.test(text);
+    return hasDiffGitHeader || hasClassicHeaders || hasHunks;
+  };
+
   const diffText = diff?.diff ?? "";
   const diffContent = diffText.trim();
-  const isBinary = diffContent.includes("Binary files");
-  const isEmpty =
-    diffContent === "" && diff?.additions === 0 && diff?.deletions === 0;
+  const isDiff = looksLikeUnifiedDiff(diffText);
+  const isBinary = isDiff && diffContent.includes("Binary files");
+  const isEmpty = diffContent === "";
   const hasConflicts =
     conflictInfo !== null && conflictInfo.conflicts.length > 0;
   const showBinaryMessage = isBinary && !hasConflicts;
@@ -204,6 +213,21 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     }
 
     if (diffText) {
+      // File Explorer uses raw file text (not a patch). Render it safely as plain text.
+      if (!isDiff) {
+        const pre = document.createElement("pre");
+        pre.textContent = diffText;
+        pre.style.margin = "0";
+        pre.style.padding = "12px";
+        pre.style.whiteSpace = "pre";
+        pre.style.fontFamily = 'Consolas, Monaco, "Courier New", monospace';
+        pre.style.fontSize = "13px";
+        pre.style.lineHeight = "1.45";
+        pre.style.color = isDarkMode ? "#d4d4d4" : "#1f1f1f";
+        container.appendChild(pre);
+        return;
+      }
+
       try {
         const diffHtml = Diff2Html.html(diffText, {
           drawFileList: false,
@@ -247,6 +271,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     diff?.path,
     isDarkMode,
     diffViewMode,
+    isDiff,
     showBinaryMessage,
     showEmptyMessage,
   ]);
@@ -429,10 +454,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     );
   }
 
-  const isDiff =
-    diff &&
-    (diff.additions > 0 || diff.deletions > 0 || diffText.includes("@@"));
-
   return (
     <div className="file-diff-panel">
       <div
@@ -611,10 +632,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             description={
               <div>
                 <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-                  No Changes
+                  {isDiff ? "No Changes" : "Empty File"}
                 </div>
                 <div style={{ color: "var(--text-secondary)" }}>
-                  This file has no visible changes.
+                  {isDiff
+                    ? "This file has no visible changes."
+                    : "This file is empty."}
                 </div>
               </div>
             }
