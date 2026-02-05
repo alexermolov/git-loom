@@ -1,4 +1,21 @@
-import { Empty } from "antd";
+import {
+  Checkbox,
+  Dropdown,
+  Empty,
+  Input,
+  Modal,
+  message,
+  type MenuProps,
+} from "antd";
+import {
+  BranchesOutlined,
+  CopyOutlined,
+  InfoCircleOutlined,
+  RollbackOutlined,
+  ScissorOutlined,
+  SwapOutlined,
+  TagOutlined,
+} from "@ant-design/icons";
 import React, { useMemo } from "react";
 import { CommitDetail } from "../types";
 
@@ -430,11 +447,347 @@ function commitMatchesQuery(commit: SwimlaneCommit, query: string) {
 }
 
 export default function GitGraphSwimlaneView(props: {
+  repoPath: string;
   commitDetails: CommitDetail[];
   searchQuery: string;
   onCommitClick?: (commitHash: string, message?: string) => void;
+  onRefreshRequested?: () => void | Promise<void>;
 }) {
-  const { commitDetails, searchQuery, onCommitClick } = props;
+  const { repoPath, commitDetails, searchQuery, onCommitClick, onRefreshRequested } = props;
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success("Copied to clipboard");
+    } catch {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        message.success("Copied to clipboard");
+      } catch (err) {
+        console.error("Failed to copy to clipboard:", err);
+        message.error("Failed to copy to clipboard");
+      }
+    }
+  };
+
+  const showCreateBranchModal = (
+    commit: SwimlaneCommit,
+    defaultSwitchAfterCreate: boolean,
+  ) => {
+    let branchName = `branch-${(commit.displayId || commit.id).slice(0, 7)}`;
+    let switchAfterCreate = defaultSwitchAfterCreate;
+
+    Modal.confirm({
+      title: `Create branch from ${commit.displayId ?? commit.id.slice(0, 7)}`,
+      okText: "Create",
+      cancelText: "Cancel",
+      width: 520,
+      content: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Input
+            autoFocus
+            placeholder="Branch name"
+            defaultValue={branchName}
+            onChange={(e) => {
+              branchName = e.target.value;
+            }}
+            onPressEnter={() => {
+              // Let Modal handle OK; pressing Enter inside input shouldn't submit prematurely
+            }}
+          />
+          <Checkbox
+            defaultChecked={defaultSwitchAfterCreate}
+            onChange={(e) => {
+              switchAfterCreate = e.target.checked;
+            }}
+          >
+            Checkout branch after create
+          </Checkbox>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            Start point: {commit.id}
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        const name = branchName.trim();
+        if (!name) {
+          message.error("Branch name is required");
+          return Promise.reject(new Error("Branch name required"));
+        }
+
+        try {
+          await window.electronAPI.createBranch(repoPath, name, commit.id, switchAfterCreate);
+          message.success(`Branch '${name}' created`);
+          await onRefreshRequested?.();
+        } catch (error) {
+          console.error("Error creating branch:", error);
+          message.error("Failed to create branch");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const confirmCheckoutCommit = (commit: SwimlaneCommit) => {
+    Modal.confirm({
+      title: "Checkout commit (detached HEAD)",
+      okText: "Checkout",
+      cancelText: "Cancel",
+      icon: <SwapOutlined />,
+      content: (
+        <div>
+          <div style={{ marginBottom: 8 }}>
+            Checkout <strong>{commit.displayId ?? commit.id.slice(0, 7)}</strong>.
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            This will put you into a detached HEAD state. If you want to keep changes, create a branch.
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          await window.electronAPI.checkoutCommit(repoPath, commit.id);
+          message.success(
+            `Checked out ${commit.displayId ?? commit.id.slice(0, 7)} (detached HEAD)`,
+          );
+          await onRefreshRequested?.();
+        } catch (error) {
+          console.error("Error checking out commit:", error);
+          message.error("Failed to checkout commit");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const confirmCherryPick = (commit: SwimlaneCommit) => {
+    Modal.confirm({
+      title: "Cherry-pick commit",
+      okText: "Cherry-pick",
+      cancelText: "Cancel",
+      icon: <ScissorOutlined />,
+      content: (
+        <div>
+          <div style={{ marginBottom: 8 }}>
+            Apply commit <strong>{commit.displayId ?? commit.id.slice(0, 7)}</strong> onto current branch.
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            {commit.subject}
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          await window.electronAPI.cherryPickCommit(repoPath, commit.id);
+          message.success(`Cherry-picked ${commit.displayId ?? commit.id.slice(0, 7)}`);
+          await onRefreshRequested?.();
+        } catch (error) {
+          console.error("Error cherry-picking commit:", error);
+          message.error("Cherry-pick failed (possible conflicts)");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const confirmReset = (commit: SwimlaneCommit, mode: "soft" | "mixed" | "hard") => {
+    const modeLabel = mode.toUpperCase();
+    Modal.confirm({
+      title: `Reset current branch (${modeLabel})`,
+      okText: "Reset",
+      cancelText: "Cancel",
+      icon: <RollbackOutlined />,
+      content: (
+        <div>
+          <div style={{ marginBottom: 8 }}>
+            Reset current branch to <strong>{commit.displayId ?? commit.id.slice(0, 7)}</strong>.
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            This operation can discard work depending on mode. Make sure you know what you are doing.
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          await window.electronAPI.resetToCommit(repoPath, commit.id, mode);
+          message.success(`Reset to ${commit.displayId ?? commit.id.slice(0, 7)} (${mode})`);
+          await onRefreshRequested?.();
+        } catch (error) {
+          console.error("Error resetting to commit:", error);
+          message.error("Failed to reset to commit");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const showCreateTagModal = (commit: SwimlaneCommit, annotated: boolean) => {
+    let tagName = "";
+    let tagMessage = "";
+
+    Modal.confirm({
+      title: annotated ? "Create annotated tag" : "Create lightweight tag",
+      okText: "Create",
+      cancelText: "Cancel",
+      width: 520,
+      content: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Input
+            autoFocus
+            placeholder="Tag name (e.g. v1.2.3)"
+            onChange={(e) => {
+              tagName = e.target.value;
+            }}
+          />
+          {annotated ? (
+            <Input.TextArea
+              placeholder="Tag message"
+              autoSize={{ minRows: 2, maxRows: 6 }}
+              onChange={(e) => {
+                tagMessage = e.target.value;
+              }}
+            />
+          ) : null}
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            Target: {commit.id}
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        const name = tagName.trim();
+        if (!name) {
+          message.error("Tag name is required");
+          return Promise.reject(new Error("Tag name required"));
+        }
+        try {
+          if (annotated) {
+            const msg = tagMessage.trim();
+            if (!msg) {
+              message.error("Tag message is required for annotated tags");
+              return Promise.reject(new Error("Tag message required"));
+            }
+            await window.electronAPI.createAnnotatedTag(repoPath, name, msg, commit.id);
+          } else {
+            await window.electronAPI.createLightweightTag(repoPath, name, commit.id);
+          }
+          message.success(`Tag '${name}' created`);
+          await onRefreshRequested?.();
+        } catch (error) {
+          console.error("Error creating tag:", error);
+          message.error("Failed to create tag");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const getCommitContextMenu = (commit: SwimlaneCommit): MenuProps => {
+    const shortId = commit.displayId ?? commit.id.slice(0, 7);
+
+    const items: MenuProps["items"] = [
+      {
+        key: "open",
+        label: "Open commit details",
+        icon: <InfoCircleOutlined />,
+        disabled: !onCommitClick,
+        onClick: () => onCommitClick?.(commit.id, commit.subject),
+      },
+      {
+        key: "copy-hash",
+        label: `Copy hash (${shortId})`,
+        icon: <CopyOutlined />,
+        onClick: () => copyToClipboard(commit.id),
+      },
+      {
+        key: "copy-short-hash",
+        label: `Copy short hash (${shortId})`,
+        icon: <CopyOutlined />,
+        onClick: () => copyToClipboard(shortId),
+      },
+      {
+        key: "copy-subject",
+        label: "Copy subject",
+        icon: <CopyOutlined />,
+        onClick: () => copyToClipboard(commit.subject),
+      },
+      { type: "divider" },
+      {
+        key: "create-branch",
+        label: "Create branch here…",
+        icon: <BranchesOutlined />,
+        onClick: () => showCreateBranchModal(commit, true),
+      },
+      {
+        key: "create-branch-no-checkout",
+        label: "Create branch here (no checkout)…",
+        icon: <BranchesOutlined />,
+        onClick: () => showCreateBranchModal(commit, false),
+      },
+      {
+        key: "checkout-commit",
+        label: "Checkout commit (detached HEAD)…",
+        icon: <SwapOutlined />,
+        onClick: () => confirmCheckoutCommit(commit),
+      },
+      {
+        key: "cherry-pick",
+        label: "Cherry-pick…",
+        icon: <ScissorOutlined />,
+        onClick: () => confirmCherryPick(commit),
+      },
+      {
+        key: "reset",
+        label: "Reset current branch",
+        icon: <RollbackOutlined />,
+        children: [
+          {
+            key: "reset-soft",
+            label: "Soft",
+            onClick: () => confirmReset(commit, "soft"),
+          },
+          {
+            key: "reset-mixed",
+            label: "Mixed",
+            onClick: () => confirmReset(commit, "mixed"),
+          },
+          {
+            key: "reset-hard",
+            label: "Hard",
+            danger: true,
+            onClick: () => confirmReset(commit, "hard"),
+          },
+        ],
+      },
+      { type: "divider" },
+      {
+        key: "tag",
+        label: "Tag",
+        icon: <TagOutlined />,
+        children: [
+          {
+            key: "tag-lightweight",
+            label: "Create lightweight tag…",
+            onClick: () => showCreateTagModal(commit, false),
+          },
+          {
+            key: "tag-annotated",
+            label: "Create annotated tag…",
+            onClick: () => showCreateTagModal(commit, true),
+          },
+        ],
+      },
+    ];
+
+    return { items };
+  };
 
   const commits = useMemo(
     () => commitDetails.map(detailsToSwimlaneCommit),
@@ -468,29 +821,34 @@ export default function GitGraphSwimlaneView(props: {
       style={{ fontFamily: "monospace", fontSize: 14 }}
     >
       {viewModels.map((viewModel) => (
-        <div
+        <Dropdown
           key={viewModel.commit.id}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            height: `${SWIMLANE_HEIGHT}px`,
-            borderBottom: "1px solid rgba(0,0,0,0.08)",
-            paddingRight: 8,
-          }}
+          menu={getCommitContextMenu(viewModel.commit)}
+          trigger={["contextMenu"]}
         >
-          <div style={{ flexShrink: 0 }}>{renderCommitGraph(viewModel)}</div>
           <div
             style={{
-              marginLeft: 12,
-              flexGrow: 1,
-              overflow: "hidden",
               display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              gap: 2,
-              minWidth: 0,
+              alignItems: "center",
+              height: `${SWIMLANE_HEIGHT}px`,
+              borderBottom: "1px solid rgba(0,0,0,0.08)",
+              paddingRight: 8,
+              cursor: "context-menu",
             }}
           >
+            <div style={{ flexShrink: 0 }}>{renderCommitGraph(viewModel)}</div>
+            <div
+              style={{
+                marginLeft: 12,
+                flexGrow: 1,
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                gap: 2,
+                minWidth: 0,
+              }}
+            >
             <div
               style={{
                 fontWeight: viewModel.kind === "HEAD" ? 700 : 400,
@@ -610,8 +968,9 @@ export default function GitGraphSwimlaneView(props: {
                   </div>
                 )}
             </div>
+            </div>
           </div>
-        </div>
+        </Dropdown>
       ))}
     </div>
   );

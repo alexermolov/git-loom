@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, discardChanges, createCommit, getWorkingFileDiff, checkoutBranch, stashAndCheckout, discardAndCheckout, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches, getTags, createLightweightTag, createAnnotatedTag, deleteTag, deleteRemoteTag, pushTags, checkoutTag, getTagDetails, getFileBlame } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, discardChanges, createCommit, getWorkingFileDiff, checkoutBranch, stashAndCheckout, discardAndCheckout, mergeBranch, getReflog, resetToCommit, cherryPickCommit, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches, getTags, createLightweightTag, createAnnotatedTag, deleteTag, deleteRemoteTag, pushTags, checkoutTag, checkoutCommit, getTagDetails, getFileBlame } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -757,6 +757,16 @@ function setupIpcHandlers() {
       await checkoutTag(repoPath, tagName);
     } catch (error) {
       console.error('Error checking out tag:', error);
+      throw error;
+    }
+  });
+
+  // Checkout commit (detached HEAD)
+  ipcMain.handle('git:checkoutCommit', async (_event, repoPath: string, commitHash: string) => {
+    try {
+      await checkoutCommit(repoPath, commitHash);
+    } catch (error) {
+      console.error('Error checking out commit:', error);
       throw error;
     }
   });

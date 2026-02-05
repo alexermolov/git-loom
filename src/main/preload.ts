@@ -74,6 +74,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   deleteRemoteTag: (repoPath: string, remoteName: string, tagName: string) => ipcRenderer.invoke('git:deleteRemoteTag', repoPath, remoteName, tagName),
   pushTags: (repoPath: string, remoteName: string, tagName?: string) => ipcRenderer.invoke('git:pushTags', repoPath, remoteName, tagName),
   checkoutTag: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:checkoutTag', repoPath, tagName),
+  checkoutCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:checkoutCommit', repoPath, commitHash),
   getTagDetails: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:getTagDetails', repoPath, tagName),
   // File editor operations
   getFileBlame: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileBlame', repoPath, filePath),

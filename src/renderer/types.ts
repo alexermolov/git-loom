@@ -73,6 +73,7 @@ export interface ElectronAPI {
   deleteRemoteTag: (repoPath: string, remoteName: string, tagName: string) => Promise<void>;
   pushTags: (repoPath: string, remoteName: string, tagName?: string) => Promise<void>;
   checkoutTag: (repoPath: string, tagName: string) => Promise<void>;
+  checkoutCommit: (repoPath: string, commitHash: string) => Promise<void>;
   getTagDetails: (repoPath: string, tagName: string) => Promise<TagInfo | null>;
   // File editor operations
   getFileBlame: (repoPath: string, filePath: string) => Promise<BlameLine[]>;

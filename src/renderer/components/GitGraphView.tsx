@@ -1,4 +1,24 @@
-import { Empty, Input, Segmented, Select, Spin } from "antd";
+import {
+  Checkbox,
+  Dropdown,
+  Empty,
+  Input,
+  Modal,
+  message,
+  Segmented,
+  Select,
+  Spin,
+  type MenuProps,
+} from "antd";
+import {
+  BranchesOutlined,
+  CopyOutlined,
+  InfoCircleOutlined,
+  RollbackOutlined,
+  ScissorOutlined,
+  SwapOutlined,
+  TagOutlined,
+} from "@ant-design/icons";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../ThemeContext";
 import { CommitDetail, GitGraphRow } from "../types";
@@ -60,6 +80,337 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      message.success("Copied to clipboard");
+    } catch {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        message.success("Copied to clipboard");
+      } catch (err) {
+        console.error("Failed to copy to clipboard:", err);
+        message.error("Failed to copy to clipboard");
+      }
+    }
+  };
+
+  const showCreateBranchModal = (
+    commitHash: string,
+    defaultSwitchAfterCreate: boolean,
+  ) => {
+    let branchName = `branch-${commitHash.slice(0, 7)}`;
+    let switchAfterCreate = defaultSwitchAfterCreate;
+
+    Modal.confirm({
+      title: `Create branch from ${commitHash.slice(0, 7)}`,
+      okText: "Create",
+      cancelText: "Cancel",
+      width: 520,
+      content: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Input
+            autoFocus
+            placeholder="Branch name"
+            defaultValue={branchName}
+            onChange={(e) => {
+              branchName = e.target.value;
+            }}
+          />
+          <Checkbox
+            defaultChecked={defaultSwitchAfterCreate}
+            onChange={(e) => {
+              switchAfterCreate = e.target.checked;
+            }}
+          >
+            Checkout branch after create
+          </Checkbox>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            Start point: {commitHash}
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        const name = branchName.trim();
+        if (!name) {
+          message.error("Branch name is required");
+          return Promise.reject(new Error("Branch name required"));
+        }
+        try {
+          await window.electronAPI.createBranch(repoPath, name, commitHash, switchAfterCreate);
+          message.success(`Branch '${name}' created`);
+          await loadGraph();
+        } catch (error) {
+          console.error("Error creating branch:", error);
+          message.error("Failed to create branch");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const confirmCheckoutCommit = (commitHash: string) => {
+    Modal.confirm({
+      title: "Checkout commit (detached HEAD)",
+      okText: "Checkout",
+      cancelText: "Cancel",
+      icon: <SwapOutlined />,
+      content: (
+        <div>
+          <div style={{ marginBottom: 8 }}>
+            Checkout <strong>{commitHash.slice(0, 7)}</strong>.
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            This will put you into a detached HEAD state. If you want to keep changes, create a branch.
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          await window.electronAPI.checkoutCommit(repoPath, commitHash);
+          message.success(`Checked out ${commitHash.slice(0, 7)} (detached HEAD)`);
+          await loadGraph();
+        } catch (error) {
+          console.error("Error checking out commit:", error);
+          message.error("Failed to checkout commit");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const confirmCherryPick = (commitHash: string, subject?: string) => {
+    Modal.confirm({
+      title: "Cherry-pick commit",
+      okText: "Cherry-pick",
+      cancelText: "Cancel",
+      icon: <ScissorOutlined />,
+      content: (
+        <div>
+          <div style={{ marginBottom: 8 }}>
+            Apply commit <strong>{commitHash.slice(0, 7)}</strong> onto current branch.
+          </div>
+          {subject ? (
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              {subject}
+            </div>
+          ) : null}
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          await window.electronAPI.cherryPickCommit(repoPath, commitHash);
+          message.success(`Cherry-picked ${commitHash.slice(0, 7)}`);
+          await loadGraph();
+        } catch (error) {
+          console.error("Error cherry-picking commit:", error);
+          message.error("Cherry-pick failed (possible conflicts)");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const confirmReset = (commitHash: string, mode: "soft" | "mixed" | "hard") => {
+    const modeLabel = mode.toUpperCase();
+    Modal.confirm({
+      title: `Reset current branch (${modeLabel})`,
+      okText: "Reset",
+      cancelText: "Cancel",
+      icon: <RollbackOutlined />,
+      content: (
+        <div>
+          <div style={{ marginBottom: 8 }}>
+            Reset current branch to <strong>{commitHash.slice(0, 7)}</strong>.
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            This operation can discard work depending on mode. Make sure you know what you are doing.
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          await window.electronAPI.resetToCommit(repoPath, commitHash, mode);
+          message.success(`Reset to ${commitHash.slice(0, 7)} (${mode})`);
+          await loadGraph();
+        } catch (error) {
+          console.error("Error resetting to commit:", error);
+          message.error("Failed to reset to commit");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const showCreateTagModal = (commitHash: string, annotated: boolean) => {
+    let tagName = "";
+    let tagMessage = "";
+
+    Modal.confirm({
+      title: annotated ? "Create annotated tag" : "Create lightweight tag",
+      okText: "Create",
+      cancelText: "Cancel",
+      width: 520,
+      content: (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <Input
+            autoFocus
+            placeholder="Tag name (e.g. v1.2.3)"
+            onChange={(e) => {
+              tagName = e.target.value;
+            }}
+          />
+          {annotated ? (
+            <Input.TextArea
+              placeholder="Tag message"
+              autoSize={{ minRows: 2, maxRows: 6 }}
+              onChange={(e) => {
+                tagMessage = e.target.value;
+              }}
+            />
+          ) : null}
+          <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+            Target: {commitHash}
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        const name = tagName.trim();
+        if (!name) {
+          message.error("Tag name is required");
+          return Promise.reject(new Error("Tag name required"));
+        }
+        try {
+          if (annotated) {
+            const msg = tagMessage.trim();
+            if (!msg) {
+              message.error("Tag message is required for annotated tags");
+              return Promise.reject(new Error("Tag message required"));
+            }
+            await window.electronAPI.createAnnotatedTag(repoPath, name, msg, commitHash);
+          } else {
+            await window.electronAPI.createLightweightTag(repoPath, name, commitHash);
+          }
+          message.success(`Tag '${name}' created`);
+          await loadGraph();
+        } catch (error) {
+          console.error("Error creating tag:", error);
+          message.error("Failed to create tag");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const getCommitContextMenu = (row: GitGraphRow): MenuProps => {
+    const commitHash = row.hash;
+    const subject = row.message;
+
+    const items: MenuProps["items"] = [
+      {
+        key: "open",
+        label: "Open commit details",
+        icon: <InfoCircleOutlined />,
+        disabled: !onCommitClick,
+        onClick: () => onCommitClick?.(commitHash, subject),
+      },
+      {
+        key: "copy-hash",
+        label: `Copy hash (${commitHash.slice(0, 7)})`,
+        icon: <CopyOutlined />,
+        onClick: () => copyToClipboard(commitHash),
+      },
+      {
+        key: "copy-short-hash",
+        label: `Copy short hash (${commitHash.slice(0, 7)})`,
+        icon: <CopyOutlined />,
+        onClick: () => copyToClipboard(commitHash.slice(0, 7)),
+      },
+      {
+        key: "copy-subject",
+        label: "Copy subject",
+        icon: <CopyOutlined />,
+        onClick: () => copyToClipboard(subject),
+      },
+      { type: "divider" },
+      {
+        key: "create-branch",
+        label: "Create branch here…",
+        icon: <BranchesOutlined />,
+        onClick: () => showCreateBranchModal(commitHash, true),
+      },
+      {
+        key: "create-branch-no-checkout",
+        label: "Create branch here (no checkout)…",
+        icon: <BranchesOutlined />,
+        onClick: () => showCreateBranchModal(commitHash, false),
+      },
+      {
+        key: "checkout-commit",
+        label: "Checkout commit (detached HEAD)…",
+        icon: <SwapOutlined />,
+        onClick: () => confirmCheckoutCommit(commitHash),
+      },
+      {
+        key: "cherry-pick",
+        label: "Cherry-pick…",
+        icon: <ScissorOutlined />,
+        onClick: () => confirmCherryPick(commitHash, subject),
+      },
+      {
+        key: "reset",
+        label: "Reset current branch",
+        icon: <RollbackOutlined />,
+        children: [
+          {
+            key: "reset-soft",
+            label: "Soft",
+            onClick: () => confirmReset(commitHash, "soft"),
+          },
+          {
+            key: "reset-mixed",
+            label: "Mixed",
+            onClick: () => confirmReset(commitHash, "mixed"),
+          },
+          {
+            key: "reset-hard",
+            label: "Hard",
+            danger: true,
+            onClick: () => confirmReset(commitHash, "hard"),
+          },
+        ],
+      },
+      { type: "divider" },
+      {
+        key: "tag",
+        label: "Tag",
+        icon: <TagOutlined />,
+        children: [
+          {
+            key: "tag-lightweight",
+            label: "Create lightweight tag…",
+            onClick: () => showCreateTagModal(commitHash, false),
+          },
+          {
+            key: "tag-annotated",
+            label: "Create annotated tag…",
+            onClick: () => showCreateTagModal(commitHash, true),
+          },
+        ],
+      },
+    ];
+
+    return { items };
   };
 
   const renderGraphAscii = useMemo(() => {
@@ -279,44 +630,52 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
         <div className="git-graph-container-gitgraph">
           <div className="git-graph-text" role="log" aria-label="Git graph">
             {filteredRows.map((row, index) => (
-              <div
+              <Dropdown
                 key={`${row.hash}-${index}`}
-                className="git-graph-line"
-                title={row.hash}
-                role={onCommitClick ? "button" : undefined}
-                tabIndex={onCommitClick ? 0 : -1}
-                onClick={
-                  onCommitClick
-                    ? () => onCommitClick(row.hash, row.message)
-                    : undefined
-                }
-                onKeyDown={
-                  onCommitClick
-                    ? (e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          onCommitClick(row.hash, row.message);
-                        }
-                      }
-                    : undefined
-                }
+                menu={getCommitContextMenu(row)}
+                trigger={["contextMenu"]}
               >
-                <span className="git-graph-ascii git-graph-ascii-cells">
-                  {renderGraphAscii(row.graph)}
-                </span>
-                <span className="git-graph-hash">{row.hash}</span>
-                <span> </span>
-                {renderDecorations(row.message, searchQuery)}
-              </div>
+                <div
+                  className="git-graph-line"
+                  title={row.hash}
+                  role={onCommitClick ? "button" : undefined}
+                  tabIndex={onCommitClick ? 0 : -1}
+                  onClick={
+                    onCommitClick
+                      ? () => onCommitClick(row.hash, row.message)
+                      : undefined
+                  }
+                  onKeyDown={
+                    onCommitClick
+                      ? (e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            onCommitClick(row.hash, row.message);
+                          }
+                        }
+                      : undefined
+                  }
+                  style={{ cursor: "context-menu" }}
+                >
+                  <span className="git-graph-ascii git-graph-ascii-cells">
+                    {renderGraphAscii(row.graph)}
+                  </span>
+                  <span className="git-graph-hash">{row.hash}</span>
+                  <span> </span>
+                  {renderDecorations(row.message, searchQuery)}
+                </div>
+              </Dropdown>
             ))}
           </div>
         </div>
       ) : (
         <div className="git-graph-container-gitgraph">
           <GitGraphSwimlaneView
+            repoPath={repoPath}
             commitDetails={filteredCommitDetails}
             searchQuery={""}
             onCommitClick={onCommitClick}
+            onRefreshRequested={loadGraph}
           />
         </div>
       )}

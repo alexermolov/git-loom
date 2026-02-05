@@ -2463,6 +2463,25 @@ export async function checkoutTag(repoPath: string, tagName: string): Promise<vo
   }
 }
 
+// Checkout a commit (detached HEAD)
+export async function checkoutCommit(repoPath: string, commitHash: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    // Basic validation that the object exists
+    await git.revparse([commitHash]);
+
+    await git.checkout(commitHash);
+
+    // Invalidate caches
+    gitCache.invalidate(repoPath, 'repositoryInfo');
+    gitCache.invalidate(repoPath, 'branches');
+  } catch (error) {
+    console.error('Error checking out commit:', error);
+    throw error;
+  }
+}
+
 // Get tag details (for a specific tag)
 export async function getTagDetails(repoPath: string, tagName: string): Promise<TagInfo | null> {
   const git: SimpleGit = simpleGit(repoPath);
