@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getUnpushedCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, discardChanges, createCommit, getWorkingFileDiff, checkoutBranch, stashAndCheckout, discardAndCheckout, mergeBranch, getReflog, resetToCommit, cherryPickCommit, revertCommit, abortRevert, continueRevert, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches, getTags, createLightweightTag, createAnnotatedTag, deleteTag, deleteRemoteTag, pushTags, checkoutTag, checkoutCommit, getTagDetails, getFileBlame } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getUnpushedCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, discardChanges, createCommit, getWorkingFileDiff, checkoutBranch, stashAndCheckout, discardAndCheckout, mergeBranch, getReflog, resetToCommit, cherryPickCommit, revertCommit, abortRevert, continueRevert, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches, getTags, createLightweightTag, createAnnotatedTag, deleteTag, deleteRemoteTag, pushTags, checkoutTag, checkoutCommit, getTagDetails, getFileBlame, getRebasePlan, startInteractiveRebase, getRebaseStatus, continueRebase, abortRebase, skipRebaseCommit, editRebaseCommitMessage } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -838,6 +838,80 @@ function setupIpcHandlers() {
       return await getFileBlame(repoPath, filePath);
     } catch (error) {
       console.error('Error getting file blame:', error);
+      throw error;
+    }
+  });
+
+  // ============================================================================
+  // INTERACTIVE REBASE HANDLERS
+  // ============================================================================
+
+  // Get rebase plan
+  ipcMain.handle('git:getRebasePlan', async (_event, repoPath: string, sourceBranch: string, targetBranch: string) => {
+    try {
+      return await getRebasePlan(repoPath, sourceBranch, targetBranch);
+    } catch (error) {
+      console.error('Error getting rebase plan:', error);
+      throw error;
+    }
+  });
+
+  // Start interactive rebase
+  ipcMain.handle('git:startInteractiveRebase', async (_event, repoPath: string, targetBranch: string, rebasePlan: any[]) => {
+    try {
+      return await startInteractiveRebase(repoPath, targetBranch, rebasePlan);
+    } catch (error) {
+      console.error('Error starting interactive rebase:', error);
+      throw error;
+    }
+  });
+
+  // Get rebase status
+  ipcMain.handle('git:getRebaseStatus', async (_event, repoPath: string) => {
+    try {
+      return await getRebaseStatus(repoPath);
+    } catch (error) {
+      console.error('Error getting rebase status:', error);
+      throw error;
+    }
+  });
+
+  // Continue rebase
+  ipcMain.handle('git:continueRebase', async (_event, repoPath: string) => {
+    try {
+      return await continueRebase(repoPath);
+    } catch (error) {
+      console.error('Error continuing rebase:', error);
+      throw error;
+    }
+  });
+
+  // Abort rebase
+  ipcMain.handle('git:abortRebase', async (_event, repoPath: string) => {
+    try {
+      await abortRebase(repoPath);
+    } catch (error) {
+      console.error('Error aborting rebase:', error);
+      throw error;
+    }
+  });
+
+  // Skip rebase commit
+  ipcMain.handle('git:skipRebaseCommit', async (_event, repoPath: string) => {
+    try {
+      return await skipRebaseCommit(repoPath);
+    } catch (error) {
+      console.error('Error skipping rebase commit:', error);
+      throw error;
+    }
+  });
+
+  // Edit rebase commit message
+  ipcMain.handle('git:editRebaseCommitMessage', async (_event, repoPath: string, commitHash: string, newMessage: string) => {
+    try {
+      await editRebaseCommitMessage(repoPath, commitHash, newMessage);
+    } catch (error) {
+      console.error('Error editing rebase commit message:', error);
       throw error;
     }
   });

@@ -2767,3 +2767,362 @@ export async function getFileBlame(repoPath: string, filePath: string): Promise<
   }
 }
 
+// ============================================================================
+// INTERACTIVE REBASE OPERATIONS
+// ============================================================================
+
+export interface RebaseCommit {
+  hash: string;
+  shortHash: string;
+  action: 'pick' | 'reword' | 'edit' | 'squash' | 'fixup' | 'drop';
+  message: string;
+  author: string;
+  date: string;
+}
+
+export interface RebasePlan {
+  commits: RebaseCommit[];
+  currentBranch: string;
+  targetBranch: string;
+  targetCommit: string;
+}
+
+export interface RebaseStatus {
+  inProgress: boolean;
+  currentCommit?: string;
+  remainingCommits?: number;
+  hasConflicts?: boolean;
+  conflictedFiles?: string[];
+}
+
+// Get commits that would be rebased
+export async function getRebasePlan(
+  repoPath: string,
+  sourceBranch: string,
+  targetBranch: string
+): Promise<RebasePlan> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // Get the merge-base (common ancestor)
+    const mergeBase = await git.raw([
+      'merge-base',
+      sourceBranch,
+      targetBranch
+    ]);
+    
+    const baseCommit = mergeBase.trim();
+    
+    // Get commits between base and source branch
+    const logResult = await git.raw([
+      'log',
+      '--format=%H%x00%h%x00%s%x00%an%x00%ai',
+      '--reverse',
+      `${baseCommit}..${sourceBranch}`
+    ]);
+    
+    const commits: RebaseCommit[] = [];
+    
+    if (logResult.trim()) {
+      const commitLines = logResult.trim().split('\n');
+      
+      for (const line of commitLines) {
+        const [hash, shortHash, message, author, date] = line.split('\x00');
+        
+        if (hash && message) {
+          commits.push({
+            hash,
+            shortHash,
+            action: 'pick',
+            message,
+            author,
+            date,
+          });
+        }
+      }
+    }
+    
+    return {
+      commits,
+      currentBranch: sourceBranch,
+      targetBranch,
+      targetCommit: baseCommit,
+    };
+  } catch (error) {
+    console.error('Error getting rebase plan:', error);
+    throw error;
+  }
+}
+
+// Start interactive rebase with a custom plan
+export async function startInteractiveRebase(
+  repoPath: string,
+  targetBranch: string,
+  rebasePlan: RebaseCommit[]
+): Promise<RebaseStatus> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // Check for uncommitted changes
+    const status = await git.status();
+    if (status.files.length > 0) {
+      throw new Error('Cannot start rebase: you have uncommitted changes. Please commit or stash them first.');
+    }
+    
+    // Build the rebase todo content
+    const todoLines = rebasePlan.map(commit => {
+      return `${commit.action} ${commit.hash} ${commit.message}`;
+    }).join('\n');
+    
+    // Create a temporary file for our custom plan
+    const rebaseTodoBackup = path.join(repoPath, '.git', 'GITLOOM_REBASE_TODO');
+    fs.writeFileSync(rebaseTodoBackup, todoLines, 'utf-8');
+    
+    // Create a script that will copy our plan to the git-rebase-todo file
+    // This script will be used as GIT_SEQUENCE_EDITOR
+    const isWindows = process.platform === 'win32';
+    let editorScript: string;
+    let editorScriptPath: string;
+    
+    if (isWindows) {
+      editorScriptPath = path.join(repoPath, '.git', 'GITLOOM_EDITOR.cmd');
+      editorScript = `@echo off\ncopy /Y "${rebaseTodoBackup}" "%~1" > nul`;
+      fs.writeFileSync(editorScriptPath, editorScript, 'utf-8');
+    } else {
+      editorScriptPath = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
+      editorScript = `#!/bin/sh\ncp "${rebaseTodoBackup}" "$1"`;
+      fs.writeFileSync(editorScriptPath, editorScript, 'utf-8');
+      fs.chmodSync(editorScriptPath, '755');
+    }
+    
+    const rebaseMergePath = path.join(repoPath, '.git', 'rebase-merge');
+    const rebaseApplyPath = path.join(repoPath, '.git', 'rebase-apply');
+
+    // Start the rebase with our custom editor
+    try {
+      // On Windows, Git may not be able to execute a .cmd file directly.
+      // Wrapping with cmd.exe makes the sequence editor invocation reliable.
+      const sequenceEditor = isWindows
+        ? `cmd.exe /d /s /c "\"${editorScriptPath}\""`
+        : editorScriptPath;
+
+      await git.env({
+        ...process.env,
+        GIT_SEQUENCE_EDITOR: sequenceEditor
+      }).raw([
+        'rebase',
+        '-i',
+        '--autosquash',
+        targetBranch
+      ]);
+      
+      // If we get here without error, rebase completed successfully
+      // Clean up temporary files
+      if (fs.existsSync(rebaseTodoBackup)) {
+        fs.unlinkSync(rebaseTodoBackup);
+      }
+      if (fs.existsSync(editorScriptPath)) {
+        fs.unlinkSync(editorScriptPath);
+      }
+      
+      return {
+        inProgress: false,
+      };
+    } catch (rebaseError: any) {
+      // Git returns non-zero for several cases:
+      // - rebase actually started and is waiting (conflicts, edit/reword, etc.)
+      // - rebase failed to start at all (e.g. couldn't run sequence editor)
+      // Distinguish these to avoid showing a phantom "Continue" state in the UI.
+      const actuallyInProgress = fs.existsSync(rebaseMergePath) || fs.existsSync(rebaseApplyPath);
+
+      if (!actuallyInProgress) {
+        // Clean up temporary files because the rebase didn't start.
+        if (fs.existsSync(rebaseTodoBackup)) {
+          fs.unlinkSync(rebaseTodoBackup);
+        }
+        if (fs.existsSync(editorScriptPath)) {
+          fs.unlinkSync(editorScriptPath);
+        }
+
+        throw rebaseError;
+      }
+
+      // Rebase started but has conflicts or is waiting for user input.
+      const statusAfter = await git.status();
+      const conflictedFiles = statusAfter.conflicted || [];
+
+      // Don't clean up scripts yet, we might need them for continue.
+      return {
+        inProgress: true,
+        hasConflicts: conflictedFiles.length > 0,
+        conflictedFiles,
+      };
+    }
+  } catch (error) {
+    console.error('Error starting interactive rebase:', error);
+    throw error;
+  }
+}
+
+// Get current rebase status
+export async function getRebaseStatus(repoPath: string): Promise<RebaseStatus> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    const rebaseMergePath = path.join(repoPath, '.git', 'rebase-merge');
+    const rebaseApplyPath = path.join(repoPath, '.git', 'rebase-apply');
+    
+    const inProgress = fs.existsSync(rebaseMergePath) || fs.existsSync(rebaseApplyPath);
+    
+    if (!inProgress) {
+      return { inProgress: false };
+    }
+    
+    // Get conflicted files
+    const status = await git.status();
+    const conflictedFiles = status.conflicted || [];
+    
+    // Try to read rebase state
+    let currentCommit: string | undefined;
+    let remainingCommits: number | undefined;
+    
+    if (fs.existsSync(rebaseMergePath)) {
+      const headNamePath = path.join(rebaseMergePath, 'head-name');
+      const ontoPath = path.join(rebaseMergePath, 'onto');
+      const msgNumPath = path.join(rebaseMergePath, 'msgnum');
+      const endPath = path.join(rebaseMergePath, 'end');
+      
+      if (fs.existsSync(msgNumPath) && fs.existsSync(endPath)) {
+        const msgNum = parseInt(fs.readFileSync(msgNumPath, 'utf-8').trim(), 10);
+        const end = parseInt(fs.readFileSync(endPath, 'utf-8').trim(), 10);
+        remainingCommits = end - msgNum;
+      }
+    }
+    
+    return {
+      inProgress: true,
+      currentCommit,
+      remainingCommits,
+      hasConflicts: conflictedFiles.length > 0,
+      conflictedFiles,
+    };
+  } catch (error) {
+    console.error('Error getting rebase status:', error);
+    return { inProgress: false };
+  }
+}
+
+// Continue rebase after resolving conflicts
+export async function continueRebase(repoPath: string): Promise<RebaseStatus> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // Check if there are still conflicts
+    const status = await git.status();
+    if (status.conflicted && status.conflicted.length > 0) {
+      throw new Error('Cannot continue rebase: there are unresolved conflicts');
+    }
+    
+    // Continue the rebase
+    try {
+      await git.rebase(['--continue']);
+      
+      // Rebase completed successfully - clean up temporary files
+      const backupPath = path.join(repoPath, '.git', 'GITLOOM_REBASE_TODO');
+      if (fs.existsSync(backupPath)) {
+        fs.unlinkSync(backupPath);
+      }
+      
+      const editorScriptCmd = path.join(repoPath, '.git', 'GITLOOM_EDITOR.cmd');
+      if (fs.existsSync(editorScriptCmd)) {
+        fs.unlinkSync(editorScriptCmd);
+      }
+      
+      const editorScriptSh = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
+      if (fs.existsSync(editorScriptSh)) {
+        fs.unlinkSync(editorScriptSh);
+      }
+      
+      return { inProgress: false };
+    } catch (error: any) {
+      // Rebase still in progress or new conflicts
+      return await getRebaseStatus(repoPath);
+    }
+  } catch (error) {
+    console.error('Error continuing rebase:', error);
+    throw error;
+  }
+}
+
+// Abort rebase
+export async function abortRebase(repoPath: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    await git.rebase(['--abort']);
+    
+    // Clean up any backup files
+    const backupPath = path.join(repoPath, '.git', 'GITLOOM_REBASE_TODO');
+    if (fs.existsSync(backupPath)) {
+      fs.unlinkSync(backupPath);
+    }
+    
+    // Clean up editor scripts
+    const editorScriptCmd = path.join(repoPath, '.git', 'GITLOOM_EDITOR.cmd');
+    if (fs.existsSync(editorScriptCmd)) {
+      fs.unlinkSync(editorScriptCmd);
+    }
+    
+    const editorScriptSh = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
+    if (fs.existsSync(editorScriptSh)) {
+      fs.unlinkSync(editorScriptSh);
+    }
+    
+    // Invalidate cache
+    gitCache.invalidate(repoPath);
+  } catch (error) {
+    console.error('Error aborting rebase:', error);
+    throw error;
+  }
+}
+
+// Skip current commit during rebase
+export async function skipRebaseCommit(repoPath: string): Promise<RebaseStatus> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    await git.rebase(['--skip']);
+    
+    // Check status after skip
+    return await getRebaseStatus(repoPath);
+  } catch (error: any) {
+    // If skip completes the rebase
+    if (error.message && error.message.includes('No rebase in progress')) {
+      return { inProgress: false };
+    }
+    
+    console.error('Error skipping rebase commit:', error);
+    throw error;
+  }
+}
+
+// Edit a commit message during rebase
+export async function editRebaseCommitMessage(
+  repoPath: string,
+  commitHash: string,
+  newMessage: string
+): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+  
+  try {
+    // Use commit --amend to change the message
+    await git.raw(['commit', '--amend', '-m', newMessage]);
+    
+    // Invalidate cache
+    gitCache.invalidate(repoPath);
+  } catch (error) {
+    console.error('Error editing commit message:', error);
+    throw error;
+  }
+}
+

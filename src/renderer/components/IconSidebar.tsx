@@ -11,10 +11,11 @@ import {
   WarningOutlined,
   SearchOutlined,
   CloudServerOutlined,
-  TagsOutlined
+  TagsOutlined,
+  MergeCellsOutlined
 } from '@ant-design/icons';
 
-export type ViewType = 'changes' | 'commits' | 'graph' | 'branches' | 'fileTree' | 'reflog' | 'stash' | 'conflicts' | 'search' | 'remotes' | 'tags';
+export type ViewType = 'changes' | 'commits' | 'graph' | 'branches' | 'fileTree' | 'reflog' | 'stash' | 'conflicts' | 'search' | 'remotes' | 'tags' | 'rebase';
 
 interface IconSidebarProps {
   activeView: ViewType;
@@ -30,6 +31,7 @@ const IconSidebar: React.FC<IconSidebarProps> = ({ activeView, onViewChange, con
     { key: 'branches' as ViewType, icon: <BranchesOutlined />, tooltip: 'Branches' },
     { key: 'tags' as ViewType, icon: <TagsOutlined />, tooltip: 'Tags' },
     { key: 'remotes' as ViewType, icon: <CloudServerOutlined />, tooltip: 'Remotes' },
+    { key: 'rebase' as ViewType, icon: <MergeCellsOutlined />, tooltip: 'Interactive Rebase' },
     { key: 'conflicts' as ViewType, icon: <WarningOutlined />, tooltip: 'Merge Conflicts', badge: conflictCount },
     { key: 'stash' as ViewType, icon: <SaveOutlined />, tooltip: 'Stashes' },
     { key: 'reflog' as ViewType, icon: <ClockCircleOutlined />, tooltip: 'Reflog' },

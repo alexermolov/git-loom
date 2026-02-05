@@ -13,6 +13,7 @@ import StashDetailsPanel from './components/StashDetailsPanel';
 import SearchPanel from './components/SearchPanel';
 import RemoteManagementPanel from './components/RemoteManagementPanel';
 import TagsPanel from './components/TagsPanel';
+import InteractiveRebasePanel from './components/InteractiveRebasePanel';
 import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry, StashEntry, SearchResult } from './types';
 
 const App: React.FC = () => {
@@ -921,6 +922,20 @@ const App: React.FC = () => {
         <div style={{ height: '100%', overflow: 'auto' }}>
           <TagsPanel
             repoPath={selectedRepo}
+            onRefresh={handleRefresh}
+          />
+        </div>
+      );
+    }
+
+    // Show interactive rebase panel when rebase view is active
+    if (activeView === 'rebase' && selectedRepo) {
+      return (
+        <div style={{ height: '100%', overflow: 'auto' }}>
+          <InteractiveRebasePanel
+            repoPath={selectedRepo}
+            branches={branches}
+            currentBranch={currentBranch}
             onRefresh={handleRefresh}
           />
         </div>

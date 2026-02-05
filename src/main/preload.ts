@@ -82,5 +82,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getTagDetails: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:getTagDetails', repoPath, tagName),
   // File editor operations
   getFileBlame: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileBlame', repoPath, filePath),
+  // Interactive rebase operations
+  getRebasePlan: (repoPath: string, sourceBranch: string, targetBranch: string) => ipcRenderer.invoke('git:getRebasePlan', repoPath, sourceBranch, targetBranch),
+  startInteractiveRebase: (repoPath: string, targetBranch: string, rebasePlan: any[]) => ipcRenderer.invoke('git:startInteractiveRebase', repoPath, targetBranch, rebasePlan),
+  getRebaseStatus: (repoPath: string) => ipcRenderer.invoke('git:getRebaseStatus', repoPath),
+  continueRebase: (repoPath: string) => ipcRenderer.invoke('git:continueRebase', repoPath),
+  abortRebase: (repoPath: string) => ipcRenderer.invoke('git:abortRebase', repoPath),
+  skipRebaseCommit: (repoPath: string) => ipcRenderer.invoke('git:skipRebaseCommit', repoPath),
+  editRebaseCommitMessage: (repoPath: string, commitHash: string, newMessage: string) => ipcRenderer.invoke('git:editRebaseCommitMessage', repoPath, commitHash, newMessage),
 });
 

@@ -81,6 +81,14 @@ export interface ElectronAPI {
   getTagDetails: (repoPath: string, tagName: string) => Promise<TagInfo | null>;
   // File editor operations
   getFileBlame: (repoPath: string, filePath: string) => Promise<BlameLine[]>;
+  // Interactive rebase operations
+  getRebasePlan: (repoPath: string, sourceBranch: string, targetBranch: string) => Promise<RebasePlan>;
+  startInteractiveRebase: (repoPath: string, targetBranch: string, rebasePlan: RebaseCommit[]) => Promise<RebaseStatus>;
+  getRebaseStatus: (repoPath: string) => Promise<RebaseStatus>;
+  continueRebase: (repoPath: string) => Promise<RebaseStatus>;
+  abortRebase: (repoPath: string) => Promise<void>;
+  skipRebaseCommit: (repoPath: string) => Promise<RebaseStatus>;
+  editRebaseCommitMessage: (repoPath: string, commitHash: string, newMessage: string) => Promise<void>;
 }
 
 export interface SearchFilter {
@@ -236,6 +244,30 @@ export interface BlameLine {
   date: string;
   content: string;
   summary: string;
+}
+
+export interface RebaseCommit {
+  hash: string;
+  shortHash: string;
+  action: 'pick' | 'reword' | 'edit' | 'squash' | 'fixup' | 'drop';
+  message: string;
+  author: string;
+  date: string;
+}
+
+export interface RebasePlan {
+  commits: RebaseCommit[];
+  currentBranch: string;
+  targetBranch: string;
+  targetCommit: string;
+}
+
+export interface RebaseStatus {
+  inProgress: boolean;
+  currentCommit?: string;
+  remainingCommits?: number;
+  hasConflicts?: boolean;
+  conflictedFiles?: string[];
 }
 
 declare global {
