@@ -745,6 +745,47 @@ export async function getRepositoryInfo(repoPath: string, forceFetch: boolean = 
   }
 }
 
+// Get unpushed commits (ahead of remote)
+export async function getUnpushedCommits(repoPath: string): Promise<CommitInfo[]> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    // Get current branch
+    const status: StatusResult = await git.status();
+    const currentBranch = status.current;
+    
+    if (!currentBranch) {
+      return [];
+    }
+
+    const upstream = status.tracking;
+    
+    // If no tracking branch, return empty
+    if (!upstream) {
+      return [];
+    }
+
+    // Get commits ahead of upstream
+    const log = await git.log({
+      from: upstream,
+      to: currentBranch,
+    });
+
+    const commits = log.all.map(commit => ({
+      hash: commit.hash,
+      date: commit.date,
+      message: commit.message,
+      author: commit.author_name,
+      refs: commit.refs,
+    }));
+
+    return commits;
+  } catch (error) {
+    console.error('Error getting unpushed commits:', error);
+    return [];
+  }
+}
+
 // Get commit history
 export async function getCommits(repoPath: string, branch?: string, skip: number = 0, limit: number = 25): Promise<CommitInfo[]> {
   // Check cache first

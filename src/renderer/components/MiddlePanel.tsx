@@ -206,6 +206,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               onRefresh={onChangesRefresh}
               onHistoryChanged={onHistoryChanged}
               onFileClick={onChangedFileClick}
+              isActive={view === 'changes'}
             />
           </div>
         );

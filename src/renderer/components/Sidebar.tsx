@@ -59,7 +59,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsed, setCollapsed] = useState(false);
   const [branchSwitcherVisible, setBranchSwitcherVisible] = useState(false);
-  const [branchSwitcherRepo, setBranchSwitcherRepo] = useState<string | null>(null);
+  const [branchSwitcherRepo, setBranchSwitcherRepo] = useState<string | null>(
+    null,
+  );
 
   // Filter repositories based on search query
   const filteredRepositories = repositories.filter(
@@ -76,29 +78,29 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleBranchSwitchInternal = async (branchName: string) => {
     if (!branchSwitcherRepo || !onBranchSwitch) {
-      throw new Error('Branch switch handler not available');
+      throw new Error("Branch switch handler not available");
     }
     await onBranchSwitch(branchSwitcherRepo, branchName);
   };
 
   const handleStashAndSwitchInternal = async (branchName: string) => {
     if (!branchSwitcherRepo || !onStashAndSwitch) {
-      throw new Error('Stash and switch handler not available');
+      throw new Error("Stash and switch handler not available");
     }
     await onStashAndSwitch(branchSwitcherRepo, branchName);
   };
 
   const handleDiscardAndSwitchInternal = async (branchName: string) => {
     if (!branchSwitcherRepo || !onDiscardAndSwitch) {
-      throw new Error('Discard and switch handler not available');
+      throw new Error("Discard and switch handler not available");
     }
     await onDiscardAndSwitch(branchSwitcherRepo, branchName);
   };
 
   const getCurrentBranchForSwitcher = () => {
-    if (!branchSwitcherRepo) return '';
-    const repo = repositories.find(r => r.path === branchSwitcherRepo);
-    return repo?.currentBranch || '';
+    if (!branchSwitcherRepo) return "";
+    const repo = repositories.find((r) => r.path === branchSwitcherRepo);
+    return repo?.currentBranch || "";
   };
 
   const statPillStyle = (variant: "outgoing" | "incoming", active: boolean) => {
@@ -287,20 +289,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                   }}
                 >
                   <Tooltip title="Click to switch branch">
-                    <div 
+                    <div
                       className="repository-branch"
                       onClick={(e) => handleBranchLabelClick(e, repo.path)}
                       style={{
-                        cursor: 'pointer',
-                        padding: '2px 6px',
-                        borderRadius: '4px',
-                        transition: 'background-color 0.2s',
+                        cursor: "pointer",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        transition: "background-color 0.2s",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = isDarkMode ? '#333' : '#f0f0f0';
+                        e.currentTarget.style.backgroundColor = isDarkMode
+                          ? "#333"
+                          : "#f0f0f0";
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.backgroundColor = "transparent";
                       }}
                     >
                       <BranchesOutlined /> {repo.currentBranch}
@@ -415,12 +419,23 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <Tooltip title="Push">
                         <Button
                           size="small"
+                          type="primary"
                           onClick={(e) => {
                             e.stopPropagation();
                             onPushRepo(repo.path);
                           }}
                           loading={repoOps[repo.path] === "push"}
                           disabled={!!repoOps[repo.path]}
+                          style={{
+                            backgroundColor:
+                              isDarkMode && !repoOps[repo.path]
+                                ? "#52c41a"
+                                : undefined,
+                            borderColor:
+                              isDarkMode && !repoOps[repo.path]
+                                ? "#52c41a"
+                                : undefined,
+                          }}
                         >
                           Push
                         </Button>
@@ -447,12 +462,23 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <Tooltip title="Pull">
                         <Button
                           size="small"
+                          type="primary"
                           onClick={(e) => {
                             e.stopPropagation();
                             onPullRepo(repo.path);
                           }}
                           loading={repoOps[repo.path] === "pull"}
                           disabled={!!repoOps[repo.path]}
+                          style={{
+                            backgroundColor:
+                              isDarkMode && !repoOps[repo.path]
+                                ? "#1890ff"
+                                : undefined,
+                            borderColor:
+                              isDarkMode && !repoOps[repo.path]
+                                ? "#1890ff"
+                                : undefined,
+                          }}
                         >
                           Pull
                         </Button>
@@ -465,7 +491,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
       )}
-      
+
       {branchSwitcherRepo && (
         <BranchSwitcher
           visible={branchSwitcherVisible}
@@ -476,8 +502,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             setBranchSwitcherRepo(null);
           }}
           onBranchSwitch={handleBranchSwitchInternal}
-          onStashAndSwitch={onStashAndSwitch ? handleStashAndSwitchInternal : undefined}
-          onDiscardAndSwitch={onDiscardAndSwitch ? handleDiscardAndSwitchInternal : undefined}
+          onStashAndSwitch={
+            onStashAndSwitch ? handleStashAndSwitchInternal : undefined
+          }
+          onDiscardAndSwitch={
+            onDiscardAndSwitch ? handleDiscardAndSwitchInternal : undefined
+          }
         />
       )}
     </div>

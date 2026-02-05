@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog } from 'electron';
 import * as path from 'path';
-import { scanForRepositories, getRepositoryInfo, getCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, discardChanges, createCommit, getWorkingFileDiff, checkoutBranch, stashAndCheckout, discardAndCheckout, mergeBranch, getReflog, resetToCommit, cherryPickCommit, revertCommit, abortRevert, continueRevert, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches, getTags, createLightweightTag, createAnnotatedTag, deleteTag, deleteRemoteTag, pushTags, checkoutTag, checkoutCommit, getTagDetails, getFileBlame } from './gitService';
+import { scanForRepositories, getRepositoryInfo, getCommits, getUnpushedCommits, getFileTree, getBranches, getCommitFiles, getFileDiff, pullRepository, pushRepository, getGitGraph, getCommitDetails, getStatus, stageFiles, unstageFiles, discardChanges, createCommit, getWorkingFileDiff, checkoutBranch, stashAndCheckout, discardAndCheckout, mergeBranch, getReflog, resetToCommit, cherryPickCommit, revertCommit, abortRevert, continueRevert, getFileContent, createStash, getStashList, applyStash, popStash, dropStash, getStashDiff, getStashFiles, createBranchFromStash, clearAllStashes, getConflictedFiles, getFileConflicts, resolveConflict, resolveConflictManual, launchMergeTool, abortMerge, continueMerge, searchCommits, searchCommitsMultiRepo, getAuthors, getRemotes, addRemote, removeRemote, renameRemote, setRemoteUrl, fetchRemote, pruneRemote, setUpstream, getUpstream, createBranch, deleteBranch, deleteRemoteBranch, renameBranch, setUpstreamBranch, unsetUpstreamBranch, compareBranches, getTags, createLightweightTag, createAnnotatedTag, deleteTag, deleteRemoteTag, pushTags, checkoutTag, checkoutCommit, getTagDetails, getFileBlame } from './gitService';
 
 let mainWindow: BrowserWindow | null = null;
 
@@ -106,6 +106,17 @@ function setupIpcHandlers() {
       return commits;
     } catch (error) {
       console.error('Error getting commits:', error);
+      throw error;
+    }
+  });
+
+  // Get unpushed commits
+  ipcMain.handle('git:getUnpushedCommits', async (_event, repoPath: string) => {
+    try {
+      const commits = await getUnpushedCommits(repoPath);
+      return commits;
+    } catch (error) {
+      console.error('Error getting unpushed commits:', error);
       throw error;
     }
   });
