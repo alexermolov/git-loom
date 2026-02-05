@@ -224,7 +224,12 @@ export async function pullRepository(repoPath: string): Promise<void> {
   gitCache.invalidate(repoPath);
 }
 
-export async function pushRepository(repoPath: string): Promise<void> {
+export interface PushRepositoryOptions {
+  force?: boolean;
+  forceWithLease?: boolean;
+}
+
+export async function pushRepository(repoPath: string, options: PushRepositoryOptions = {}): Promise<void> {
   const git: SimpleGit = simpleGit(repoPath);
 
   const status = await git.status();
@@ -235,9 +240,19 @@ export async function pushRepository(repoPath: string): Promise<void> {
     throw new Error('Cannot push: no current branch');
   }
 
-  // If upstream exists, normal push is fine.
+  const forceFlag = options.forceWithLease
+    ? '--force-with-lease'
+    : options.force
+      ? '--force'
+      : null;
+
+  // If upstream exists, push to upstream.
   if (status.tracking) {
-    await git.push();
+    if (forceFlag) {
+      await git.raw(['push', forceFlag]);
+    } else {
+      await git.push();
+    }
   } else {
     // No upstream: try to set upstream to origin/<branch>
     const remotes = await git.getRemotes(true);
@@ -245,7 +260,11 @@ export async function pushRepository(repoPath: string): Promise<void> {
     if (!hasOrigin) {
       throw new Error('Cannot push: no tracking branch and no origin remote');
     }
-    await git.push(['-u', 'origin', currentBranch]);
+    if (forceFlag) {
+      await git.raw(['push', forceFlag, '-u', 'origin', currentBranch]);
+    } else {
+      await git.push(['-u', 'origin', currentBranch]);
+    }
   }
 
   // Invalidate cache after push
@@ -2878,15 +2897,21 @@ export async function startInteractiveRebase(
     const rebaseTodoBackup = path.join(repoPath, '.git', 'GITLOOM_REBASE_TODO');
     fs.writeFileSync(rebaseTodoBackup, todoLines, 'utf-8');
     
-    // Create a script that will copy our plan to the git-rebase-todo file
-    // This script will be used as GIT_SEQUENCE_EDITOR
+    // Create a script that will copy our plan to the git-rebase-todo file.
+    // This script will be used as GIT_SEQUENCE_EDITOR.
     const isWindows = process.platform === 'win32';
     let editorScript: string;
     let editorScriptPath: string;
     
     if (isWindows) {
-      editorScriptPath = path.join(repoPath, '.git', 'GITLOOM_EDITOR.cmd');
-      editorScript = `@echo off\ncopy /Y "${rebaseTodoBackup}" "%~1" > nul`;
+      // Git for Windows executes sequence editors via sh, and raw `D:\...\file.bat`
+      // often fails (backslashes get eaten). PowerShell is a reliable cross-shell entry.
+      editorScriptPath = path.join(repoPath, '.git', 'GITLOOM_EDITOR.ps1');
+      editorScript = [
+        'param([Parameter(Mandatory=$true)][string]$TodoPath)',
+        `$src = '${rebaseTodoBackup.replace(/'/g, "''")}'`,
+        'Copy-Item -LiteralPath $src -Destination $TodoPath -Force | Out-Null'
+      ].join('\r\n') + '\r\n';
       fs.writeFileSync(editorScriptPath, editorScript, 'utf-8');
     } else {
       editorScriptPath = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
@@ -2900,10 +2925,8 @@ export async function startInteractiveRebase(
 
     // Start the rebase with our custom editor
     try {
-      // On Windows, Git may not be able to execute a .cmd file directly.
-      // Wrapping with cmd.exe makes the sequence editor invocation reliable.
       const sequenceEditor = isWindows
-        ? `cmd.exe /d /s /c "\"${editorScriptPath}\""`
+        ? `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${editorScriptPath}"`
         : editorScriptPath;
 
       await git.env({
@@ -3037,6 +3060,16 @@ export async function continueRebase(repoPath: string): Promise<RebaseStatus> {
       if (fs.existsSync(editorScriptCmd)) {
         fs.unlinkSync(editorScriptCmd);
       }
+
+      const editorScriptBat = path.join(repoPath, '.git', 'GITLOOM_EDITOR.bat');
+      if (fs.existsSync(editorScriptBat)) {
+        fs.unlinkSync(editorScriptBat);
+      }
+
+      const editorScriptPs1 = path.join(repoPath, '.git', 'GITLOOM_EDITOR.ps1');
+      if (fs.existsSync(editorScriptPs1)) {
+        fs.unlinkSync(editorScriptPs1);
+      }
       
       const editorScriptSh = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
       if (fs.existsSync(editorScriptSh)) {
@@ -3071,6 +3104,16 @@ export async function abortRebase(repoPath: string): Promise<void> {
     const editorScriptCmd = path.join(repoPath, '.git', 'GITLOOM_EDITOR.cmd');
     if (fs.existsSync(editorScriptCmd)) {
       fs.unlinkSync(editorScriptCmd);
+    }
+
+    const editorScriptBat = path.join(repoPath, '.git', 'GITLOOM_EDITOR.bat');
+    if (fs.existsSync(editorScriptBat)) {
+      fs.unlinkSync(editorScriptBat);
+    }
+
+    const editorScriptPs1 = path.join(repoPath, '.git', 'GITLOOM_EDITOR.ps1');
+    if (fs.existsSync(editorScriptPs1)) {
+      fs.unlinkSync(editorScriptPs1);
     }
     
     const editorScriptSh = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');

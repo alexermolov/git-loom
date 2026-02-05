@@ -3,7 +3,7 @@ export interface ElectronAPI {
   scanRepositories: (folderPath: string) => Promise<string[]>;
   getRepositoryInfo: (repoPath: string, forceFetch?: boolean) => Promise<RepositoryInfo>;
   pullRepository: (repoPath: string) => Promise<RepositoryInfo>;
-  pushRepository: (repoPath: string) => Promise<RepositoryInfo>;
+  pushRepository: (repoPath: string, options?: { force?: boolean; forceWithLease?: boolean }) => Promise<RepositoryInfo>;
   getCommits: (repoPath: string, branch?: string, skip?: number, limit?: number) => Promise<CommitInfo[]>;
   getUnpushedCommits: (repoPath: string) => Promise<CommitInfo[]>;
   getFileTree: (repoPath: string, commitHash?: string) => Promise<FileTreeNode>;

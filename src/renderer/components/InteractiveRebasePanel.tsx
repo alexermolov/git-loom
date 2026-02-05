@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
+  App as AntApp,
   Button,
   Select,
   Modal,
@@ -48,6 +49,7 @@ const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
   currentBranch,
   onRefresh,
 }) => {
+  const { modal } = AntApp.useApp();
   const [targetBranch, setTargetBranch] = useState<string>("");
   const [rebasePlan, setRebasePlan] = useState<RebasePlan | null>(null);
   const [commits, setCommits] = useState<RebaseCommit[]>([]);
@@ -138,7 +140,7 @@ const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
       return;
     }
 
-    Modal.confirm({
+    modal.confirm({
       title: "Start Interactive Rebase",
       content: (
         <div>
@@ -225,7 +227,7 @@ const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
   const abortRebase = async () => {
     if (!repoPath) return;
 
-    Modal.confirm({
+    modal.confirm({
       title: "Abort Rebase",
       content:
         "Are you sure you want to abort the rebase? All changes will be discarded.",

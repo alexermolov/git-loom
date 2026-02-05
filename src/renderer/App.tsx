@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, message, Spin } from 'antd';
+import { App as AntApp, Button, message, Modal, Spin } from 'antd';
 import { FolderOpenOutlined } from '@ant-design/icons';
 import { useTheme } from './ThemeContext';
 import Sidebar from './components/Sidebar';
@@ -17,6 +17,7 @@ import InteractiveRebasePanel from './components/InteractiveRebasePanel';
 import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry, StashEntry, SearchResult } from './types';
 
 const App: React.FC = () => {
+  const { modal } = AntApp.useApp();
   const [repositories, setRepositories] = useState<Map<string, RepositoryInfo>>(new Map());
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [commits, setCommits] = useState<CommitInfo[]>([]);
@@ -406,17 +407,75 @@ const App: React.FC = () => {
     }
   };
 
-  const handlePushRepository = async (repoPath: string) => {
+  const isNonFastForwardPushError = (err: any) => {
+    const msg = (err?.message || String(err || '')).toLowerCase();
+    return (
+      msg.includes('non-fast-forward') ||
+      msg.includes('fetch first') ||
+      msg.includes('updates were rejected') ||
+      (msg.includes('rejected') && msg.includes('fast-forward'))
+    );
+  };
+
+  const handlePushRepository = async (repoPath: string, options?: { force?: boolean; forceWithLease?: boolean }) => {
     if (repoOps[repoPath]) return;
 
     setRepoOps((prev) => ({ ...prev, [repoPath]: 'push' }));
     try {
-      const info = await window.electronAPI.pushRepository(repoPath);
+      const info = await window.electronAPI.pushRepository(repoPath, options);
       updateRepoInfo(repoPath, info);
       await refreshSelectedRepoPanels(repoPath, info);
       message.success('Push completed');
     } catch (error: any) {
       console.error('Push failed:', error);
+      if (!options && isNonFastForwardPushError(error)) {
+        modal.confirm({
+          title: 'Push rejected (non-fast-forward)',
+          content: (
+            <div>
+              <p>
+                Remote has commits your local history no longer fast-forwards to.
+                This is expected after an interactive rebase.
+              </p>
+              <p>
+                Recommended: force push with lease (safer than -f).
+              </p>
+            </div>
+          ),
+          okText: 'Force Push (with lease)',
+          cancelText: 'Cancel',
+          onOk: async () => {
+            try {
+              await handlePushRepository(repoPath, { forceWithLease: true });
+            } catch (leaseErr: any) {
+              // If lease fails (remote moved), optionally allow plain -f.
+              if (isNonFastForwardPushError(leaseErr) || (leaseErr?.message || '').toLowerCase().includes('stale')) {
+                modal.confirm({
+                  title: 'Force-with-lease failed',
+                  content: (
+                    <div>
+                      <p>
+                        The remote branch changed since your last fetch. You can retry with plain force push (-f),
+                        but it may overwrite others' work.
+                      </p>
+                    </div>
+                  ),
+                  okText: 'Force Push (-f)',
+                  okType: 'danger',
+                  cancelText: 'Cancel',
+                  onOk: async () => {
+                    await handlePushRepository(repoPath, { force: true });
+                  },
+                });
+              } else {
+                message.error(leaseErr?.message ? `Push failed: ${leaseErr.message}` : 'Push failed');
+              }
+            }
+          },
+        });
+        return;
+      }
+
       message.error(error?.message ? `Push failed: ${error.message}` : 'Push failed');
     } finally {
       clearRepoOp(repoPath);

@@ -88,9 +88,9 @@ function setupIpcHandlers() {
   });
 
   // Push repository
-  ipcMain.handle('git:pushRepository', async (_event, repoPath: string) => {
+  ipcMain.handle('git:pushRepository', async (_event, repoPath: string, options?: { force?: boolean; forceWithLease?: boolean }) => {
     try {
-      await pushRepository(repoPath);
+      await pushRepository(repoPath, options || {});
       const info = await getRepositoryInfo(repoPath);
       return info;
     } catch (error) {
