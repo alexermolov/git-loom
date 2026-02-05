@@ -20,9 +20,10 @@ interface ChangesPanelProps {
   repoPath: string | null;
   onRefresh?: () => void;
   onFileClick?: (file: FileStatus) => void;
+  onHistoryChanged?: () => void;
 }
 
-const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFileClick }) => {
+const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFileClick, onHistoryChanged }) => {
   const { modal } = App.useApp();
   const [files, setFiles] = useState<FileStatus[]>([]);
   const [loading, setLoading] = useState(false);
@@ -124,6 +125,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({ repoPath, onRefresh, onFile
       setCommitMessage('');
       await loadStatus();
       if (onRefresh) onRefresh();
+      if (onHistoryChanged) onHistoryChanged();
     } catch (error) {
       console.error('Error creating commit:', error);
       message.error('Failed to create commit');

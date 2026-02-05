@@ -44,6 +44,7 @@ const App: React.FC = () => {
   const [middlePanelWidth, setMiddlePanelWidth] = useState(350);
   const [conflictCount, setConflictCount] = useState(0);
   const [selectedStash, setSelectedStash] = useState<StashEntry | null>(null);
+  const [graphRefreshToken, setGraphRefreshToken] = useState(0);
   
   // File explorer state
   const [selectedExplorerFile, setSelectedExplorerFile] = useState<string | null>(null);
@@ -783,6 +784,26 @@ const App: React.FC = () => {
     }
   };
 
+  const bumpGraphRefresh = () => {
+    setGraphRefreshToken((prev) => prev + 1);
+  };
+
+  const handleHistoryChanged = async () => {
+    if (!selectedRepo) return;
+
+    // Ensure graph view reloads even if repoPath/branch selection didn't change.
+    bumpGraphRefresh();
+
+    // Keep commits list fresh for when user switches back.
+    try {
+      const commitsData = await window.electronAPI.getCommits(selectedRepo, undefined, 0, 25);
+      setCommits(commitsData);
+      setHasMoreCommits(commitsData.length === 25);
+    } catch (error) {
+      console.error('Error refreshing commits after history change:', error);
+    }
+  };
+
   const handleStashSelect = (stash: StashEntry) => {
     setSelectedStash(stash);
   };
@@ -969,6 +990,7 @@ const App: React.FC = () => {
           repoPath={selectedRepo}
           branches={branches}
           onCommitClick={handleGraphCommitClick}
+          refreshToken={graphRefreshToken}
         />
       );
     }
@@ -1064,6 +1086,7 @@ const App: React.FC = () => {
             onLoadMoreCommits={handleLoadMoreCommits}
             hasMoreCommits={hasMoreCommits}
             onChangesRefresh={handleChangesRefresh}
+            onHistoryChanged={handleHistoryChanged}
             onChangedFileClick={handleChangedFileClick}
             onFileExplorerFileClick={handleFileExplorerFileClick}
             branches={branches}
