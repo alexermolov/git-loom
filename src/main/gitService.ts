@@ -665,18 +665,23 @@ export async function scanForRepositories(folderPath: string): Promise<string[]>
 }
 
 // Get detailed repository information
-export async function getRepositoryInfo(repoPath: string): Promise<RepositoryInfo> {
-  // Check cache first (short TTL for repo info as it changes frequently)
+export async function getRepositoryInfo(repoPath: string, forceFetch: boolean = false): Promise<RepositoryInfo> {
+  // repoInfo changes frequently locally (status/outgoing), but remote state changes only after fetch.
+  // Keep cached entry mainly to throttle fetches; still recompute local parts every call.
   const cached = gitCache.get<RepositoryInfo>(repoPath, 'repoInfo');
-  if (cached) {
-    return cached;
-  }
 
   const git: SimpleGit = simpleGit(repoPath);
 
   try {
-    // Fetch from remote
-    await git.fetch();
+    const shouldFetch = forceFetch || !cached;
+    if (shouldFetch) {
+      try {
+        await git.fetch();
+      } catch (error) {
+        // Fetch may fail for offline/private remotes; still allow local status to update.
+        console.warn('Fetch failed in getRepositoryInfo (continuing with local info):', error);
+      }
+    }
 
     // Get current branch
     const branchSummary: BranchSummary = await git.branch();
@@ -693,15 +698,18 @@ export async function getRepositoryInfo(repoPath: string): Promise<RepositoryInf
     let outgoingCommits = 0;
 
     try {
-      const revList = await git.raw([
-        'rev-list',
-        '--left-right',
-        '--count',
-        `${currentBranch}...origin/${currentBranch}`
-      ]);
-      const [outgoing, incoming] = revList.trim().split('\t').map(Number);
-      outgoingCommits = outgoing || 0;
-      incomingCommits = incoming || 0;
+      if (currentBranch) {
+        const upstream = status.tracking || `origin/${currentBranch}`;
+        const revList = await git.raw([
+          'rev-list',
+          '--left-right',
+          '--count',
+          `${currentBranch}...${upstream}`,
+        ]);
+        const [outgoing, incoming] = revList.trim().split('\t').map(Number);
+        outgoingCommits = outgoing || 0;
+        incomingCommits = incoming || 0;
+      }
     } catch (error) {
       console.log('No remote tracking branch found');
     }
@@ -727,7 +735,7 @@ export async function getRepositoryInfo(repoPath: string): Promise<RepositoryInf
       },
     };
 
-    // Cache with shorter TTL for frequently changing data
+    // Cache to throttle remote fetches; local fields are recomputed each call.
     gitCache.set(repoPath, 'repoInfo', repoInfo);
 
     return repoInfo;
@@ -1217,8 +1225,9 @@ export async function createCommit(repoPath: string, message: string): Promise<v
 
   try {
     await git.commit(message);
-    // Invalidate file tree cache after commit
-    gitCache.invalidate(repoPath, 'fileTree');
+    // Commit changes affect many views (history/graph/repo summary/diffs).
+    // Clear repo cache to keep sidebar + commits panel in sync.
+    gitCache.invalidate(repoPath);
   } catch (error) {
     console.error('Error creating commit:', error);
     throw error;

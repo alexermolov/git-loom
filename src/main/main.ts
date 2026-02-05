@@ -65,9 +65,9 @@ function setupIpcHandlers() {
   });
 
   // Get repository info
-  ipcMain.handle('git:getRepositoryInfo', async (_event, repoPath: string) => {
+  ipcMain.handle('git:getRepositoryInfo', async (_event, repoPath: string, forceFetch?: boolean) => {
     try {
-      const info = await getRepositoryInfo(repoPath);
+      const info = await getRepositoryInfo(repoPath, !!forceFetch);
       return info;
     } catch (error) {
       console.error('Error getting repository info:', error);

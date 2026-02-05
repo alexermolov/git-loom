@@ -225,7 +225,7 @@ const App: React.FC = () => {
     // Параллельное обновление всех репозиториев
     const refreshPromises = Array.from(repositories.entries()).map(async ([repoPath, oldInfo]) => {
       try {
-        const info = await window.electronAPI.getRepositoryInfo(repoPath);
+        const info = await window.electronAPI.getRepositoryInfo(repoPath, true);
         return { repoPath, info };
       } catch (error) {
         console.error(`Failed to refresh ${repoPath}:`, error);

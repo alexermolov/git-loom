@@ -3,7 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('electronAPI', {
   openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
   scanRepositories: (folderPath: string) => ipcRenderer.invoke('git:scanRepositories', folderPath),
-  getRepositoryInfo: (repoPath: string) => ipcRenderer.invoke('git:getRepositoryInfo', repoPath),
+  getRepositoryInfo: (repoPath: string, forceFetch?: boolean) => ipcRenderer.invoke('git:getRepositoryInfo', repoPath, forceFetch),
   pullRepository: (repoPath: string) => ipcRenderer.invoke('git:pullRepository', repoPath),
   pushRepository: (repoPath: string) => ipcRenderer.invoke('git:pushRepository', repoPath),
   getCommits: (repoPath: string, branch?: string, skip?: number, limit?: number) => ipcRenderer.invoke('git:getCommits', repoPath, branch, skip, limit),

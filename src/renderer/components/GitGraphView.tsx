@@ -8,12 +8,14 @@ interface GitGraphViewProps {
   repoPath: string;
   branches: Array<{ name: string }>;
   onCommitClick?: (commitHash: string, message?: string) => void;
+  refreshToken?: number;
 }
 
 const GitGraphView: React.FC<GitGraphViewProps> = ({
   repoPath,
   branches,
   onCommitClick,
+  refreshToken,
 }) => {
   const [viewMode, setViewMode] = useState<"ascii" | "swimlane">("swimlane");
   const [rows, setRows] = useState<GitGraphRow[]>([]);
@@ -25,7 +27,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
 
   useEffect(() => {
     loadGraph();
-  }, [repoPath, selectedBranch, viewMode]);
+  }, [repoPath, selectedBranch, viewMode, refreshToken]);
 
   // Reset local search when switching repos/branches
   useEffect(() => {
