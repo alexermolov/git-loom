@@ -32,6 +32,9 @@ export interface ElectronAPI {
   getReflog: (repoPath: string, ref?: string, maxCount?: number) => Promise<ReflogEntry[]>;
   resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<void>;
   cherryPickCommit: (repoPath: string, commitHash: string) => Promise<void>;
+  revertCommit: (repoPath: string, commitHash: string) => Promise<void>;
+  abortRevert: (repoPath: string) => Promise<'aborted' | 'noop'>;
+  continueRevert: (repoPath: string) => Promise<'continued' | 'noop'>;
   getFileContent: (repoPath: string, filePath: string) => Promise<string>;
   // Stash operations
   createStash: (repoPath: string, message?: string, includeUntracked?: boolean) => Promise<void>;

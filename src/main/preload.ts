@@ -33,6 +33,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getReflog: (repoPath: string, ref?: string, maxCount?: number) => ipcRenderer.invoke('git:getReflog', repoPath, ref, maxCount),
   resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => ipcRenderer.invoke('git:resetToCommit', repoPath, commitHash, mode),
   cherryPickCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:cherryPickCommit', repoPath, commitHash),
+  revertCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:revertCommit', repoPath, commitHash),
+  abortRevert: (repoPath: string) => ipcRenderer.invoke('git:abortRevert', repoPath) as Promise<'aborted' | 'noop'>,
+  continueRevert: (repoPath: string) => ipcRenderer.invoke('git:continueRevert', repoPath) as Promise<'continued' | 'noop'>,
   getFileContent: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileContent', repoPath, filePath),
   // Stash operations
   createStash: (repoPath: string, message?: string, includeUntracked?: boolean) => ipcRenderer.invoke('git:createStash', repoPath, message, includeUntracked),

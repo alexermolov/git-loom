@@ -37,6 +37,25 @@ body {
   background: transparent;
 }
 
+/* Dark theme scrollbars */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 6px;
+  border: 2px solid transparent;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #525252;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:active {
+  background: #626262;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 #root {
   height: 100vh;
   overflow: hidden;
@@ -998,4 +1017,356 @@ body {
 .d2h-code-line-ctn {
   padding-left: 8px;
   white-space: pre;
+}
+
+/* Dark theme modal dialogs */
+.dark-modal .ant-modal-content {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+}
+
+.dark-modal .ant-modal-header {
+  background-color: #1e1e1e !important;
+  border-bottom-color: #3e3e42 !important;
+}
+
+.dark-modal .ant-modal-title {
+  color: #d4d4d4 !important;
+}
+
+.dark-modal .ant-modal-body {
+  color: #d4d4d4 !important;
+}
+
+.dark-modal .ant-modal-footer {
+  background-color: #1e1e1e !important;
+  border-top-color: #3e3e42 !important;
+}
+
+.dark-modal .ant-input {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+  color: #d4d4d4 !important;
+}
+
+.dark-modal .ant-input:hover {
+  border-color: #569cd6 !important;
+}
+
+.dark-modal .ant-input:focus {
+  border-color: #569cd6 !important;
+  box-shadow: 0 0 0 2px rgba(86, 156, 214, 0.2) !important;
+}
+
+.dark-modal .ant-input-textarea {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+  color: #d4d4d4 !important;
+}
+
+.dark-modal .ant-input-textarea:hover {
+  border-color: #569cd6 !important;
+}
+
+.dark-modal .ant-input-textarea:focus {
+  border-color: #569cd6 !important;
+  box-shadow: 0 0 0 2px rgba(86, 156, 214, 0.2) !important;
+}
+
+.dark-modal .ant-checkbox-wrapper {
+  color: #d4d4d4 !important;
+}
+
+.dark-modal .ant-checkbox-inner {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+}
+
+.dark-modal .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #569cd6 !important;
+  border-color: #569cd6 !important;
+}
+
+.dark-modal .ant-btn {
+  color: #d4d4d4 !important;
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+}
+
+.dark-modal .ant-btn:hover {
+  color: #d4d4d4 !important;
+  background-color: #3e3e42 !important;
+  border-color: #569cd6 !important;
+}
+
+.dark-modal .ant-btn-primary {
+  color: #ffffff !important;
+  background-color: #569cd6 !important;
+  border-color: #569cd6 !important;
+}
+
+.dark-modal .ant-btn-primary:hover {
+  background-color: #6aaee7 !important;
+  border-color: #6aaee7 !important;
+}
+
+.dark-modal .ant-btn-dangerous {
+  color: #ffffff !important;
+  background-color: #f48771 !important;
+  border-color: #f48771 !important;
+}
+
+.dark-modal .ant-btn-dangerous:hover {
+  background-color: #f5a191 !important;
+  border-color: #f5a191 !important;
+}
+
+.dark-modal .anticon {
+  color: #d4d4d4 !important;
+}
+
+.dark-modal .ant-modal-confirm-body > .anticon {
+  color: #569cd6 !important;
+}
+
+.dark-modal .ant-modal-confirm-btns {
+  margin-top: 16px !important;
+}
+
+/* Global dark theme modal dialogs (when dark theme is active) */
+[data-theme="dark"] .ant-modal-content {
+  background-color: #1e1e1e !important;
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-header {
+  background-color: #1e1e1e !important;
+  border-bottom-color: #3e3e42 !important;
+}
+
+[data-theme="dark"] .ant-modal-title {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-body {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-footer {
+  background-color: #1e1e1e !important;
+  border-top-color: #3e3e42 !important;
+}
+
+[data-theme="dark"] .ant-modal-mask {
+  background-color: rgba(0, 0, 0, 0.65) !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-input,
+[data-theme="dark"] .ant-modal .ant-input {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-input:hover,
+[data-theme="dark"] .ant-modal .ant-input:hover {
+  border-color: #569cd6 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-input:focus,
+[data-theme="dark"] .ant-modal .ant-input:focus,
+[data-theme="dark"] .ant-modal-content .ant-input-focused,
+[data-theme="dark"] .ant-modal .ant-input-focused {
+  border-color: #569cd6 !important;
+  box-shadow: 0 0 0 2px rgba(86, 156, 214, 0.2) !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-input-textarea,
+[data-theme="dark"] .ant-modal .ant-input-textarea {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-checkbox-wrapper,
+[data-theme="dark"] .ant-modal .ant-checkbox-wrapper {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-checkbox-inner,
+[data-theme="dark"] .ant-modal .ant-checkbox-inner {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-checkbox-checked .ant-checkbox-inner,
+[data-theme="dark"] .ant-modal .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #569cd6 !important;
+  border-color: #569cd6 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-btn,
+[data-theme="dark"] .ant-modal .ant-btn {
+  color: #d4d4d4 !important;
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-btn:hover,
+[data-theme="dark"] .ant-modal .ant-btn:hover {
+  color: #d4d4d4 !important;
+  background-color: #3e3e42 !important;
+  border-color: #569cd6 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-btn-primary,
+[data-theme="dark"] .ant-modal .ant-btn-primary {
+  color: #ffffff !important;
+  background-color: #569cd6 !important;
+  border-color: #569cd6 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-btn-primary:hover,
+[data-theme="dark"] .ant-modal .ant-btn-primary:hover {
+  background-color: #6aaee7 !important;
+  border-color: #6aaee7 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-btn-dangerous,
+[data-theme="dark"] .ant-modal .ant-btn-dangerous {
+  color: #ffffff !important;
+  background-color: #f48771 !important;
+  border-color: #f48771 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-btn-dangerous:hover,
+[data-theme="dark"] .ant-modal .ant-btn-dangerous:hover {
+  background-color: #f5a191 !important;
+  border-color: #f5a191 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .anticon,
+[data-theme="dark"] .ant-modal .anticon {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-confirm-body > .anticon {
+  color: #569cd6 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-form-item-label > label,
+[data-theme="dark"] .ant-modal .ant-form-item-label > label {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-select,
+[data-theme="dark"] .ant-modal .ant-select {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-select-selector,
+[data-theme="dark"] .ant-modal .ant-select-selector {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-select-arrow,
+[data-theme="dark"] .ant-modal .ant-select-arrow {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-radio-wrapper,
+[data-theme="dark"] .ant-modal .ant-radio-wrapper {
+  color: #d4d4d4 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-radio-inner,
+[data-theme="dark"] .ant-modal .ant-radio-inner {
+  background-color: #2d2d30 !important;
+  border-color: #3e3e42 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-radio-checked .ant-radio-inner,
+[data-theme="dark"] .ant-modal .ant-radio-checked .ant-radio-inner {
+  border-color: #569cd6 !important;
+}
+
+[data-theme="dark"] .ant-modal-content .ant-radio-checked .ant-radio-inner:after,
+[data-theme="dark"] .ant-modal .ant-radio-checked .ant-radio-inner:after {
+  background-color: #569cd6 !important;
+}
+
+/* Dark theme dropdown menus */
+[data-theme="dark"] .ant-dropdown,
+[data-theme="dark"] .ant-dropdown-menu {
+  background-color: #252526 !important;
+  border: 1px solid #3e3e42 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45) !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item,
+[data-theme="dark"] .ant-dropdown-menu-submenu-title {
+  color: #cccccc !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item:hover,
+[data-theme="dark"] .ant-dropdown-menu-submenu-title:hover {
+  background-color: #2a2d2e !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item-selected {
+  background-color: #37373d !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item-disabled,
+[data-theme="dark"] .ant-dropdown-menu-submenu-title-disabled {
+  color: #656565 !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item-divider {
+  background-color: #3e3e42 !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-submenu-popup {
+  background-color: #252526 !important;
+  border: 1px solid #3e3e42 !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item-danger {
+  color: #f48771 !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item-danger:hover {
+  background-color: rgba(244, 135, 113, 0.1) !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu .anticon {
+  color: #cccccc !important;
+}
+
+[data-theme="dark"] .ant-dropdown-menu-item-danger .anticon {
+  color: #f48771 !important;
+}
+
+/* Dark theme Select dropdown */
+[data-theme="dark"] .ant-select-dropdown {
+  background-color: #252526 !important;
+  border: 1px solid #3e3e42 !important;
+}
+
+[data-theme="dark"] .ant-select-item {
+  color: #cccccc !important;
+}
+
+[data-theme="dark"] .ant-select-item-option-selected {
+  background-color: #37373d !important;
+}
+
+[data-theme="dark"] .ant-select-item-option-active {
+  background-color: #2a2d2e !important;
+}
+
+[data-theme="dark"] .ant-select-item-option-disabled {
+  color: #656565 !important;
 }

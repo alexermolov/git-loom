@@ -1391,6 +1391,143 @@ export async function cherryPickCommit(repoPath: string, commitHash: string): Pr
   }
 }
 
+// Revert a commit (creates a new commit)
+export async function revertCommit(repoPath: string, commitHash: string): Promise<void> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    // Ensure the object exists; gives clearer errors for invalid hashes
+    await git.revparse([commitHash]);
+
+    // Use default revert message without opening an editor
+    await git.raw(['revert', '--no-edit', commitHash]);
+
+    // Invalidate caches after creating a new commit
+    gitCache.invalidate(repoPath, 'fileTree');
+    gitCache.invalidate(repoPath, 'repositoryInfo');
+    gitCache.invalidate(repoPath, 'branches');
+  } catch (error) {
+    console.error('Error reverting commit:', error);
+    throw error;
+  }
+}
+
+export type AbortRevertResult = 'aborted' | 'noop';
+
+export async function abortRevert(repoPath: string): Promise<AbortRevertResult> {
+  const git: SimpleGit = simpleGit(repoPath);
+  const fs = await import('fs/promises');
+  const path = await import('path');
+
+  try {
+    // Check if a revert/cherry-pick is actually in progress by checking multiple indicators:
+    // 1. REVERT_HEAD or CHERRY_PICK_HEAD files
+    // 2. .git/sequencer directory
+    const isRevertInProgress = await (async () => {
+      try {
+        const gitDir = path.join(repoPath, '.git');
+        
+        // Check for REVERT_HEAD
+        try {
+          await fs.access(path.join(gitDir, 'REVERT_HEAD'));
+          return true;
+        } catch {}
+        
+        // Check for CHERRY_PICK_HEAD (git revert uses cherry-pick internally)
+        try {
+          await fs.access(path.join(gitDir, 'CHERRY_PICK_HEAD'));
+          return true;
+        } catch {}
+        
+        // Check for sequencer directory (indicates ongoing operation)
+        try {
+          await fs.access(path.join(gitDir, 'sequencer'));
+          return true;
+        } catch {}
+        
+        return false;
+      } catch {
+        return false;
+      }
+    })();
+
+    if (!isRevertInProgress) {
+      return 'noop';
+    }
+
+    await git.raw(['revert', '--abort']);
+    gitCache.invalidate(repoPath, 'fileTree');
+    gitCache.invalidate(repoPath, 'repositoryInfo');
+    gitCache.invalidate(repoPath, 'branches');
+
+    return 'aborted';
+  } catch (error) {
+    console.error('Error aborting revert:', error);
+    throw error;
+  }
+}
+
+export type ContinueRevertResult = 'continued' | 'noop';
+
+export async function continueRevert(repoPath: string): Promise<ContinueRevertResult> {
+  const git: SimpleGit = simpleGit(repoPath);
+  const fs = await import('fs/promises');
+  const path = await import('path');
+
+  try {
+    // Check if a revert/cherry-pick is actually in progress by checking multiple indicators:
+    // 1. REVERT_HEAD or CHERRY_PICK_HEAD files
+    // 2. .git/sequencer directory
+    const isRevertInProgress = await (async () => {
+      try {
+        const gitDir = path.join(repoPath, '.git');
+        
+        // Check for REVERT_HEAD
+        try {
+          await fs.access(path.join(gitDir, 'REVERT_HEAD'));
+          return true;
+        } catch {}
+        
+        // Check for CHERRY_PICK_HEAD (git revert uses cherry-pick internally)
+        try {
+          await fs.access(path.join(gitDir, 'CHERRY_PICK_HEAD'));
+          return true;
+        } catch {}
+        
+        // Check for sequencer directory (indicates ongoing operation)
+        try {
+          await fs.access(path.join(gitDir, 'sequencer'));
+          return true;
+        } catch {}
+        
+        return false;
+      } catch {
+        return false;
+      }
+    })();
+
+    if (!isRevertInProgress) {
+      return 'noop';
+    }
+
+    // If we are in a revert, ensure conflicts are fully resolved before continuing.
+    const conflictedFiles = await getConflictedFiles(repoPath);
+    if (conflictedFiles.length > 0) {
+      throw new Error(`Cannot continue revert: ${conflictedFiles.length} file(s) still have conflicts`);
+    }
+
+    await git.raw(['revert', '--continue']);
+    gitCache.invalidate(repoPath, 'fileTree');
+    gitCache.invalidate(repoPath, 'repositoryInfo');
+    gitCache.invalidate(repoPath, 'branches');
+
+    return 'continued';
+  } catch (error) {
+    console.error('Error continuing revert:', error);
+    throw error;
+  }
+}
+
 // ==================== STASH MANAGEMENT ====================
 
 // Create a stash with optional message

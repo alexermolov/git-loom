@@ -18,6 +18,7 @@ import {
   ScissorOutlined,
   SwapOutlined,
   TagOutlined,
+  UndoOutlined,
 } from "@ant-design/icons";
 import React, { useEffect, useMemo, useState } from "react";
 import { useTheme } from "../ThemeContext";
@@ -117,6 +118,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
       okText: "Create",
       cancelText: "Cancel",
       width: 520,
+      className: isDarkMode ? "dark-modal" : "",
       content: (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Input
@@ -165,6 +167,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
       okText: "Checkout",
       cancelText: "Cancel",
       icon: <SwapOutlined />,
+      className: isDarkMode ? "dark-modal" : "",
       content: (
         <div>
           <div style={{ marginBottom: 8 }}>
@@ -195,6 +198,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
       okText: "Cherry-pick",
       cancelText: "Cancel",
       icon: <ScissorOutlined />,
+      className: isDarkMode ? "dark-modal" : "",
       content: (
         <div>
           <div style={{ marginBottom: 8 }}>
@@ -228,6 +232,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
       okText: "Reset",
       cancelText: "Cancel",
       icon: <RollbackOutlined />,
+      className: isDarkMode ? "dark-modal" : "",
       content: (
         <div>
           <div style={{ marginBottom: 8 }}>
@@ -252,6 +257,93 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
     });
   };
 
+  const confirmRevert = (commitHash: string, subject?: string) => {
+    Modal.confirm({
+      title: "Revert commit",
+      okText: "Revert",
+      cancelText: "Cancel",
+      icon: <UndoOutlined />,
+      className: isDarkMode ? "dark-modal" : "",
+      content: (
+        <div>
+          <div style={{ marginBottom: 8 }}>
+            Create a new commit that reverts <strong>{commitHash.slice(0, 7)}</strong>.
+          </div>
+          {subject ? (
+            <div style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+              {subject}
+            </div>
+          ) : null}
+          <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-secondary)" }}>
+            If conflicts happen, resolve them and use "Continue revert" or "Abort revert".
+          </div>
+        </div>
+      ),
+      onOk: async () => {
+        try {
+          await window.electronAPI.revertCommit(repoPath, commitHash);
+          message.success(`Reverted ${commitHash.slice(0, 7)}`);
+          await loadGraph();
+        } catch (error) {
+          console.error("Error reverting commit:", error);
+          message.error("Revert failed (possible conflicts or merge commit)");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const confirmAbortRevert = () => {
+    Modal.confirm({
+      title: "Abort revert",
+      okText: "Abort",
+      okButtonProps: { danger: true },
+      cancelText: "Cancel",
+      className: isDarkMode ? "dark-modal" : "",
+      content: "Abort the current revert operation (if any).",
+      onOk: async () => {
+        try {
+          const result = await window.electronAPI.abortRevert(repoPath);
+          if (result === 'noop') {
+            message.info("No revert in progress");
+          } else {
+            message.success("Revert aborted");
+          }
+          await loadGraph();
+        } catch (error) {
+          console.error("Error aborting revert:", error);
+          message.error("Failed to abort revert");
+          throw error;
+        }
+      },
+    });
+  };
+
+  const confirmContinueRevert = () => {
+    Modal.confirm({
+      title: "Continue revert",
+      okText: "Continue",
+      cancelText: "Cancel",
+      className: isDarkMode ? "dark-modal" : "",
+      content: "Continue the current revert operation after resolving conflicts.",
+      onOk: async () => {
+        try {
+          const result = await window.electronAPI.continueRevert(repoPath);
+          if (result === 'noop') {
+            message.info("No revert in progress");
+          } else {
+            message.success("Revert continued");
+          }
+          await loadGraph();
+        } catch (error) {
+          console.error("Error continuing revert:", error);
+          message.error("Failed to continue revert");
+          throw error;
+        }
+      },
+    });
+  };
+
   const showCreateTagModal = (commitHash: string, annotated: boolean) => {
     let tagName = "";
     let tagMessage = "";
@@ -261,6 +353,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
       okText: "Create",
       cancelText: "Cancel",
       width: 520,
+      className: isDarkMode ? "dark-modal" : "",
       content: (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Input
@@ -368,6 +461,12 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
         onClick: () => confirmCherryPick(commitHash, subject),
       },
       {
+        key: "revert",
+        label: "Revert…",
+        icon: <UndoOutlined />,
+        onClick: () => confirmRevert(commitHash, subject),
+      },
+      {
         key: "reset",
         label: "Reset current branch",
         icon: <RollbackOutlined />,
@@ -405,6 +504,25 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
             key: "tag-annotated",
             label: "Create annotated tag…",
             onClick: () => showCreateTagModal(commitHash, true),
+          },
+        ],
+      },
+      { type: "divider" },
+      {
+        key: "revert-flow",
+        label: "Revert (conflicts)",
+        icon: <UndoOutlined />,
+        children: [
+          {
+            key: "revert-continue",
+            label: "Continue revert",
+            onClick: () => confirmContinueRevert(),
+          },
+          {
+            key: "revert-abort",
+            label: "Abort revert",
+            danger: true,
+            onClick: () => confirmAbortRevert(),
           },
         ],
       },
