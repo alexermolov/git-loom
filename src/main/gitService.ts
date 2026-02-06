@@ -2959,6 +2959,10 @@ export async function startInteractiveRebase(
         '--autosquash',
         targetBranch
       ]);
+
+      // Interactive rebase can rewrite history; invalidate caches so subsequent UI refresh
+      // reflects new commit messages/order/hashes immediately.
+      gitCache.invalidate(repoPath);
       
       // If we get here without error, rebase completed successfully
       // Clean up temporary files
@@ -2994,6 +2998,9 @@ export async function startInteractiveRebase(
       // Rebase started but has conflicts or is waiting for user input.
       const statusAfter = await git.status();
       const conflictedFiles = statusAfter.conflicted || [];
+
+      // Rebase may already have rewritten some commits before stopping; invalidate caches.
+      gitCache.invalidate(repoPath);
 
       // Don't clean up scripts yet, we might need them for continue.
       return {
@@ -3253,11 +3260,15 @@ export async function skipRebaseCommit(repoPath: string): Promise<RebaseStatus> 
   try {
     await git.rebase(['--skip']);
     
+    // Skipping can advance/finish the rebase and rewrite history.
+    gitCache.invalidate(repoPath);
+
     // Check status after skip
     return await getRebaseStatus(repoPath);
   } catch (error: any) {
     // If skip completes the rebase
     if (error.message && error.message.includes('No rebase in progress')) {
+      gitCache.invalidate(repoPath);
       return { inProgress: false };
     }
     
