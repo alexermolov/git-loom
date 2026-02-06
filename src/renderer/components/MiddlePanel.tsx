@@ -65,6 +65,7 @@ interface MiddlePanelProps {
   // Conflicts view
   onConflictFileClick?: (filePath: string) => void;
   onConflictsRefresh?: () => void;
+  onAllConflictsResolved?: () => void;
 
   // Loading states
   loadingBranches?: boolean;
@@ -118,6 +119,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   onBackToCommits,
   onConflictFileClick,
   onConflictsRefresh,
+  onAllConflictsResolved,
   loadingBranches = false,
   loadingReflog = false,
   loadingStash = false,
@@ -450,6 +452,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               repoPath={repoPath}
               onFileClick={onConflictFileClick}
               onRefresh={onConflictsRefresh}
+              onAllConflictsResolved={onAllConflictsResolved}
               loading={loadingConflicts}
             />
           </div>

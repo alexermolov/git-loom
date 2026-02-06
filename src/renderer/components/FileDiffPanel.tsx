@@ -34,6 +34,7 @@ interface FileDiffPanelProps {
   repoPath?: string | null;
   filePath?: string;
   onRefresh?: () => void;
+  onAllConflictsResolved?: () => void;
 }
 
 const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
@@ -42,6 +43,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   repoPath,
   filePath,
   onRefresh,
+  onAllConflictsResolved,
 }) => {
   const { isDarkMode } = useTheme();
   const { modal } = App.useApp();
@@ -100,6 +102,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
       );
       await loadConflicts();
       if (onRefresh) onRefresh();
+      
+      // Check if all conflicts are resolved and trigger callback
+      const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+      if (remainingConflicts.length === 0 && onAllConflictsResolved) {
+        onAllConflictsResolved();
+      }
     } catch (error) {
       console.error("Error resolving conflict:", error);
       message.error(`Failed to resolve conflict: ${error}`);
@@ -129,6 +137,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           message.success(`All conflicts resolved using "${resolution}"`);
           await loadConflicts();
           if (onRefresh) onRefresh();
+          
+          // Check if all conflicts are resolved and trigger callback
+          const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+          if (remainingConflicts.length === 0 && onAllConflictsResolved) {
+            onAllConflictsResolved();
+          }
         } catch (error) {
           console.error("Error resolving all conflicts:", error);
           message.error(`Failed to resolve conflicts: ${error}`);
@@ -157,6 +171,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
       setShowEditModal(false);
       await loadConflicts();
       if (onRefresh) onRefresh();
+      
+      // Check if all conflicts are resolved and trigger callback
+      const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+      if (remainingConflicts.length === 0 && onAllConflictsResolved) {
+        onAllConflictsResolved();
+      }
     } catch (error) {
       console.error("Error saving manual resolution:", error);
       message.error(`Failed to save resolution: ${error}`);
@@ -171,9 +191,15 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     try {
       await window.electronAPI.launchMergeTool(repoPath, filePath);
       message.success("Launched external merge tool");
-      setTimeout(() => {
-        loadConflicts();
+      setTimeout(async () => {
+        await loadConflicts();
         if (onRefresh) onRefresh();
+        
+        // Check if all conflicts are resolved and trigger callback
+        const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+        if (remainingConflicts.length === 0 && onAllConflictsResolved) {
+          onAllConflictsResolved();
+        }
       }, 2000);
     } catch (error) {
       console.error("Error launching merge tool:", error);

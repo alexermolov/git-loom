@@ -15,6 +15,7 @@ interface ConflictResolutionPanelProps {
   repoPath: string | null;
   onFileClick?: (filePath: string) => void;
   onRefresh?: () => void;
+  onAllConflictsResolved?: () => void;
   loading?: boolean;
 }
 
@@ -22,6 +23,7 @@ const ConflictResolutionPanel: React.FC<ConflictResolutionPanelProps> = ({
   repoPath,
   onFileClick,
   onRefresh,
+  onAllConflictsResolved,
   loading: externalLoading = false,
 }) => {
   const { modal } = App.useApp();
@@ -59,6 +61,12 @@ const ConflictResolutionPanel: React.FC<ConflictResolutionPanelProps> = ({
       message.success(`Resolved all conflicts in ${filePath} using "${resolution}"`);
       await loadConflictedFiles();
       if (onRefresh) onRefresh();
+      
+      // Check if all conflicts are resolved and trigger callback
+      const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+      if (remainingConflicts.length === 0 && onAllConflictsResolved) {
+        onAllConflictsResolved();
+      }
     } catch (error) {
       console.error('Error resolving conflict:', error);
       message.error(`Failed to resolve conflicts: ${error}`);
@@ -74,9 +82,15 @@ const ConflictResolutionPanel: React.FC<ConflictResolutionPanelProps> = ({
       await window.electronAPI.launchMergeTool(repoPath, filePath);
       message.success(`Launched merge tool for ${filePath}`);
       // Refresh after a delay to give user time to use merge tool
-      setTimeout(() => {
-        loadConflictedFiles();
+      setTimeout(async () => {
+        await loadConflictedFiles();
         if (onRefresh) onRefresh();
+        
+        // Check if all conflicts are resolved and trigger callback
+        const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+        if (remainingConflicts.length === 0 && onAllConflictsResolved) {
+          onAllConflictsResolved();
+        }
       }, 2000);
     } catch (error) {
       console.error('Error launching merge tool:', error);

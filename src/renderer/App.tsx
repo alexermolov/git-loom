@@ -861,6 +861,23 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAllConflictsResolved = async () => {
+    if (!selectedRepo) return;
+
+    try {
+      // Check if we're currently in a rebase operation
+      const rebaseStatus = await window.electronAPI.getRebaseStatus(selectedRepo);
+      
+      if (rebaseStatus.inProgress && !rebaseStatus.hasConflicts) {
+        // We're in a rebase and all conflicts are resolved, navigate back to rebase view
+        message.success('All conflicts resolved! Returning to rebase panel...');
+        setActiveView('rebase');
+      }
+    } catch (error) {
+      console.error('Error checking rebase status:', error);
+    }
+  };
+
   const bumpGraphRefresh = () => {
     setGraphRefreshToken((prev) => prev + 1);
   };
@@ -1049,6 +1066,7 @@ const App: React.FC = () => {
             repoPath={selectedRepo}
             filePath={fileDiff.path}
             onRefresh={handleConflictsRefresh}
+            onAllConflictsResolved={handleAllConflictsResolved}
           />
         </div>
       );
@@ -1200,6 +1218,7 @@ const App: React.FC = () => {
             selectedStashIndex={selectedStash?.index ?? null}
             onConflictFileClick={handleConflictFileClick}
             onConflictsRefresh={handleConflictsRefresh}
+            onAllConflictsResolved={handleAllConflictsResolved}
             loadingBranches={loadingBranches}
             loadingReflog={loadingReflog}
             loadingStash={loadingStash}

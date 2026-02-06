@@ -288,26 +288,43 @@ const Sidebar: React.FC<SidebarProps> = ({
                     marginBottom: 4,
                   }}
                 >
-                  <Tooltip title="Click to switch branch">
+                  <Tooltip title={repo.isRebasing ? "Rebasing in progress" : "Click to switch branch"}>
                     <div
                       className="repository-branch"
-                      onClick={(e) => handleBranchLabelClick(e, repo.path)}
+                      onClick={(e) => {
+                        if (!repo.isRebasing) {
+                          handleBranchLabelClick(e, repo.path);
+                        }
+                      }}
                       style={{
-                        cursor: "pointer",
+                        cursor: repo.isRebasing ? "default" : "pointer",
                         padding: "2px 6px",
                         borderRadius: "4px",
                         transition: "background-color 0.2s",
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = isDarkMode
-                          ? "#333"
-                          : "#f0f0f0";
+                        if (!repo.isRebasing) {
+                          e.currentTarget.style.backgroundColor = isDarkMode
+                            ? "#333"
+                            : "#f0f0f0";
+                        }
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.backgroundColor = "transparent";
                       }}
                     >
-                      <BranchesOutlined /> {repo.currentBranch}
+                      {repo.isRebasing ? (
+                        <>
+                          <BranchesOutlined />{" "}
+                          <Tag color="processing" style={{ margin: 0, fontSize: 11 }}>
+                            REBASING
+                          </Tag>
+                        </>
+                      ) : (
+                        <>
+                          <BranchesOutlined /> {repo.currentBranch}
+                        </>
+                      )}
                     </div>
                   </Tooltip>
                 </div>

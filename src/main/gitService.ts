@@ -11,6 +11,7 @@ export interface RepositoryInfo {
   branches: string[];
   incomingCommits: number;
   outgoingCommits: number;
+  isRebasing?: boolean;
   status: {
     modified: string[];
     created: string[];
@@ -704,7 +705,26 @@ export async function getRepositoryInfo(repoPath: string, forceFetch: boolean = 
 
     // Get current branch
     const branchSummary: BranchSummary = await git.branch();
-    const currentBranch = branchSummary.current;
+    let currentBranch = branchSummary.current;
+
+    // Check if we're in a rebase
+    const rebaseMergePath = path.join(repoPath, '.git', 'rebase-merge');
+    const rebaseApplyPath = path.join(repoPath, '.git', 'rebase-apply');
+    const isRebasing = fs.existsSync(rebaseMergePath) || fs.existsSync(rebaseApplyPath);
+    
+    // If rebasing and branch is empty or shows detached state, try to get the original branch
+    if (isRebasing && (!currentBranch || currentBranch === 'HEAD')) {
+      try {
+        const headNamePath = path.join(rebaseMergePath, 'head-name');
+        if (fs.existsSync(headNamePath)) {
+          const headName = fs.readFileSync(headNamePath, 'utf-8').trim();
+          // headName is usually like "refs/heads/branch-name"
+          currentBranch = headName.replace(/^refs\/heads\//, '');
+        }
+      } catch (err) {
+        // Ignore errors reading rebase state
+      }
+    }
 
     // Get all branches
     const branches = Object.keys(branchSummary.branches);
@@ -740,6 +760,7 @@ export async function getRepositoryInfo(repoPath: string, forceFetch: boolean = 
       branches,
       incomingCommits,
       outgoingCommits,
+      isRebasing,
       status: {
         modified: status.modified,
         created: status.created,

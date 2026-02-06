@@ -130,6 +130,7 @@ export interface RepositoryInfo {
   incomingCommits: number;
   outgoingCommits: number;
   status: any;
+  isRebasing?: boolean;
 }
 
 export interface CommitInfo {
