@@ -996,6 +996,10 @@ const App: React.FC = () => {
             branches={branches}
             currentBranch={currentBranch}
             onRefresh={handleRefresh}
+            onSwitchToConflicts={(filePath) => {
+              setActiveView('conflicts');
+              handleConflictFileClick(filePath);
+            }}
           />
         </div>
       );

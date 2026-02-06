@@ -41,6 +41,7 @@ interface InteractiveRebasePanelProps {
   branches: BranchInfo[];
   currentBranch: string;
   onRefresh?: () => void;
+  onSwitchToConflicts?: (filePath: string) => void;
 }
 
 const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
@@ -48,6 +49,7 @@ const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
   branches,
   currentBranch,
   onRefresh,
+  onSwitchToConflicts,
 }) => {
   const { modal } = AntApp.useApp();
   const [targetBranch, setTargetBranch] = useState<string>("");
@@ -200,7 +202,9 @@ const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
 
     setLoading(true);
     try {
+      message.loading("Staging resolved files and continuing rebase...", 0);
       const status = await window.electronAPI.continueRebase(repoPath);
+      message.destroy();
       setRebaseStatus(status);
 
       if (status.inProgress) {
@@ -218,6 +222,7 @@ const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
         onRefresh?.();
       }
     } catch (error: any) {
+      message.destroy();
       message.error(`Failed to continue rebase: ${error.message}`);
     } finally {
       setLoading(false);
@@ -408,20 +413,22 @@ const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
                   setShowConflictResolution(false);
                   checkRebaseStatus();
                 }}
+                onFileClick={(filePath) => onSwitchToConflicts?.(filePath)}
               />
             </div>
           )}
 
           <Space>
-            <Button
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              onClick={continueRebase}
-              loading={loading}
-              disabled={rebaseStatus.hasConflicts}
-            >
-              Continue Rebase
-            </Button>
+            <Tooltip title={rebaseStatus.hasConflicts ? "Resolve all conflicts before continuing (or click Refresh Status)" : ""}>
+              <Button
+                type="primary"
+                icon={<CheckCircleOutlined />}
+                onClick={continueRebase}
+                loading={loading}
+              >
+                Continue Rebase
+              </Button>
+            </Tooltip>
             <Button
               icon={<FastForwardOutlined />}
               onClick={skipCommit}

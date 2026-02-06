@@ -1,10 +1,23 @@
 .mcr-root {
+	--mcr-current-bg: rgba(64, 200, 174, 0.15);
+	--mcr-current-border: rgba(64, 200, 174, 0.5);
+	--mcr-current-highlight: rgba(64, 200, 174, 0.25);
+	--mcr-incoming-bg: rgba(86, 156, 214, 0.15);
+	--mcr-incoming-border: rgba(86, 156, 214, 0.5);
+	--mcr-incoming-highlight: rgba(86, 156, 214, 0.25);
+	--mcr-delete-bg: rgba(244, 71, 71, 0.2);
+	--mcr-delete-text: rgba(244, 71, 71, 1);
+	--mcr-insert-bg: rgba(73, 190, 140, 0.2);
+	--mcr-insert-text: rgba(73, 190, 140, 1);
+	--mcr-modified-bg: rgba(234, 179, 8, 0.15);
+	
 	color: var(--mcr-text, inherit);
 	background: var(--mcr-bg, transparent);
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 	min-height: 0;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 .mcr-toolbar {
@@ -12,44 +25,260 @@
 	align-items: center;
 	gap: 8px;
 	flex-wrap: wrap;
-	padding: 8px;
+	padding: 8px 12px;
 	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
-	background: var(--mcr-surface, transparent);
+	background: var(--mcr-surface, rgba(255, 255, 255, 0.03));
+	border-radius: 4px;
+	font-size: 13px;
+}
+
+.mcr-toolbar.mcr-warning {
+	background: rgba(234, 179, 8, 0.1);
+	border-color: rgba(234, 179, 8, 0.5);
+	color: rgba(234, 179, 8, 1);
+	font-weight: 500;
+}
+
+.mcr-toolbar-section {
+	display: flex;
+	align-items: center;
+	gap: 4px;
 }
 
 .mcr-toolbar button {
-	background: transparent;
+	background: var(--mcr-button-bg, rgba(255, 255, 255, 0.05));
 	color: inherit;
 	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
-	padding: 4px 8px;
-	border-radius: 4px;
+	padding: 5px 10px;
+	border-radius: 3px;
 	cursor: pointer;
+	font-size: 12px;
+	font-family: inherit;
+	transition: all 0.15s;
+	white-space: nowrap;
+}
+
+.mcr-toolbar button:hover:not(:disabled) {
+	background: var(--mcr-button-hover-bg, rgba(255, 255, 255, 0.1));
+	border-color: var(--mcr-border-hover-color, rgba(127, 127, 127, 0.5));
+}
+
+.mcr-toolbar button.mcr-active {
+	background: var(--mcr-button-active-bg, rgba(86, 156, 214, 0.2));
+	border-color: rgba(86, 156, 214, 0.6);
+}
+
+.mcr-toolbar button.mcr-action-current {
+	border-color: var(--mcr-current-border);
+}
+
+.mcr-toolbar button.mcr-action-current:hover:not(:disabled) {
+	background: var(--mcr-current-bg);
+}
+
+.mcr-toolbar button.mcr-action-incoming {
+	border-color: var(--mcr-incoming-border);
+}
+
+.mcr-toolbar button.mcr-action-incoming:hover:not(:disabled) {
+	background: var(--mcr-incoming-bg);
+}
+
+.mcr-toolbar button.mcr-action-both {
+	border-color: rgba(234, 179, 8, 0.5);
+}
+
+.mcr-toolbar button.mcr-action-both:hover:not(:disabled) {
+	background: rgba(234, 179, 8, 0.15);
 }
 
 .mcr-toolbar button:disabled {
-	opacity: 0.5;
-	cursor: default;
+	opacity: 0.4;
+	cursor: not-allowed;
 }
+
+/* Code view with line numbers and diff highlighting */
+.mcr-code-view {
+	overflow: auto;
+	flex: 1;
+	min-height: 0;
+	font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 13px;
+	line-height: 1.5;
+	background: var(--mcr-code-bg, rgba(0, 0, 0, 0.2));
+}
+
+.mcr-line {
+	display: flex;
+	min-height: 19px;
+	position: relative;
+}
+
+.mcr-line-number {
+	flex-shrink: 0;
+	width: 50px;
+	padding: 0 8px;
+	text-align: right;
+	color: var(--mcr-line-number-color, rgba(127, 127, 127, 0.6));
+	user-select: none;
+	border-right: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.2));
+	background: var(--mcr-line-number-bg, rgba(0, 0, 0, 0.1));
+}
+
+.mcr-line-content {
+	flex: 1;
+	padding: 0 8px;
+	white-space: pre;
+	overflow-x: auto;
+}
+
+/* Line type backgrounds */
+.mcr-line-equal {
+	background: transparent;
+}
+
+.mcr-line-insert {
+	background: var(--mcr-insert-bg);
+}
+
+.mcr-line-delete {
+	background: var(--mcr-delete-bg);
+}
+
+.mcr-line-modified {
+	background: var(--mcr-modified-bg);
+}
+
+/* Current side styling */
+.mcr-line-current.mcr-line-modified {
+	background: var(--mcr-current-bg);
+}
+
+.mcr-line-current.mcr-line-delete {
+	background: var(--mcr-delete-bg);
+}
+
+/* Incoming side styling */
+.mcr-line-incoming.mcr-line-modified {
+	background: var(--mcr-incoming-bg);
+}
+
+.mcr-line-incoming.mcr-line-insert {
+	background: var(--mcr-insert-bg);
+}
+
+/* Segment highlighting (word/char level) */
+.mcr-segment-equal {
+	/* Normal text */
+}
+
+.mcr-segment-insert {
+	background: var(--mcr-insert-text);
+	color: #000;
+	padding: 0 2px;
+	border-radius: 2px;
+}
+
+.mcr-segment-delete {
+	background: var(--mcr-delete-text);
+	color: #fff;
+	padding: 0 2px;
+	border-radius: 2px;
+	text-decoration: line-through;
+}
+
+/* Inline view styles */
+.mcr-inline-container {
+	display: flex;
+	flex-direction: column;
+}
+
+.mcr-inline-section {
+	flex: 1;
+}
+
+.mcr-inline-label {
+	padding: 8px 12px;
+	font-weight: 600;
+	font-size: 12px;
+	background: var(--mcr-surface, rgba(255, 255, 255, 0.05));
+	border-bottom: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.2));
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.mcr-inline-current .mcr-inline-label {
+	background: var(--mcr-current-bg);
+	border-left: 3px solid var(--mcr-current-border);
+}
+
+.mcr-inline-incoming .mcr-inline-label {
+	background: var(--mcr-incoming-bg);
+	border-left: 3px solid var(--mcr-incoming-border);
+}
+
+.mcr-inline-divider {
+	height: 2px;
+	background: var(--mcr-border-color, rgba(127, 127, 127, 0.35));
+	margin: 4px 0;
+}
+
+/* Old pre styles for fallback */
 
 .mcr-main {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
 	gap: 8px;
 	min-height: 0;
+	flex: 1;
+	overflow: hidden;
+}
+
+.mcr-split-view {
+	grid-template-columns: 1fr 1fr;
+}
+
+.mcr-inline-view {
+	grid-template-columns: 1fr;
 }
 
 .mcr-pane {
 	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
-	background: var(--mcr-surface, transparent);
+	background: var(--mcr-surface, rgba(255, 255, 255, 0.02));
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
+	overflow: hidden;
+	border-radius: 4px;
+}
+
+.mcr-pane-current {
+	border-top: 2px solid var(--mcr-current-border);
+}
+
+.mcr-pane-incoming {
+	border-top: 2px solid var(--mcr-incoming-border);
+}
+
+.mcr-pane-full {
+	border-top: 2px solid var(--mcr-border-color, rgba(127, 127, 127, 0.5));
 }
 
 .mcr-paneHeader {
-	padding: 6px 8px;
+	padding: 8px 12px;
 	border-bottom: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
 	font-weight: 600;
+	font-size: 13px;
+	background: var(--mcr-surface, rgba(255, 255, 255, 0.03));
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.mcr-branch-name {
+	font-weight: 400;
+	opacity: 0.7;
+	font-size: 12px;
 }
 
 .mcr-pre {

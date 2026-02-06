@@ -3001,9 +3001,28 @@ export async function getRebaseStatus(repoPath: string): Promise<RebaseStatus> {
       return { inProgress: false };
     }
     
-    // Get conflicted files
+    // Get conflicted files from git status
     const status = await git.status();
-    const conflictedFiles = status.conflicted || [];
+    let conflictedFiles = status.conflicted || [];
+    
+    // Double-check if files actually contain conflict markers
+    // Sometimes git status shows conflicts even after manual resolution
+    const actualConflictedFiles: string[] = [];
+    for (const file of conflictedFiles) {
+      try {
+        const filePath = path.join(repoPath, file);
+        if (fs.existsSync(filePath)) {
+          const content = fs.readFileSync(filePath, 'utf-8');
+          // Check for conflict markers
+          if (content.includes('<<<<<<<') && content.includes('=======') && content.includes('>>>>>>>')) {
+            actualConflictedFiles.push(file);
+          }
+        }
+      } catch (err) {
+        // If we can't read the file, assume it's still conflicted
+        actualConflictedFiles.push(file);
+      }
+    }
     
     // Try to read rebase state
     let currentCommit: string | undefined;
@@ -3026,8 +3045,8 @@ export async function getRebaseStatus(repoPath: string): Promise<RebaseStatus> {
       inProgress: true,
       currentCommit,
       remainingCommits,
-      hasConflicts: conflictedFiles.length > 0,
-      conflictedFiles,
+      hasConflicts: actualConflictedFiles.length > 0,
+      conflictedFiles: actualConflictedFiles,
     };
   } catch (error) {
     console.error('Error getting rebase status:', error);
@@ -3040,46 +3059,123 @@ export async function continueRebase(repoPath: string): Promise<RebaseStatus> {
   const git: SimpleGit = simpleGit(repoPath);
   
   try {
+    // If a rebase isn't actually in progress, treat it as a no-op.
+    // This avoids a confusing UX where the button appears to do nothing.
+    const rebaseMergePath = path.join(repoPath, '.git', 'rebase-merge');
+    const rebaseApplyPath = path.join(repoPath, '.git', 'rebase-apply');
+    const inProgress = fs.existsSync(rebaseMergePath) || fs.existsSync(rebaseApplyPath);
+    if (!inProgress) {
+      return { inProgress: false };
+    }
+
     // Check if there are still conflicts
     const status = await git.status();
+    console.log('Rebase status before continue:', {
+      conflicted: status.conflicted,
+      modified: status.modified,
+      not_added: status.not_added,
+      created: status.created,
+      deleted: status.deleted,
+    });
+    
     if (status.conflicted && status.conflicted.length > 0) {
       throw new Error('Cannot continue rebase: there are unresolved conflicts');
     }
     
+    // Stage all modified files that were involved in conflict resolution
+    // This is necessary when files are edited manually or through external tools
+    const filesToStage = [
+      ...(status.modified || []),
+      ...(status.not_added || []),
+      ...(status.created || []),
+      ...(status.deleted || []),
+      ...(status.renamed || []).map(r => r.to || r.from),
+    ].filter(Boolean);
+    
+    if (filesToStage.length > 0) {
+      console.log('Staging files before rebase continue:', filesToStage);
+      await git.add(filesToStage);
+    }
+    
     // Continue the rebase
     try {
-      await git.rebase(['--continue']);
+      console.log('Executing git rebase --continue');
+
+      // IMPORTANT: `git rebase --continue` can try to spawn an editor (e.g. core.editor=code --wait)
+      // which will hang in a GUI app. Force a non-interactive editor so the command either succeeds
+      // or fails fast with a real error we can surface.
+      const isWindows = process.platform === 'win32';
+      const noOpEditor = isWindows ? ':' : ':';
+
+      await git
+        .env({
+          ...process.env,
+          GIT_EDITOR: noOpEditor,
+          GIT_SEQUENCE_EDITOR: noOpEditor,
+          GIT_TERMINAL_PROMPT: '0',
+        })
+        .raw(['rebase', '--continue']);
       
+      const statusAfter = await getRebaseStatus(repoPath);
+
       // Rebase completed successfully - clean up temporary files
-      const backupPath = path.join(repoPath, '.git', 'GITLOOM_REBASE_TODO');
-      if (fs.existsSync(backupPath)) {
-        fs.unlinkSync(backupPath);
-      }
-      
-      const editorScriptCmd = path.join(repoPath, '.git', 'GITLOOM_EDITOR.cmd');
-      if (fs.existsSync(editorScriptCmd)) {
-        fs.unlinkSync(editorScriptCmd);
+      if (!statusAfter.inProgress) {
+        const backupPath = path.join(repoPath, '.git', 'GITLOOM_REBASE_TODO');
+        if (fs.existsSync(backupPath)) {
+          fs.unlinkSync(backupPath);
+        }
+
+        const editorScriptCmd = path.join(repoPath, '.git', 'GITLOOM_EDITOR.cmd');
+        if (fs.existsSync(editorScriptCmd)) {
+          fs.unlinkSync(editorScriptCmd);
+        }
+
+        const editorScriptBat = path.join(repoPath, '.git', 'GITLOOM_EDITOR.bat');
+        if (fs.existsSync(editorScriptBat)) {
+          fs.unlinkSync(editorScriptBat);
+        }
+
+        const editorScriptPs1 = path.join(repoPath, '.git', 'GITLOOM_EDITOR.ps1');
+        if (fs.existsSync(editorScriptPs1)) {
+          fs.unlinkSync(editorScriptPs1);
+        }
+
+        const editorScriptSh = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
+        if (fs.existsSync(editorScriptSh)) {
+          fs.unlinkSync(editorScriptSh);
+        }
       }
 
-      const editorScriptBat = path.join(repoPath, '.git', 'GITLOOM_EDITOR.bat');
-      if (fs.existsSync(editorScriptBat)) {
-        fs.unlinkSync(editorScriptBat);
-      }
+      // Invalidate cache (rebase can change HEAD / history)
+      gitCache.invalidate(repoPath);
 
-      const editorScriptPs1 = path.join(repoPath, '.git', 'GITLOOM_EDITOR.ps1');
-      if (fs.existsSync(editorScriptPs1)) {
-        fs.unlinkSync(editorScriptPs1);
-      }
-      
-      const editorScriptSh = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
-      if (fs.existsSync(editorScriptSh)) {
-        fs.unlinkSync(editorScriptSh);
-      }
-      
-      return { inProgress: false };
+      return statusAfter;
     } catch (error: any) {
-      // Rebase still in progress or new conflicts
-      return await getRebaseStatus(repoPath);
+      // Rebase may still be in progress (new conflicts, edit/reword stop, etc.).
+      // Only swallow the error if we can confirm the rebase is still in progress;
+      // otherwise surface the real failure to the UI.
+      const statusAfter = await getRebaseStatus(repoPath);
+      if (statusAfter.inProgress) {
+        return statusAfter;
+      }
+
+      const msg = String(error?.message ?? error);
+      if (msg.includes('No rebase in progress')) {
+        return { inProgress: false };
+      }
+
+      // Common case: the patch became empty. The correct action is usually "Skip Commit".
+      if (
+        msg.includes('No changes - did you forget to use') ||
+        msg.includes('nothing to commit') ||
+        msg.includes('The previous cherry-pick is now empty')
+      ) {
+        throw new Error(
+          'Git reports there are no changes to commit for this step. If you intentionally resolved the conflict by making the patch empty, use “Skip Commit”.'
+        );
+      }
+
+      throw error;
     }
   } catch (error) {
     console.error('Error continuing rebase:', error);
