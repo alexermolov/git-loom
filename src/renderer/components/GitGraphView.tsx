@@ -1,4 +1,5 @@
 import {
+  App,
   Checkbox,
   Dropdown,
   Empty,
@@ -38,6 +39,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   onCommitClick,
   refreshToken,
 }) => {
+  const { modal } = App.useApp();
   const [viewMode, setViewMode] = useState<"ascii" | "swimlane">("swimlane");
   const [rows, setRows] = useState<GitGraphRow[]>([]);
   const [commitDetails, setCommitDetails] = useState<CommitDetail[]>([]);
@@ -113,7 +115,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
     let branchName = `branch-${commitHash.slice(0, 7)}`;
     let switchAfterCreate = defaultSwitchAfterCreate;
 
-    Modal.confirm({
+    modal.confirm({
       title: `Create branch from ${commitHash.slice(0, 7)}`,
       okText: "Create",
       cancelText: "Cancel",
@@ -162,7 +164,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   };
 
   const confirmCheckoutCommit = (commitHash: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Checkout commit (detached HEAD)",
       okText: "Checkout",
       cancelText: "Cancel",
@@ -193,7 +195,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   };
 
   const confirmCherryPick = (commitHash: string, subject?: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Cherry-pick commit",
       okText: "Cherry-pick",
       cancelText: "Cancel",
@@ -227,7 +229,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
 
   const confirmReset = (commitHash: string, mode: "soft" | "mixed" | "hard") => {
     const modeLabel = mode.toUpperCase();
-    Modal.confirm({
+    modal.confirm({
       title: `Reset current branch (${modeLabel})`,
       okText: "Reset",
       cancelText: "Cancel",
@@ -258,7 +260,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   };
 
   const confirmRevert = (commitHash: string, subject?: string) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Revert commit",
       okText: "Revert",
       cancelText: "Cancel",
@@ -294,7 +296,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   };
 
   const confirmAbortRevert = () => {
-    Modal.confirm({
+    modal.confirm({
       title: "Abort revert",
       okText: "Abort",
       okButtonProps: { danger: true },
@@ -320,7 +322,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
   };
 
   const confirmContinueRevert = () => {
-    Modal.confirm({
+    modal.confirm({
       title: "Continue revert",
       okText: "Continue",
       cancelText: "Cancel",
@@ -348,7 +350,7 @@ const GitGraphView: React.FC<GitGraphViewProps> = ({
     let tagName = "";
     let tagMessage = "";
 
-    Modal.confirm({
+    modal.confirm({
       title: annotated ? "Create annotated tag" : "Create lightweight tag",
       okText: "Create",
       cancelText: "Cancel",

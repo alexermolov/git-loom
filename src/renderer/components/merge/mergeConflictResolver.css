@@ -1,0 +1,77 @@
+.mcr-root {
+	color: var(--mcr-text, inherit);
+	background: var(--mcr-bg, transparent);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-height: 0;
+}
+
+.mcr-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-wrap: wrap;
+	padding: 8px;
+	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
+	background: var(--mcr-surface, transparent);
+}
+
+.mcr-toolbar button {
+	background: transparent;
+	color: inherit;
+	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
+	padding: 4px 8px;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.mcr-toolbar button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.mcr-main {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	min-height: 0;
+}
+
+.mcr-pane {
+	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
+	background: var(--mcr-surface, transparent);
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.mcr-paneHeader {
+	padding: 6px 8px;
+	border-bottom: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
+	font-weight: 600;
+}
+
+.mcr-pre {
+	margin: 0;
+	padding: 8px;
+	overflow: auto;
+	white-space: pre;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 12px;
+	line-height: 1.4;
+}
+
+.mcr-document {
+	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
+	background: var(--mcr-surface, transparent);
+	padding: 8px;
+	min-height: 180px;
+	resize: vertical;
+	width: 100%;
+	box-sizing: border-box;
+	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	font-size: 12px;
+	line-height: 1.4;
+	color: inherit;
+}

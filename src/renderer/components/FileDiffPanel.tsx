@@ -20,6 +20,7 @@ import "diff2html/bundles/css/diff2html.min.css";
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTheme } from "../ThemeContext";
 import { ConflictFile, ConflictMarker, FileDiff } from "../types";
+import { MergeConflictResolver } from "./merge";
 
 // Import diff2html with proper typing
 const Diff2Html = require("diff2html") as {
@@ -207,6 +208,11 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     // Clear container first to prevent old diff from showing
     container.innerHTML = "";
 
+    // When conflicts exist we show the interactive resolver instead of diff.
+    if (hasConflicts) {
+      return;
+    }
+
     // Don't render diff for binary or empty files
     if (showBinaryMessage || showEmptyMessage) {
       return;
@@ -272,6 +278,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     isDarkMode,
     diffViewMode,
     isDiff,
+    hasConflicts,
     showBinaryMessage,
     showEmptyMessage,
   ]);
@@ -570,6 +577,17 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
                 Accept All Both
               </Button>
             </Tooltip>
+            <Tooltip title="Save current conflict resolution and stage the file">
+              <Button
+                size="small"
+                type="primary"
+                loading={resolving}
+                disabled={!editingContent}
+                onClick={handleSaveManualResolve}
+              >
+                Save & Stage
+              </Button>
+            </Tooltip>
             <Button
               size="small"
               icon={<ThunderboltOutlined />}
@@ -590,6 +608,39 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           {conflictInfo.conflicts.map((conflict, index) =>
             renderConflictBlock(conflict, index),
           )}
+        </div>
+      )}
+
+      {/* Interactive merge conflict resolver (shown instead of diff when conflicts exist) */}
+      {hasConflicts && (
+        <div
+          style={{
+            marginBottom: 16,
+            border: "1px solid var(--border-color)",
+            borderRadius: 4,
+            backgroundColor: "var(--bg-secondary)",
+            overflow: "hidden",
+            maxHeight: "calc(100vh - 300px)",
+          }}
+        >
+          <div
+            style={
+              {
+                padding: 8,
+                // Feed the resolver CSS vars using existing theme primitives.
+                ["--mcr-text" as any]: "var(--text-primary)",
+                ["--mcr-bg" as any]: "var(--bg-secondary)",
+                ["--mcr-surface" as any]: "var(--bg-primary)",
+                ["--mcr-border-color" as any]: "var(--border-color)",
+              } as React.CSSProperties
+            }
+          >
+            <MergeConflictResolver
+              value={editingContent ?? ""}
+              onChange={(nextValue) => setEditingContent(nextValue)}
+              showCommonAncestors
+            />
+          </div>
         </div>
       )}
 
@@ -650,7 +701,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
         key={`${diff.path}:${diffViewMode}:${isDarkMode ? "dark" : "light"}`}
         ref={diffContainerRef}
         style={{
-          display: showBinaryMessage || showEmptyMessage ? "none" : "block",
+          display:
+            showBinaryMessage || showEmptyMessage || hasConflicts
+              ? "none"
+              : "block",
           backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
           border: "1px solid var(--border-color)",
           borderRadius: 4,

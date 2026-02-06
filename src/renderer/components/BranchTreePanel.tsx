@@ -371,7 +371,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({
 
   // Handle compare branches
   const handleCompareBranches = (branchName: string) => {
-    Modal.info({
+    modal.info({
       title: `Compare with "${branchName}"`,
       content: (
         <Form layout="vertical" style={{ marginTop: 16 }}>
@@ -392,7 +392,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({
             branchName,
           );
 
-          Modal.info({
+          modal.info({
             title: "Branch Comparison",
             width: 600,
             content: (
@@ -454,7 +454,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({
 
     if (action === "checkout") {
       if (isCurrent) {
-        Modal.info({
+        modal.info({
           title: "Branch Already Active",
           content: `You are already on branch "${displayName}".`,
         });
@@ -472,7 +472,7 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({
       });
     } else if (action === "merge") {
       if (isCurrent) {
-        Modal.info({
+        modal.info({
           title: "Cannot Merge",
           content: `Cannot merge branch "${displayName}" into itself.`,
         });

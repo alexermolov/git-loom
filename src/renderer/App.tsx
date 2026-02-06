@@ -638,8 +638,8 @@ const App: React.FC = () => {
     if (!selectedRepo) return;
     
     try {
-      if (view === 'branches' && branches.length === 0) {
-        // Load branches only when user clicks on branches tab
+      if ((view === 'branches' || view === 'rebase') && branches.length === 0) {
+        // Load branches only when needed (e.g. branches tab or rebase panel)
         setLoadingBranches(true);
         const branchesData = await window.electronAPI.getBranches(selectedRepo);
         setBranches(branchesData);

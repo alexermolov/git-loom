@@ -1,4 +1,5 @@
 import {
+  App,
   Checkbox,
   Dropdown,
   Empty,
@@ -176,6 +177,11 @@ function buildGraphModel(commits: SwimlaneCommit[], headCommitId?: string) {
 
   return viewModels;
 }
+
+const useAppModal = () => {
+  const { modal } = App.useApp();
+  return modal;
+};
 
 function renderCommitGraph(viewModel: ViewModel) {
   const { commit, inputSwimlanes, outputSwimlanes, kind } = viewModel;
@@ -457,6 +463,7 @@ export default function GitGraphSwimlaneView(props: {
 }) {
   const { repoPath, commitDetails, searchQuery, onCommitClick, onRefreshRequested } = props;
   const { isDarkMode } = useTheme();
+  const modal = useAppModal();
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -488,7 +495,7 @@ export default function GitGraphSwimlaneView(props: {
     let branchName = `branch-${(commit.displayId || commit.id).slice(0, 7)}`;
     let switchAfterCreate = defaultSwitchAfterCreate;
 
-    Modal.confirm({
+    modal.confirm({
       title: `Create branch from ${commit.displayId ?? commit.id.slice(0, 7)}`,
       okText: "Create",
       cancelText: "Cancel",
@@ -541,7 +548,7 @@ export default function GitGraphSwimlaneView(props: {
   };
 
   const confirmCheckoutCommit = (commit: SwimlaneCommit) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Checkout commit (detached HEAD)",
       okText: "Checkout",
       cancelText: "Cancel",
@@ -574,7 +581,7 @@ export default function GitGraphSwimlaneView(props: {
   };
 
   const confirmCherryPick = (commit: SwimlaneCommit) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Cherry-pick commit",
       okText: "Cherry-pick",
       cancelText: "Cancel",
@@ -606,7 +613,7 @@ export default function GitGraphSwimlaneView(props: {
 
   const confirmReset = (commit: SwimlaneCommit, mode: "soft" | "mixed" | "hard") => {
     const modeLabel = mode.toUpperCase();
-    Modal.confirm({
+    modal.confirm({
       title: `Reset current branch (${modeLabel})`,
       okText: "Reset",
       cancelText: "Cancel",
@@ -637,7 +644,7 @@ export default function GitGraphSwimlaneView(props: {
   };
 
   const confirmRevert = (commit: SwimlaneCommit) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Revert commit",
       okText: "Revert",
       cancelText: "Cancel",
@@ -671,7 +678,7 @@ export default function GitGraphSwimlaneView(props: {
   };
 
   const confirmAbortRevert = () => {
-    Modal.confirm({
+    modal.confirm({
       title: "Abort revert",
       okText: "Abort",
       okButtonProps: { danger: true },
@@ -697,7 +704,7 @@ export default function GitGraphSwimlaneView(props: {
   };
 
   const confirmContinueRevert = () => {
-    Modal.confirm({
+    modal.confirm({
       title: "Continue revert",
       okText: "Continue",
       cancelText: "Cancel",
@@ -725,7 +732,7 @@ export default function GitGraphSwimlaneView(props: {
     let tagName = "";
     let tagMessage = "";
 
-    Modal.confirm({
+    modal.confirm({
       title: annotated ? "Create annotated tag" : "Create lightweight tag",
       okText: "Create",
       cancelText: "Cancel",
