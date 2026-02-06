@@ -291,89 +291,88 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
       <div
         key={`conflict-${conflictIndex}`}
         style={{
-          margin: "16px 0",
-          border: "2px solid #ff4d4f",
-          borderRadius: 8,
-          backgroundColor: isDarkMode ? "#2a1a1a" : "#fff7f7",
+          margin: "8px 0",
+          border: "1px solid rgba(250, 173, 20, 0.4)",
+          borderRadius: 4,
+          backgroundColor: isDarkMode ? "rgba(250, 173, 20, 0.05)" : "rgba(250, 173, 20, 0.02)",
           overflow: "hidden",
         }}
       >
         <div
           style={{
-            padding: "8px 12px",
-            backgroundColor: "#ff4d4f",
-            color: "white",
+            padding: "4px 8px",
+            backgroundColor: isDarkMode ? "rgba(250, 173, 20, 0.15)" : "rgba(250, 173, 20, 0.12)",
+            color: "var(--text-primary)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            fontSize: "12px",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <WarningOutlined />
-            <span style={{ fontWeight: 600 }}>
-              Conflict {conflictIndex + 1}
+          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <WarningOutlined style={{ fontSize: "12px", color: "#faad14" }} />
+            <span style={{ fontWeight: 500 }}>
+              #{conflictIndex + 1}
             </span>
           </div>
-          <Space size="small">
+          <Space size={4}>
             <Tooltip title="Accept your changes (HEAD)">
               <Button
                 size="small"
-                type="primary"
-                ghost
+                type="text"
                 loading={resolving}
                 onClick={() => handleResolveConflict(conflictIndex, "ours")}
-                style={{ borderColor: "white", color: "white" }}
+                style={{ fontSize: "11px", padding: "0 6px", height: "22px" }}
               >
-                Ours
+                ✓ Ours
               </Button>
             </Tooltip>
             <Tooltip title="Accept their changes (incoming)">
               <Button
                 size="small"
-                type="primary"
-                ghost
+                type="text"
                 loading={resolving}
                 onClick={() => handleResolveConflict(conflictIndex, "theirs")}
-                style={{ borderColor: "white", color: "white" }}
+                style={{ fontSize: "11px", padding: "0 6px", height: "22px" }}
               >
-                Theirs
+                ✓ Theirs
               </Button>
             </Tooltip>
             <Tooltip title="Accept both changes">
               <Button
                 size="small"
-                type="primary"
-                ghost
+                type="text"
                 loading={resolving}
                 onClick={() => handleResolveConflict(conflictIndex, "both")}
-                style={{ borderColor: "white", color: "white" }}
+                style={{ fontSize: "11px", padding: "0 6px", height: "22px" }}
               >
-                Both
+                ✓ Both
               </Button>
             </Tooltip>
           </Space>
         </div>
 
-        <div style={{ padding: 12 }}>
+        <div style={{ padding: 6 }}>
           {/* Current (HEAD) section */}
-          <div style={{ marginBottom: 12 }}>
-            <Tag color="blue" style={{ marginBottom: 8 }}>
-              Current Changes (HEAD)
+          <div style={{ marginBottom: 4 }}>
+            <Tag color="blue" style={{ marginBottom: 4, fontSize: "11px", padding: "0 4px", lineHeight: "18px" }}>
+              Current (HEAD)
             </Tag>
             <div
               style={{
-                backgroundColor: isDarkMode ? "#1a3a1a" : "#f6ffed",
-                padding: 8,
-                borderRadius: 4,
-                border: "1px solid #52c41a",
+                backgroundColor: isDarkMode ? "rgba(82, 196, 26, 0.08)" : "rgba(82, 196, 26, 0.06)",
+                padding: 4,
+                borderRadius: 3,
+                border: "1px solid rgba(82, 196, 26, 0.3)",
               }}
             >
               <pre
                 style={{
                   margin: 0,
                   fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                  fontSize: 13,
-                  color: "#52c41a",
+                  fontSize: 12,
+                  lineHeight: 1.3,
+                  color: "var(--text-primary)",
                   whiteSpace: "pre-wrap",
                   wordBreak: "break-word",
                 }}
@@ -385,23 +384,24 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
 
           {/* Base section (if available) */}
           {conflict.baseContent && (
-            <div style={{ marginBottom: 12 }}>
-              <Tag color="default" style={{ marginBottom: 8 }}>
-                Base (Common Ancestor)
+            <div style={{ marginBottom: 4 }}>
+              <Tag color="default" style={{ marginBottom: 4, fontSize: "11px", padding: "0 4px", lineHeight: "18px" }}>
+                Base
               </Tag>
               <div
                 style={{
-                  backgroundColor: isDarkMode ? "#2a2a2a" : "#f5f5f5",
-                  padding: 8,
-                  borderRadius: 4,
-                  border: "1px solid #d9d9d9",
+                  backgroundColor: isDarkMode ? "rgba(217, 217, 217, 0.05)" : "rgba(0, 0, 0, 0.02)",
+                  padding: 4,
+                  borderRadius: 3,
+                  border: "1px solid rgba(217, 217, 217, 0.3)",
                 }}
               >
                 <pre
                   style={{
                     margin: 0,
                     fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                    fontSize: 13,
+                    fontSize: 12,
+                    lineHeight: 1.3,
                     color: "var(--text-secondary)",
                     whiteSpace: "pre-wrap",
                     wordBreak: "break-word",
@@ -415,23 +415,24 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
 
           {/* Incoming section */}
           <div>
-            <Tag color="orange" style={{ marginBottom: 8 }}>
-              Incoming Changes
+            <Tag color="orange" style={{ marginBottom: 4, fontSize: "11px", padding: "0 4px", lineHeight: "18px" }}>
+              Incoming
             </Tag>
             <div
               style={{
-                backgroundColor: isDarkMode ? "#3a2a1a" : "#fffbe6",
-                padding: 8,
-                borderRadius: 4,
-                border: "1px solid #faad14",
+                backgroundColor: isDarkMode ? "rgba(250, 173, 20, 0.08)" : "rgba(250, 173, 20, 0.06)",
+                padding: 4,
+                borderRadius: 3,
+                border: "1px solid rgba(250, 173, 20, 0.3)",
               }}
             >
               <pre
                 style={{
                   margin: 0,
                   fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-                  fontSize: 13,
-                  color: "#faad14",
+                  fontSize: 12,
+                  lineHeight: 1.3,
+                  color: "var(--text-primary)",
                   whiteSpace: "pre-wrap",
                   wordBreak: "break-word",
                 }}
@@ -639,6 +640,8 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
               value={editingContent ?? ""}
               onChange={(nextValue) => setEditingContent(nextValue)}
               showCommonAncestors
+              filePath={diff.path}
+              isDarkMode={isDarkMode}
             />
           </div>
         </div>

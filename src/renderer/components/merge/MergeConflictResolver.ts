@@ -8,6 +8,8 @@ import { applyAllConflicts, applyConflictResolution } from './mergeConflictEdits
 import { defaultMergeConflictMarkerConfig, MergeConflict, MergeConflictMarkerConfig, MergeSide } from './mergeConflictTypes';
 import { parseMergeConflicts } from './mergeConflictParser';
 import { computeLineDiff, LineDiff, DiffSegment } from './diffUtils';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './mergeConflictResolver.css';
 
 type ViewMode = 'split' | 'inline';
@@ -41,6 +43,10 @@ export interface MergeConflictResolverProps {
 	readonly showCommonAncestors?: boolean;
 	readonly defaultViewMode?: ViewMode;
 	readonly showLineNumbers?: boolean;
+	readonly filePath?: string;
+	readonly language?: string;
+	readonly isDarkMode?: boolean;
+	readonly syntaxHighlight?: boolean;
 }
 
 const defaultLabels: MergeConflictResolverLabels = {
@@ -48,19 +54,19 @@ const defaultLabels: MergeConflictResolverLabels = {
 	incoming: 'Incoming',
 	commonAncestors: 'Common Ancestors',
 	document: 'Document',
-	conflicts: count => `Conflicts: ${count}`,
+	conflicts: count => `${count} conflict${count !== 1 ? 's' : ''}`,
 	prev: 'Prev',
 	next: 'Next',
-	acceptCurrent: 'Accept Current',
-	acceptIncoming: 'Accept Incoming',
-	acceptBoth: 'Accept Both',
-	acceptAllCurrent: 'Accept All Current',
-	acceptAllIncoming: 'Accept All Incoming',
-	splitView: 'Split View',
-	inlineView: 'Inline View',
-	compareChanges: 'Compare Changes',
-	acceptAllBoth: 'Accept All Both',
-	malformedWarning: 'Malformed conflict markers detected. Some conflicts might not be parsed.',
+	acceptCurrent: '✓ Current',
+	acceptIncoming: '✓ Incoming',
+	acceptBoth: '✓ Both',
+	acceptAllCurrent: 'All ✓ Cur',
+	acceptAllIncoming: 'All ✓ Inc',
+	splitView: 'Split',
+	inlineView: 'Inline',
+	compareChanges: 'Compare',
+	acceptAllBoth: 'All ✓ Both',
+	malformedWarning: '⚠ Malformed markers detected',
 };
 
 function mergeMarkerConfig(partial?: Partial<MergeConflictMarkerConfig>): MergeConflictMarkerConfig {
@@ -70,9 +76,137 @@ function mergeMarkerConfig(partial?: Partial<MergeConflictMarkerConfig>): MergeC
 	};
 }
 
+function getLanguageFromPath(filePath: string): string {
+	const ext = filePath.split('.').pop()?.toLowerCase() || '';
+	const langMap: Record<string, string> = {
+		js: 'javascript',
+		jsx: 'jsx',
+		ts: 'typescript',
+		tsx: 'tsx',
+		py: 'python',
+		java: 'java',
+		cpp: 'cpp',
+		c: 'c',
+		cs: 'csharp',
+		go: 'go',
+		rs: 'rust',
+		rb: 'ruby',
+		php: 'php',
+		html: 'html',
+		css: 'css',
+		scss: 'scss',
+		json: 'json',
+		xml: 'xml',
+		yaml: 'yaml',
+		yml: 'yaml',
+		md: 'markdown',
+		sh: 'bash',
+		sql: 'sql',
+	};
+	return langMap[ext] || 'text';
+}
+
 export function MergeConflictResolver(props: MergeConflictResolverProps) {
 	const labels = { ...defaultLabels, ...(props.labels ?? {}) };
 	const markerConfig = React.useMemo(() => mergeMarkerConfig(props.markerConfig), [props.markerConfig]);
+	const isDarkMode = props.isDarkMode === true;
+	const syntaxHighlight = props.syntaxHighlight !== false;
+	const language = React.useMemo(() => {
+		if (props.language && props.language.trim().length > 0) {
+			return props.language;
+		}
+		if (props.filePath) {
+			return getLanguageFromPath(props.filePath);
+		}
+		return 'text';
+	}, [props.language, props.filePath]);
+
+	const documentEditorRef = React.useRef<HTMLTextAreaElement | null>(null);
+	const documentHighlightRef = React.useRef<HTMLDivElement | null>(null);
+
+	const syncDocumentScroll = React.useCallback(() => {
+		const editorEl = documentEditorRef.current;
+		const highlightEl = documentHighlightRef.current;
+		if (!editorEl || !highlightEl) {
+			return;
+		}
+		highlightEl.scrollTop = editorEl.scrollTop;
+		highlightEl.scrollLeft = editorEl.scrollLeft;
+	}, []);
+
+	let documentBody: React.ReactNode;
+	if (props.readOnlyDocument) {
+		if (syntaxHighlight && language !== 'text') {
+			documentBody = React.createElement(
+				SyntaxHighlighter as any,
+				{
+					language,
+					style: isDarkMode ? vscDarkPlus : vs,
+					showLineNumbers: false,
+					wrapLongLines: false,
+					customStyle: {
+						margin: 0,
+						background: 'transparent',
+						padding: 4,
+						fontSize: 12,
+						lineHeight: 1.3,
+					},
+					PreTag: 'pre',
+					CodeTag: 'code',
+					className: 'mcr-pre',
+				},
+				props.value,
+			);
+		} else {
+			documentBody = React.createElement('pre', { className: 'mcr-pre' }, props.value);
+		}
+	} else {
+		if (syntaxHighlight && language !== 'text') {
+			documentBody = React.createElement(
+				'div',
+				{ className: 'mcr-document-container' },
+				React.createElement(
+					'div',
+					{ className: 'mcr-document mcr-document-highlight', ref: documentHighlightRef },
+					React.createElement(
+						SyntaxHighlighter as any,
+						{
+							language,
+							style: isDarkMode ? vscDarkPlus : vs,
+							showLineNumbers: false,
+							wrapLongLines: false,
+							customStyle: {
+								margin: 0,
+								background: 'transparent',
+								padding: 0,
+								overflow: 'visible',
+								fontSize: 'inherit',
+								lineHeight: 'inherit',
+							},
+							PreTag: 'pre',
+							CodeTag: 'code',
+						},
+						props.value,
+					),
+				),
+				React.createElement('textarea', {
+					ref: documentEditorRef,
+					className: 'mcr-document mcr-document-editor',
+					value: props.value,
+					onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => props.onChange(e.target.value),
+					onScroll: syncDocumentScroll,
+					spellCheck: false,
+				}),
+			);
+		} else {
+			documentBody = React.createElement('textarea', {
+				className: 'mcr-document',
+				value: props.value,
+				onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => props.onChange(e.target.value),
+				spellCheck: false,
+			});
+		}
+	}
 
 	const parseResult = React.useMemo(() => parseMergeConflicts(props.value, markerConfig), [props.value, markerConfig]);
 	const conflicts = parseResult.conflicts;
@@ -160,19 +294,22 @@ export function MergeConflictResolver(props: MergeConflictResolverProps) {
 
 	rootChildren.push(
 		React.createElement('div', { className: 'mcr-toolbar', key: 'toolbar' },
-			React.createElement('div', { key: 'count', className: 'mcr-toolbar-section' }, labels.conflicts(conflicts.length)),
-			React.createElement(
-				'button',
-				{ key: 'prev', onClick: () => setActiveIndex((i: number) => Math.max(0, i - 1)), disabled: !canGoPrev, title: 'Previous Conflict (Alt+[)' },
-				'◀',
+			// Conflict navigation
+			React.createElement('div', { key: 'nav', className: 'mcr-toolbar-section' },
+				React.createElement('span', { key: 'count', style: { marginRight: '4px' } }, labels.conflicts(conflicts.length)),
+				React.createElement(
+					'button',
+					{ key: 'prev', onClick: () => setActiveIndex((i: number) => Math.max(0, i - 1)), disabled: !canGoPrev, title: 'Previous Conflict (Alt+[)' },
+					'◀',
+				),
+				React.createElement(
+					'button',
+					{ key: 'next', onClick: () => setActiveIndex((i: number) => Math.min(conflicts.length - 1, i + 1)), disabled: !canGoNext, title: 'Next Conflict (Alt+])' },
+					'▶',
+				),
 			),
-			React.createElement(
-				'button',
-				{ key: 'next', onClick: () => setActiveIndex((i: number) => Math.min(conflicts.length - 1, i + 1)), disabled: !canGoNext, title: 'Next Conflict (Alt+])' },
-				'▶',
-			),
-			React.createElement('span', { key: 'spacer', style: { flex: 1 } }),
 			
+			// View mode
 			React.createElement('div', { key: 'view-mode', className: 'mcr-toolbar-section' },
 				React.createElement(
 					'button',
@@ -180,9 +317,9 @@ export function MergeConflictResolver(props: MergeConflictResolverProps) {
 						key: 'split', 
 						onClick: () => setViewMode('split'), 
 						className: viewMode === 'split' ? 'mcr-active' : '',
-						title: labels.splitView,
+						title: 'Split View',
 					},
-					'⬌ Split',
+					'⬌',
 				),
 				React.createElement(
 					'button',
@@ -190,43 +327,50 @@ export function MergeConflictResolver(props: MergeConflictResolverProps) {
 						key: 'inline', 
 						onClick: () => setViewMode('inline'), 
 						className: viewMode === 'inline' ? 'mcr-active' : '',
-						title: labels.inlineView,
+						title: 'Inline View',
 					},
-					'☰ Inline',
+					'☰',
 				),
 			),
 			
-			React.createElement('span', { key: 'spacer2', style: { flex: 1 } }),
+			React.createElement('span', { key: 'spacer', style: { flex: 1 } }),
 			
-			React.createElement(
-				'button',
-				{ key: 'ac', onClick: () => resolveOne('current'), disabled: !activeConflict, className: 'mcr-action-current', title: 'Accept Current (Alt+C)' },
-				labels.acceptCurrent,
+			// Single conflict actions
+			React.createElement('div', { key: 'single', className: 'mcr-toolbar-section' },
+				React.createElement(
+					'button',
+					{ key: 'ac', onClick: () => resolveOne('current'), disabled: !activeConflict, className: 'mcr-action-current', title: 'Accept Current (Alt+C)' },
+					labels.acceptCurrent,
+				),
+				React.createElement(
+					'button',
+					{ key: 'ai', onClick: () => resolveOne('incoming'), disabled: !activeConflict, className: 'mcr-action-incoming', title: 'Accept Incoming (Alt+I)' },
+					labels.acceptIncoming,
+				),
+				React.createElement(
+					'button',
+					{ key: 'ab', onClick: () => resolveOne('both'), disabled: !activeConflict, className: 'mcr-action-both', title: 'Accept Both (Alt+B)' },
+					labels.acceptBoth,
+				),
 			),
-			React.createElement(
-				'button',
-				{ key: 'ai', onClick: () => resolveOne('incoming'), disabled: !activeConflict, className: 'mcr-action-incoming', title: 'Accept Incoming (Alt+I)' },
-				labels.acceptIncoming,
-			),
-			React.createElement(
-				'button',
-				{ key: 'ab', onClick: () => resolveOne('both'), disabled: !activeConflict, className: 'mcr-action-both', title: 'Accept Both (Alt+B)' },
-				labels.acceptBoth,
-			),
-			React.createElement(
-				'button',
-				{ key: 'aac', onClick: () => resolveAll('current'), disabled: conflicts.length === 0, title: labels.acceptAllCurrent },
-				'All Current',
-			),
-			React.createElement(
-				'button',
-				{ key: 'aai', onClick: () => resolveAll('incoming'), disabled: conflicts.length === 0, title: labels.acceptAllIncoming },
-				'All Incoming',
-			),
-			React.createElement(
-				'button',
-				{ key: 'aab', onClick: () => resolveAll('both'), disabled: conflicts.length === 0, title: labels.acceptAllBoth },
-				'All Both',
+			
+			// All conflicts actions
+			React.createElement('div', { key: 'all', className: 'mcr-toolbar-section' },
+				React.createElement(
+					'button',
+					{ key: 'aac', onClick: () => resolveAll('current'), disabled: conflicts.length === 0, className: 'mcr-action-current', title: labels.acceptAllCurrent },
+					labels.acceptAllCurrent,
+				),
+				React.createElement(
+					'button',
+					{ key: 'aai', onClick: () => resolveAll('incoming'), disabled: conflicts.length === 0, className: 'mcr-action-incoming', title: labels.acceptAllIncoming },
+					labels.acceptAllIncoming,
+				),
+				React.createElement(
+					'button',
+					{ key: 'aab', onClick: () => resolveAll('both'), disabled: conflicts.length === 0, className: 'mcr-action-both', title: labels.acceptAllBoth },
+					labels.acceptAllBoth,
+				),
 			),
 		),
 	);
@@ -234,7 +378,7 @@ export function MergeConflictResolver(props: MergeConflictResolverProps) {
 	if (parseResult.malformed) {
 		rootChildren.push(
 			React.createElement('div', { className: 'mcr-toolbar mcr-warning', role: 'alert', key: 'malformed' }, 
-				'⚠ ' + labels.malformedWarning),
+				labels.malformedWarning),
 		);
 	}
 
@@ -247,13 +391,34 @@ export function MergeConflictResolver(props: MergeConflictResolverProps) {
 				showLineNumbers && React.createElement('span', { className: 'mcr-line-number' }, line.lineNumber),
 				React.createElement('div', { className: 'mcr-line-content' },
 					...line.segments.map((seg, segIdx) => {
-						if (seg.type === 'equal') {
-							return React.createElement('span', { key: segIdx, className: 'mcr-segment-equal' }, seg.text);
-						} else if (seg.type === 'insert') {
-							return React.createElement('span', { key: segIdx, className: 'mcr-segment-insert' }, seg.text);
-						} else {
-							return React.createElement('span', { key: segIdx, className: 'mcr-segment-delete' }, seg.text);
+						const segClassName = seg.type === 'equal'
+							? 'mcr-segment-equal'
+							: seg.type === 'insert'
+								? 'mcr-segment-insert'
+								: 'mcr-segment-delete';
+
+						if (!syntaxHighlight || language === 'text') {
+							return React.createElement('span', { key: segIdx, className: segClassName }, seg.text);
 						}
+
+						// Highlight each segment inline. This keeps our diff/segment styling while adding syntax colors.
+						return React.createElement(
+							'span',
+							{ key: segIdx, className: segClassName },
+							React.createElement(
+								SyntaxHighlighter as any,
+								{
+									language,
+									style: isDarkMode ? vscDarkPlus : vs,
+									PreTag: 'span',
+									CodeTag: 'span',
+									customStyle: { background: 'transparent', padding: 0, margin: 0 },
+									showLineNumbers: false,
+									wrapLongLines: false,
+								},
+								seg.text,
+							),
+						);
 					}),
 				),
 			);
@@ -334,14 +499,7 @@ export function MergeConflictResolver(props: MergeConflictResolverProps) {
 	rootChildren.push(
 		React.createElement('div', { className: 'mcr-pane', key: 'document' },
 			React.createElement('div', { className: 'mcr-paneHeader' }, labels.document),
-			props.readOnlyDocument
-				? React.createElement('pre', { className: 'mcr-pre' }, props.value)
-				: React.createElement('textarea', {
-					className: 'mcr-document',
-					value: props.value,
-					onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => props.onChange(e.target.value),
-					spellCheck: false,
-				}),
+			documentBody,
 		),
 	);
 

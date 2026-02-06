@@ -15,7 +15,7 @@
 	background: var(--mcr-bg, transparent);
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: 4px;
 	min-height: 0;
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -23,13 +23,13 @@
 .mcr-toolbar {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 4px;
 	flex-wrap: wrap;
-	padding: 8px 12px;
+	padding: 4px 6px;
 	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
 	background: var(--mcr-surface, rgba(255, 255, 255, 0.03));
-	border-radius: 4px;
-	font-size: 13px;
+	border-radius: 3px;
+	font-size: 11px;
 }
 
 .mcr-toolbar.mcr-warning {
@@ -42,20 +42,21 @@
 .mcr-toolbar-section {
 	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: 2px;
 }
 
 .mcr-toolbar button {
 	background: var(--mcr-button-bg, rgba(255, 255, 255, 0.05));
 	color: inherit;
 	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
-	padding: 5px 10px;
-	border-radius: 3px;
+	padding: 3px 6px;
+	border-radius: 2px;
 	cursor: pointer;
-	font-size: 12px;
+	font-size: 11px;
 	font-family: inherit;
-	transition: all 0.15s;
+	transition: all 0.1s;
 	white-space: nowrap;
+	line-height: 1.2;
 }
 
 .mcr-toolbar button:hover:not(:disabled) {
@@ -103,21 +104,21 @@
 	flex: 1;
 	min-height: 0;
 	font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-	font-size: 13px;
-	line-height: 1.5;
+	font-size: 12px;
+	line-height: 1.3;
 	background: var(--mcr-code-bg, rgba(0, 0, 0, 0.2));
 }
 
 .mcr-line {
 	display: flex;
-	min-height: 19px;
+	min-height: 16px;
 	position: relative;
 }
 
 .mcr-line-number {
 	flex-shrink: 0;
-	width: 50px;
-	padding: 0 8px;
+	width: 40px;
+	padding: 0 4px;
 	text-align: right;
 	color: var(--mcr-line-number-color, rgba(127, 127, 127, 0.6));
 	user-select: none;
@@ -127,7 +128,7 @@
 
 .mcr-line-content {
 	flex: 1;
-	padding: 0 8px;
+	padding: 0 4px;
 	white-space: pre;
 	overflow-x: auto;
 }
@@ -173,15 +174,13 @@
 }
 
 .mcr-segment-insert {
-	background: var(--mcr-insert-text);
-	color: #000;
+	background: var(--mcr-insert-bg);
 	padding: 0 2px;
 	border-radius: 2px;
 }
 
 .mcr-segment-delete {
-	background: var(--mcr-delete-text);
-	color: #fff;
+	background: var(--mcr-delete-bg);
 	padding: 0 2px;
 	border-radius: 2px;
 	text-decoration: line-through;
@@ -198,14 +197,14 @@
 }
 
 .mcr-inline-label {
-	padding: 8px 12px;
+	padding: 4px 6px;
 	font-weight: 600;
-	font-size: 12px;
+	font-size: 11px;
 	background: var(--mcr-surface, rgba(255, 255, 255, 0.05));
 	border-bottom: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.2));
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 4px;
 }
 
 .mcr-inline-current .mcr-inline-label {
@@ -219,16 +218,16 @@
 }
 
 .mcr-inline-divider {
-	height: 2px;
+	height: 1px;
 	background: var(--mcr-border-color, rgba(127, 127, 127, 0.35));
-	margin: 4px 0;
+	margin: 2px 0;
 }
 
 /* Old pre styles for fallback */
 
 .mcr-main {
 	display: grid;
-	gap: 8px;
+	gap: 4px;
 	min-height: 0;
 	flex: 1;
 	overflow: hidden;
@@ -249,7 +248,7 @@
 	flex-direction: column;
 	min-height: 0;
 	overflow: hidden;
-	border-radius: 4px;
+	border-radius: 3px;
 }
 
 .mcr-pane-current {
@@ -265,42 +264,79 @@
 }
 
 .mcr-paneHeader {
-	padding: 8px 12px;
+	padding: 4px 6px;
 	border-bottom: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
 	font-weight: 600;
-	font-size: 13px;
+	font-size: 11px;
 	background: var(--mcr-surface, rgba(255, 255, 255, 0.03));
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 4px;
+	line-height: 1.2;
 }
 
 .mcr-branch-name {
 	font-weight: 400;
 	opacity: 0.7;
-	font-size: 12px;
+	font-size: 10px;
 }
 
 .mcr-pre {
 	margin: 0;
-	padding: 8px;
+	padding: 4px;
 	overflow: auto;
 	white-space: pre;
 	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 	font-size: 12px;
-	line-height: 1.4;
+	line-height: 1.3;
 }
 
 .mcr-document {
 	border: 1px solid var(--mcr-border-color, rgba(127, 127, 127, 0.35));
 	background: var(--mcr-surface, transparent);
-	padding: 8px;
-	min-height: 180px;
+	padding: 4px;
+	min-height: 120px;
 	resize: vertical;
 	width: 100%;
 	box-sizing: border-box;
 	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 	font-size: 12px;
-	line-height: 1.4;
+	line-height: 1.3;
 	color: inherit;
+}
+
+/* Document editor with syntax highlight overlay */
+.mcr-document-container {
+	display: grid;
+	width: 100%;
+}
+
+.mcr-document-container > * {
+	grid-area: 1 / 1;
+}
+
+.mcr-document-highlight {
+	overflow: hidden;
+	white-space: pre;
+	user-select: none;
+	pointer-events: none;
+	position: relative;
+	z-index: 0;
+}
+
+.mcr-document-highlight pre {
+	margin: 0;
+}
+
+.mcr-document-editor {
+	resize: vertical;
+	background: transparent;
+	color: transparent;
+	caret-color: inherit;
+	position: relative;
+	z-index: 1;
+}
+
+.mcr-document-editor::selection {
+	background: rgba(86, 156, 214, 0.35);
 }
