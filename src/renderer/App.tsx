@@ -262,6 +262,7 @@ const App: React.FC = () => {
           setCommits(commitsData);
           setHasMoreCommits(commitsData.length === 25);
           setBranches(branchesData);
+          bumpGraphRefresh();
         } catch (error) {
           console.error('Error refreshing selected repository:', error);
         }
@@ -398,6 +399,9 @@ const App: React.FC = () => {
       const info = await window.electronAPI.pullRepository(repoPath);
       updateRepoInfo(repoPath, info);
       await refreshSelectedRepoPanels(repoPath, info);
+      if (repoPath === selectedRepo) {
+        bumpGraphRefresh();
+      }
       message.success('Pull completed');
     } catch (error: any) {
       console.error('Pull failed:', error);
@@ -425,6 +429,9 @@ const App: React.FC = () => {
       const info = await window.electronAPI.pushRepository(repoPath, options);
       updateRepoInfo(repoPath, info);
       await refreshSelectedRepoPanels(repoPath, info);
+      if (repoPath === selectedRepo) {
+        bumpGraphRefresh();
+      }
       message.success('Push completed');
     } catch (error: any) {
       console.error('Push failed:', error);
@@ -670,6 +677,9 @@ const App: React.FC = () => {
         setBranches(branchesData);
         setLoadingBranches(false);
       }
+      
+      // Refresh git graph as changes may affect history (e.g., creating branch from stash)
+      bumpGraphRefresh();
     } catch (error) {
       console.error('Error refreshing after changes:', error);
       setLoadingBranches(false);
@@ -704,6 +714,7 @@ const App: React.FC = () => {
       const info = await window.electronAPI.checkoutBranch(selectedRepo, branchName);
       updateRepoInfo(selectedRepo, info);
       await refreshSelectedRepoPanels(selectedRepo, info);
+      bumpGraphRefresh();
       message.success(`Checked out branch: ${branchName}`);
     } catch (error: any) {
       console.error('Error checking out branch:', error);
@@ -724,6 +735,7 @@ const App: React.FC = () => {
       // If this is the selected repo, refresh panels
       if (repoPath === selectedRepo) {
         await refreshSelectedRepoPanels(repoPath, info);
+        bumpGraphRefresh();
       }
     } catch (error: any) {
       console.error('Error switching branch:', error);
@@ -740,6 +752,7 @@ const App: React.FC = () => {
       // If this is the selected repo, refresh panels
       if (repoPath === selectedRepo) {
         await refreshSelectedRepoPanels(repoPath, info);
+        bumpGraphRefresh();
       }
     } catch (error: any) {
       console.error('Error stashing and switching branch:', error);
@@ -755,6 +768,7 @@ const App: React.FC = () => {
       // If this is the selected repo, refresh panels
       if (repoPath === selectedRepo) {
         await refreshSelectedRepoPanels(repoPath, info);
+        bumpGraphRefresh();
       }
     } catch (error: any) {
       console.error('Error discarding and switching branch:', error);
@@ -779,6 +793,7 @@ const App: React.FC = () => {
       setBranches(branchesData);
       
       await refreshSelectedRepoPanels(selectedRepo, info);
+      bumpGraphRefresh();
       message.success(`Merged branch: ${branchName}`);
       
       // Check if merge created conflicts
@@ -810,6 +825,7 @@ const App: React.FC = () => {
       setBranches(branchesData);
       setCurrentBranch(info.currentBranch);
       updateRepoInfo(selectedRepo, info);
+      bumpGraphRefresh();
     } catch (error: any) {
       console.error('Error refreshing branches:', error);
       message.error('Failed to refresh branches');
@@ -839,6 +855,7 @@ const App: React.FC = () => {
       const info = await window.electronAPI.getRepositoryInfo(selectedRepo);
       updateRepoInfo(selectedRepo, info);
       await refreshSelectedRepoPanels(selectedRepo, info);
+      bumpGraphRefresh();
     } catch (error) {
       console.error('Error refreshing after conflict resolution:', error);
     }
