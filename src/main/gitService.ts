@@ -2918,11 +2918,23 @@ export async function startInteractiveRebase(
     const rebaseTodoBackup = path.join(repoPath, '.git', 'GITLOOM_REBASE_TODO');
     fs.writeFileSync(rebaseTodoBackup, todoLines, 'utf-8');
     
+    // Create a map of commit hashes to new messages for reword actions
+    const rewordMessages = new Map<string, string>();
+    for (const commit of rebasePlan) {
+      if (commit.action === 'reword') {
+        rewordMessages.set(commit.hash, commit.message);
+      }
+    }
+    const rewordMessagesPath = path.join(repoPath, '.git', 'GITLOOM_REWORD_MESSAGES.json');
+    fs.writeFileSync(rewordMessagesPath, JSON.stringify(Object.fromEntries(rewordMessages)), 'utf-8');
+    
     // Create a script that will copy our plan to the git-rebase-todo file.
     // This script will be used as GIT_SEQUENCE_EDITOR.
     const isWindows = process.platform === 'win32';
     let editorScript: string;
     let editorScriptPath: string;
+    let commitEditorScript: string;
+    let commitEditorScriptPath: string;
     
     if (isWindows) {
       // Git for Windows executes sequence editors via sh, and raw `D:\...\file.bat`
@@ -2934,11 +2946,48 @@ export async function startInteractiveRebase(
         'Copy-Item -LiteralPath $src -Destination $TodoPath -Force | Out-Null'
       ].join('\r\n') + '\r\n';
       fs.writeFileSync(editorScriptPath, editorScript, 'utf-8');
+      
+      // Create commit message editor for reword actions
+      commitEditorScriptPath = path.join(repoPath, '.git', 'GITLOOM_COMMIT_EDITOR.ps1');
+      commitEditorScript = [
+        'param([Parameter(Mandatory=$true)][string]$MessagePath)',
+        `$messagesFile = '${rewordMessagesPath.replace(/'/g, "''")}'`,
+        'if (Test-Path $messagesFile) {',
+        '  $messages = Get-Content $messagesFile -Raw | ConvertFrom-Json',
+        '  $currentMsg = Get-Content $MessagePath -Raw',
+        '  # Extract commit hash from the message file (Git includes it as a comment)',
+        '  if ($currentMsg -match "#.*commit ([0-9a-f]{40})") {',
+        '    $hash = $matches[1]',
+        '    if ($messages.$hash) {',
+        '      Set-Content -Path $MessagePath -Value $messages.$hash -NoNewline',
+        '    }',
+        '  }',
+        '}'
+      ].join('\r\n') + '\r\n';
+      fs.writeFileSync(commitEditorScriptPath, commitEditorScript, 'utf-8');
     } else {
       editorScriptPath = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
       editorScript = `#!/bin/sh\ncp "${rebaseTodoBackup}" "$1"`;
       fs.writeFileSync(editorScriptPath, editorScript, 'utf-8');
       fs.chmodSync(editorScriptPath, '755');
+      
+      // Create commit message editor for reword actions
+      commitEditorScriptPath = path.join(repoPath, '.git', 'GITLOOM_COMMIT_EDITOR.sh');
+      commitEditorScript = [
+        '#!/bin/sh',
+        `if [ -f "${rewordMessagesPath}" ]; then`,
+        '  # Extract commit hash from message file',
+        '  hash=$(grep -oP "commit \\K[0-9a-f]{40}" "$1" | head -1)',
+        '  if [ -n "$hash" ]; then',
+        `    newmsg=$(jq -r ".\"$hash\"" "${rewordMessagesPath}" 2>/dev/null)`,
+        '    if [ "$newmsg" != "null" ] && [ -n "$newmsg" ]; then',
+        '      echo "$newmsg" > "$1"',
+        '    fi',
+        '  fi',
+        'fi'
+      ].join('\n');
+      fs.writeFileSync(commitEditorScriptPath, commitEditorScript, 'utf-8');
+      fs.chmodSync(commitEditorScriptPath, '755');
     }
     
     const rebaseMergePath = path.join(repoPath, '.git', 'rebase-merge');
@@ -2949,10 +2998,15 @@ export async function startInteractiveRebase(
       const sequenceEditor = isWindows
         ? `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${editorScriptPath}"`
         : editorScriptPath;
+      
+      const commitEditor = isWindows
+        ? `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${commitEditorScriptPath}"`
+        : commitEditorScriptPath;
 
       await git.env({
         ...process.env,
-        GIT_SEQUENCE_EDITOR: sequenceEditor
+        GIT_SEQUENCE_EDITOR: sequenceEditor,
+        GIT_EDITOR: commitEditor
       }).raw([
         'rebase',
         '-i',
@@ -2972,6 +3026,12 @@ export async function startInteractiveRebase(
       if (fs.existsSync(editorScriptPath)) {
         fs.unlinkSync(editorScriptPath);
       }
+      if (fs.existsSync(commitEditorScriptPath)) {
+        fs.unlinkSync(commitEditorScriptPath);
+      }
+      if (fs.existsSync(rewordMessagesPath)) {
+        fs.unlinkSync(rewordMessagesPath);
+      }
       
       return {
         inProgress: false,
@@ -2990,6 +3050,18 @@ export async function startInteractiveRebase(
         }
         if (fs.existsSync(editorScriptPath)) {
           fs.unlinkSync(editorScriptPath);
+        }
+        const commitEditorPs1 = path.join(repoPath, '.git', 'GITLOOM_COMMIT_EDITOR.ps1');
+        if (fs.existsSync(commitEditorPs1)) {
+          fs.unlinkSync(commitEditorPs1);
+        }
+        const commitEditorSh = path.join(repoPath, '.git', 'GITLOOM_COMMIT_EDITOR.sh');
+        if (fs.existsSync(commitEditorSh)) {
+          fs.unlinkSync(commitEditorSh);
+        }
+        const rewordMsgs = path.join(repoPath, '.git', 'GITLOOM_REWORD_MESSAGES.json');
+        if (fs.existsSync(rewordMsgs)) {
+          fs.unlinkSync(rewordMsgs);
         }
 
         throw rebaseError;
@@ -3171,6 +3243,21 @@ export async function continueRebase(repoPath: string): Promise<RebaseStatus> {
         const editorScriptSh = path.join(repoPath, '.git', 'GITLOOM_EDITOR.sh');
         if (fs.existsSync(editorScriptSh)) {
           fs.unlinkSync(editorScriptSh);
+        }
+        
+        const commitEditorPs1 = path.join(repoPath, '.git', 'GITLOOM_COMMIT_EDITOR.ps1');
+        if (fs.existsSync(commitEditorPs1)) {
+          fs.unlinkSync(commitEditorPs1);
+        }
+        
+        const commitEditorSh = path.join(repoPath, '.git', 'GITLOOM_COMMIT_EDITOR.sh');
+        if (fs.existsSync(commitEditorSh)) {
+          fs.unlinkSync(commitEditorSh);
+        }
+        
+        const rewordMessages = path.join(repoPath, '.git', 'GITLOOM_REWORD_MESSAGES.json');
+        if (fs.existsSync(rewordMessages)) {
+          fs.unlinkSync(rewordMessages);
         }
       }
 

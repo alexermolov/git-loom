@@ -1,6 +1,8 @@
 import {
   ArrowLeftOutlined,
   ColumnWidthOutlined,
+  FullscreenOutlined,
+  FullscreenExitOutlined,
   MenuOutlined,
   ThunderboltOutlined,
   WarningOutlined,
@@ -51,6 +53,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   const [resolving, setResolving] = useState(false);
   const [editingContent, setEditingContent] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [diffViewMode, setDiffViewMode] = useState<
     "side-by-side" | "line-by-line"
   >("side-by-side");
@@ -648,8 +651,23 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             backgroundColor: "var(--bg-secondary)",
             overflow: "hidden",
             maxHeight: "calc(100vh - 300px)",
+            position: "relative",
           }}
         >
+          <Tooltip title="Expand to fullscreen">
+            <Button
+              icon={<FullscreenOutlined />}
+              size="small"
+              type="text"
+              onClick={() => setIsFullscreen(true)}
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                zIndex: 10,
+              }}
+            />
+          </Tooltip>
           <div
             style={
               {
@@ -742,16 +760,24 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
         }}
       />
 
-      {/* Manual edit modal */}
+      {/* Manual edit modal with syntax highlighting */}
       <Modal
         title="Manually Resolve Conflicts"
         open={showEditModal}
         onCancel={() => setShowEditModal(false)}
         onOk={handleSaveManualResolve}
-        width={800}
+        width="90%"
+        style={{ maxWidth: 1400 }}
         confirmLoading={resolving}
         okText="Save & Stage"
         cancelText="Cancel"
+        styles={{
+          body: {
+            height: "calc(100vh - 250px)",
+            maxHeight: 800,
+            overflow: "hidden",
+          },
+        }}
       >
         <div
           style={{
@@ -763,21 +789,71 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           Edit the file content below to resolve conflicts manually. When saved,
           the file will be staged automatically.
         </div>
-        <textarea
-          value={editingContent || ""}
-          onChange={(e) => setEditingContent(e.target.value)}
+        <div
           style={{
-            width: "100%",
-            height: 400,
-            fontFamily: 'Consolas, Monaco, "Courier New", monospace',
-            fontSize: 13,
-            padding: 8,
-            border: "1px solid var(--border-color)",
-            borderRadius: 4,
-            backgroundColor: "var(--bg-secondary)",
-            color: "var(--text-primary)",
-          }}
-        />
+            height: "calc(100% - 40px)",
+            overflow: "hidden",
+            // Feed the resolver CSS vars using existing theme primitives.
+            ["--mcr-text" as any]: "var(--text-primary)",
+            ["--mcr-bg" as any]: "var(--bg-secondary)",
+            ["--mcr-surface" as any]: "var(--bg-primary)",
+            ["--mcr-border-color" as any]: "var(--border-color)",
+          } as React.CSSProperties}
+        >
+          <MergeConflictResolver
+            value={editingContent ?? ""}
+            onChange={(nextValue) => setEditingContent(nextValue)}
+            showCommonAncestors
+            filePath={diff?.path || filePath || ""}
+            isDarkMode={isDarkMode}
+            showLineNumbers={true}
+          />
+        </div>
+      </Modal>
+
+      {/* Fullscreen conflict resolver modal */}
+      <Modal
+        title={
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span>Resolve Conflicts - {diff?.path || filePath}</span>
+          </div>
+        }
+        open={isFullscreen}
+        onCancel={() => setIsFullscreen(false)}
+        onOk={handleSaveManualResolve}
+        width="100vw"
+        style={{ top: 0, maxWidth: "100vw", paddingBottom: 0 }}
+        confirmLoading={resolving}
+        okText="Save & Stage"
+        cancelText="Close"
+        styles={{
+          body: {
+            height: "calc(100vh - 110px)",
+            overflow: "hidden",
+            padding: "12px 24px",
+          },
+        }}
+      >
+        <div
+          style={{
+            height: "100%",
+            overflow: "hidden",
+            // Feed the resolver CSS vars using existing theme primitives.
+            ["--mcr-text" as any]: "var(--text-primary)",
+            ["--mcr-bg" as any]: "var(--bg-secondary)",
+            ["--mcr-surface" as any]: "var(--bg-primary)",
+            ["--mcr-border-color" as any]: "var(--border-color)",
+          } as React.CSSProperties}
+        >
+          <MergeConflictResolver
+            value={editingContent ?? ""}
+            onChange={(nextValue) => setEditingContent(nextValue)}
+            showCommonAncestors
+            filePath={diff?.path || filePath || ""}
+            isDarkMode={isDarkMode}
+            showLineNumbers={true}
+          />
+        </div>
       </Modal>
     </div>
   );

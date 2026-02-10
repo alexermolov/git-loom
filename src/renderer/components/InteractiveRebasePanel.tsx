@@ -327,14 +327,14 @@ const InteractiveRebasePanel: React.FC<InteractiveRebasePanelProps> = ({
     if (!editingCommit) return;
 
     const newCommits = commits.map((c) =>
-      c.hash === editingCommit.hash ? { ...c, message: newCommitMessage } : c,
+      c.hash === editingCommit.hash ? { ...c, message: newCommitMessage, action: 'reword' as const } : c,
     );
 
     setCommits(newCommits);
     setShowEditMessageModal(false);
     setEditingCommit(null);
     setNewCommitMessage("");
-    message.success("Commit message updated");
+    message.success("Commit message updated (will use 'reword' action)");
   };
 
   const handleSquashWith = (index: number) => {
