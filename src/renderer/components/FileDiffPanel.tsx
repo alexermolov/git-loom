@@ -1,10 +1,13 @@
 import {
   ArrowLeftOutlined,
+  BarsOutlined,
   ColumnWidthOutlined,
+  ControlOutlined,
   FullscreenOutlined,
   FullscreenExitOutlined,
   MenuOutlined,
   ThunderboltOutlined,
+  UnorderedListOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
 import {
@@ -57,7 +60,20 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   const [diffViewMode, setDiffViewMode] = useState<
     "side-by-side" | "line-by-line"
   >("side-by-side");
+  const [conflictDisplayMode, setConflictDisplayMode] = useState<
+    "list" | "navigation"
+  >("navigation");
   const diffContainerRef = useRef<HTMLDivElement>(null);
+
+  // Helper function to check if content has unresolved conflict markers
+  const hasUnresolvedConflicts = (content: string | null): boolean => {
+    if (!content) return false;
+    return (
+      content.includes("<<<<<<<") &&
+      content.includes("=======") &&
+      content.includes(">>>>>>>")
+    );
+  };
 
   useEffect(() => {
     // Clear stale conflict state immediately when switching files
@@ -105,9 +121,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
       );
       await loadConflicts();
       if (onRefresh) onRefresh();
-      
+
       // Check if all conflicts are resolved and trigger callback
-      const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+      const remainingConflicts =
+        await window.electronAPI.getConflictedFiles(repoPath);
       if (remainingConflicts.length === 0 && onAllConflictsResolved) {
         onAllConflictsResolved();
       }
@@ -140,9 +157,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           message.success(`All conflicts resolved using "${resolution}"`);
           await loadConflicts();
           if (onRefresh) onRefresh();
-          
+
           // Check if all conflicts are resolved and trigger callback
-          const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+          const remainingConflicts =
+            await window.electronAPI.getConflictedFiles(repoPath);
           if (remainingConflicts.length === 0 && onAllConflictsResolved) {
             onAllConflictsResolved();
           }
@@ -163,6 +181,14 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   const handleSaveManualResolve = async () => {
     if (!repoPath || !filePath || !editingContent) return;
 
+    // Check for unresolved conflict markers before saving
+    if (hasUnresolvedConflicts(editingContent)) {
+      message.error(
+        "Cannot save: File still contains unresolved conflict markers (<<<<<<<, =======, >>>>>>>)",
+      );
+      return;
+    }
+
     setResolving(true);
     try {
       await window.electronAPI.resolveConflictManual(
@@ -174,9 +200,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
       setShowEditModal(false);
       await loadConflicts();
       if (onRefresh) onRefresh();
-      
+
       // Check if all conflicts are resolved and trigger callback
-      const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+      const remainingConflicts =
+        await window.electronAPI.getConflictedFiles(repoPath);
       if (remainingConflicts.length === 0 && onAllConflictsResolved) {
         onAllConflictsResolved();
       }
@@ -197,9 +224,10 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
       setTimeout(async () => {
         await loadConflicts();
         if (onRefresh) onRefresh();
-        
+
         // Check if all conflicts are resolved and trigger callback
-        const remainingConflicts = await window.electronAPI.getConflictedFiles(repoPath);
+        const remainingConflicts =
+          await window.electronAPI.getConflictedFiles(repoPath);
         if (remainingConflicts.length === 0 && onAllConflictsResolved) {
           onAllConflictsResolved();
         }
@@ -214,7 +242,8 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     if (!text) return false;
     // Prefer strong signals to avoid mis-detecting frontmatter like "---" in markdown.
     const hasDiffGitHeader = /^diff --git\s/m.test(text);
-    const hasClassicHeaders = /^---\s+a\//m.test(text) && /^\+\+\+\s+b\//m.test(text);
+    const hasClassicHeaders =
+      /^---\s+a\//m.test(text) && /^\+\+\+\s+b\//m.test(text);
     const hasHunks = /^@@\s/m.test(text);
     return hasDiffGitHeader || hasClassicHeaders || hasHunks;
   };
@@ -323,14 +352,18 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           margin: "8px 0",
           border: "1px solid rgba(250, 173, 20, 0.4)",
           borderRadius: 4,
-          backgroundColor: isDarkMode ? "rgba(250, 173, 20, 0.05)" : "rgba(250, 173, 20, 0.02)",
+          backgroundColor: isDarkMode
+            ? "rgba(250, 173, 20, 0.05)"
+            : "rgba(250, 173, 20, 0.02)",
           overflow: "hidden",
         }}
       >
         <div
           style={{
             padding: "4px 8px",
-            backgroundColor: isDarkMode ? "rgba(250, 173, 20, 0.15)" : "rgba(250, 173, 20, 0.12)",
+            backgroundColor: isDarkMode
+              ? "rgba(250, 173, 20, 0.15)"
+              : "rgba(250, 173, 20, 0.12)",
             color: "var(--text-primary)",
             display: "flex",
             alignItems: "center",
@@ -340,9 +373,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
         >
           <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <WarningOutlined style={{ fontSize: "12px", color: "#faad14" }} />
-            <span style={{ fontWeight: 500 }}>
-              #{conflictIndex + 1}
-            </span>
+            <span style={{ fontWeight: 500 }}>#{conflictIndex + 1}</span>
           </div>
           <Space size={4}>
             <Tooltip title="Accept your changes (HEAD)">
@@ -384,12 +415,22 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
         <div style={{ padding: 6 }}>
           {/* Current (HEAD) section */}
           <div style={{ marginBottom: 4 }}>
-            <Tag color="blue" style={{ marginBottom: 4, fontSize: "11px", padding: "0 4px", lineHeight: "18px" }}>
+            <Tag
+              color="blue"
+              style={{
+                marginBottom: 4,
+                fontSize: "11px",
+                padding: "0 4px",
+                lineHeight: "18px",
+              }}
+            >
               Current (HEAD)
             </Tag>
             <div
               style={{
-                backgroundColor: isDarkMode ? "rgba(82, 196, 26, 0.08)" : "rgba(82, 196, 26, 0.06)",
+                backgroundColor: isDarkMode
+                  ? "rgba(82, 196, 26, 0.08)"
+                  : "rgba(82, 196, 26, 0.06)",
                 padding: 4,
                 borderRadius: 3,
                 border: "1px solid rgba(82, 196, 26, 0.3)",
@@ -414,12 +455,22 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           {/* Base section (if available) */}
           {conflict.baseContent && (
             <div style={{ marginBottom: 4 }}>
-              <Tag color="default" style={{ marginBottom: 4, fontSize: "11px", padding: "0 4px", lineHeight: "18px" }}>
+              <Tag
+                color="default"
+                style={{
+                  marginBottom: 4,
+                  fontSize: "11px",
+                  padding: "0 4px",
+                  lineHeight: "18px",
+                }}
+              >
                 Base
               </Tag>
               <div
                 style={{
-                  backgroundColor: isDarkMode ? "rgba(217, 217, 217, 0.05)" : "rgba(0, 0, 0, 0.02)",
+                  backgroundColor: isDarkMode
+                    ? "rgba(217, 217, 217, 0.05)"
+                    : "rgba(0, 0, 0, 0.02)",
                   padding: 4,
                   borderRadius: 3,
                   border: "1px solid rgba(217, 217, 217, 0.3)",
@@ -444,12 +495,22 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
 
           {/* Incoming section */}
           <div>
-            <Tag color="orange" style={{ marginBottom: 4, fontSize: "11px", padding: "0 4px", lineHeight: "18px" }}>
+            <Tag
+              color="orange"
+              style={{
+                marginBottom: 4,
+                fontSize: "11px",
+                padding: "0 4px",
+                lineHeight: "18px",
+              }}
+            >
               Incoming
             </Tag>
             <div
               style={{
-                backgroundColor: isDarkMode ? "rgba(250, 173, 20, 0.08)" : "rgba(250, 173, 20, 0.06)",
+                backgroundColor: isDarkMode
+                  ? "rgba(250, 173, 20, 0.08)"
+                  : "rgba(250, 173, 20, 0.06)",
                 padding: 4,
                 borderRadius: 3,
                 border: "1px solid rgba(250, 173, 20, 0.3)",
@@ -632,8 +693,47 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
         )}
       </div>
 
-      {/* Show conflict blocks if available */}
+      {/* Conflict display mode toggle */}
       {hasConflicts && (
+        <div style={{ marginBottom: 12 }}>
+          <Space>
+            <span style={{ fontSize: 13, color: "var(--text-secondary)" }}>
+              Display mode:
+            </span>
+            <Segmented
+              value={conflictDisplayMode}
+              onChange={(value) =>
+                setConflictDisplayMode(value as "list" | "navigation")
+              }
+              options={[
+                {
+                  label: (
+                    <Tooltip title="Interactive navigation with side-by-side comparison">
+                      <span>
+                        <ControlOutlined /> Navigation
+                      </span>
+                    </Tooltip>
+                  ),
+                  value: "navigation",
+                },
+                {
+                  label: (
+                    <Tooltip title="Show all conflicts in a scrollable list">
+                      <span>
+                        <UnorderedListOutlined /> List
+                      </span>
+                    </Tooltip>
+                  ),
+                  value: "list",
+                },
+              ]}
+            />
+          </Space>
+        </div>
+      )}
+
+      {/* Show conflict blocks if available (List View) */}
+      {hasConflicts && conflictDisplayMode === "list" && (
         <div style={{ marginBottom: 16 }}>
           {conflictInfo.conflicts.map((conflict, index) =>
             renderConflictBlock(conflict, index),
@@ -641,8 +741,8 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
         </div>
       )}
 
-      {/* Interactive merge conflict resolver (shown instead of diff when conflicts exist) */}
-      {hasConflicts && (
+      {/* Interactive merge conflict resolver (Navigation View) */}
+      {hasConflicts && conflictDisplayMode === "navigation" && (
         <div
           style={{
             marginBottom: 16,
@@ -686,6 +786,8 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
               showCommonAncestors
               filePath={diff.path}
               isDarkMode={isDarkMode}
+              showLineNumbers={true}
+              syntaxHighlight={true}
             />
           </div>
         </div>
@@ -789,16 +891,42 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           Edit the file content below to resolve conflicts manually. When saved,
           the file will be staged automatically.
         </div>
+        {hasUnresolvedConflicts(editingContent) && (
+          <div
+            style={{
+              marginBottom: 12,
+              padding: "8px 12px",
+              backgroundColor: "rgba(255, 77, 79, 0.1)",
+              border: "1px solid #ff4d4f",
+              borderRadius: 4,
+              color: "#ff4d4f",
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <WarningOutlined />
+            <span>
+              <strong>Warning:</strong> File contains unresolved conflict
+              markers. Remove all conflict markers (
+              <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>,{" "}
+              <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>) before saving.
+            </span>
+          </div>
+        )}
         <div
-          style={{
-            height: "calc(100% - 40px)",
-            overflow: "hidden",
-            // Feed the resolver CSS vars using existing theme primitives.
-            ["--mcr-text" as any]: "var(--text-primary)",
-            ["--mcr-bg" as any]: "var(--bg-secondary)",
-            ["--mcr-surface" as any]: "var(--bg-primary)",
-            ["--mcr-border-color" as any]: "var(--border-color)",
-          } as React.CSSProperties}
+          style={
+            {
+              height: "calc(100% - 40px)",
+              overflow: "hidden",
+              // Feed the resolver CSS vars using existing theme primitives.
+              ["--mcr-text" as any]: "var(--text-primary)",
+              ["--mcr-bg" as any]: "var(--bg-secondary)",
+              ["--mcr-surface" as any]: "var(--bg-primary)",
+              ["--mcr-border-color" as any]: "var(--border-color)",
+            } as React.CSSProperties
+          }
         >
           <MergeConflictResolver
             value={editingContent ?? ""}
@@ -807,6 +935,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             filePath={diff?.path || filePath || ""}
             isDarkMode={isDarkMode}
             showLineNumbers={true}
+            syntaxHighlight={true}
           />
         </div>
       </Modal>
@@ -834,16 +963,42 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           },
         }}
       >
+        {hasUnresolvedConflicts(editingContent) && (
+          <div
+            style={{
+              marginBottom: 12,
+              padding: "8px 12px",
+              backgroundColor: "rgba(255, 77, 79, 0.1)",
+              border: "1px solid #ff4d4f",
+              borderRadius: 4,
+              color: "#ff4d4f",
+              fontSize: 13,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <WarningOutlined />
+            <span>
+              <strong>Warning:</strong> File contains unresolved conflict
+              markers. Remove all conflict markers (
+              <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>,{" "}
+              <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>) before saving.
+            </span>
+          </div>
+        )}
         <div
-          style={{
-            height: "100%",
-            overflow: "hidden",
-            // Feed the resolver CSS vars using existing theme primitives.
-            ["--mcr-text" as any]: "var(--text-primary)",
-            ["--mcr-bg" as any]: "var(--bg-secondary)",
-            ["--mcr-surface" as any]: "var(--bg-primary)",
-            ["--mcr-border-color" as any]: "var(--border-color)",
-          } as React.CSSProperties}
+          style={
+            {
+              height: "100%",
+              overflow: "hidden",
+              // Feed the resolver CSS vars using existing theme primitives.
+              ["--mcr-text" as any]: "var(--text-primary)",
+              ["--mcr-bg" as any]: "var(--bg-secondary)",
+              ["--mcr-surface" as any]: "var(--bg-primary)",
+              ["--mcr-border-color" as any]: "var(--border-color)",
+            } as React.CSSProperties
+          }
         >
           <MergeConflictResolver
             value={editingContent ?? ""}
@@ -852,6 +1007,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             filePath={diff?.path || filePath || ""}
             isDarkMode={isDarkMode}
             showLineNumbers={true}
+            syntaxHighlight={true}
           />
         </div>
       </Modal>

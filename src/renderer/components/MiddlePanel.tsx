@@ -43,7 +43,10 @@ interface MiddlePanelProps {
   branches?: BranchInfo[];
   currentBranch?: string;
   onCheckoutBranch?: (branchName: string) => void;
-  onMergeBranch?: (branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => void;
+  onMergeBranch?: (
+    branchName: string,
+    mergeMode?: "auto" | "no-ff" | "ff-only",
+  ) => void;
   onBranchesRefresh?: () => void;
 
   // Commit files view
@@ -66,6 +69,7 @@ interface MiddlePanelProps {
   onConflictFileClick?: (filePath: string) => void;
   onConflictsRefresh?: () => void;
   onAllConflictsResolved?: () => void;
+  conflictRefreshToken?: number;
 
   // Loading states
   loadingBranches?: boolean;
@@ -120,6 +124,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   onConflictFileClick,
   onConflictsRefresh,
   onAllConflictsResolved,
+  conflictRefreshToken,
   loadingBranches = false,
   loadingReflog = false,
   loadingStash = false,
@@ -208,7 +213,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               onRefresh={onChangesRefresh}
               onHistoryChanged={onHistoryChanged}
               onFileClick={onChangedFileClick}
-              isActive={view === 'changes'}
+              isActive={view === "changes"}
             />
           </div>
         );
@@ -454,6 +459,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               onRefresh={onConflictsRefresh}
               onAllConflictsResolved={onAllConflictsResolved}
               loading={loadingConflicts}
+              refreshToken={conflictRefreshToken}
             />
           </div>
         );
@@ -472,7 +478,10 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
 
       case "search":
         return (
-          <div className="middle-panel-content" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div
+            className="middle-panel-content"
+            style={{ height: "100%", display: "flex", flexDirection: "column" }}
+          >
             <SearchCommitsPanel
               selectedRepo={repoPath}
               repositories={repositories || new Map()}

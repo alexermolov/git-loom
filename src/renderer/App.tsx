@@ -1,42 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { App as AntApp, Button, message, Modal, Spin } from 'antd';
-import { FolderOpenOutlined } from '@ant-design/icons';
-import { useTheme } from './ThemeContext';
-import Sidebar from './components/Sidebar';
-import IconSidebar, { ViewType } from './components/IconSidebar';
-import MiddlePanel from './components/MiddlePanel';
-import FileDiffPanel from './components/FileDiffPanel';
-import FileEditorPanel from './components/FileEditorPanel';
-import GitGraphView from './components/GitGraphView';
-import ReflogPanel from './components/ReflogPanel';
-import StashDetailsPanel from './components/StashDetailsPanel';
-import SearchPanel from './components/SearchPanel';
-import RemoteManagementPanel from './components/RemoteManagementPanel';
-import TagsPanel from './components/TagsPanel';
-import InteractiveRebasePanel from './components/InteractiveRebasePanel';
-import { RepositoryInfo, CommitInfo, BranchInfo, CommitFile, FileDiff, FileStatus, ReflogEntry, StashEntry, SearchResult } from './types';
+import { FolderOpenOutlined } from "@ant-design/icons";
+import { App as AntApp, Button, message, Spin } from "antd";
+import React, { useEffect, useState } from "react";
+import { useTheme } from "./ThemeContext";
+import FileDiffPanel from "./components/FileDiffPanel";
+import FileEditorPanel from "./components/FileEditorPanel";
+import GitGraphView from "./components/GitGraphView";
+import IconSidebar, { ViewType } from "./components/IconSidebar";
+import InteractiveRebasePanel from "./components/InteractiveRebasePanel";
+import MiddlePanel from "./components/MiddlePanel";
+import ReflogPanel from "./components/ReflogPanel";
+import RemoteManagementPanel from "./components/RemoteManagementPanel";
+import Sidebar from "./components/Sidebar";
+import StashDetailsPanel from "./components/StashDetailsPanel";
+import TagsPanel from "./components/TagsPanel";
+import {
+  BranchInfo,
+  CommitFile,
+  CommitInfo,
+  FileDiff,
+  FileStatus,
+  ReflogEntry,
+  RepositoryInfo,
+  SearchResult,
+  StashEntry,
+} from "./types";
 
 const App: React.FC = () => {
   const { modal } = AntApp.useApp();
-  const [repositories, setRepositories] = useState<Map<string, RepositoryInfo>>(new Map());
+  const [repositories, setRepositories] = useState<Map<string, RepositoryInfo>>(
+    new Map(),
+  );
   const [selectedRepo, setSelectedRepo] = useState<string | null>(null);
   const [commits, setCommits] = useState<CommitInfo[]>([]);
   const [hasMoreCommits, setHasMoreCommits] = useState(false);
   const [loadingMoreCommits, setLoadingMoreCommits] = useState(false);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
-  const [currentBranch, setCurrentBranch] = useState<string>('');
+  const [currentBranch, setCurrentBranch] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [scanningRepos, setScanningRepos] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [repoOps, setRepoOps] = useState<Record<string, 'pull' | 'push' | undefined>>({});
-  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0 });
-  
+  const [repoOps, setRepoOps] = useState<
+    Record<string, "pull" | "push" | undefined>
+  >({});
+  const [loadingProgress, setLoadingProgress] = useState({
+    current: 0,
+    total: 0,
+  });
+
   // Use theme context
   const { isDarkMode, toggleTheme } = useTheme();
-  
+
   // New three-panel state management
-  const [activeView, setActiveView] = useState<ViewType>('commits');
-  const [mainPanelView, setMainPanelView] = useState<'graph' | 'diff' | 'editor'>('graph');
+  const [activeView, setActiveView] = useState<ViewType>("commits");
+  const [mainPanelView, setMainPanelView] = useState<
+    "graph" | "diff" | "editor"
+  >("graph");
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null);
   const [commitFiles, setCommitFiles] = useState<CommitFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<CommitFile | null>(null);
@@ -47,10 +65,13 @@ const App: React.FC = () => {
   const [conflictCount, setConflictCount] = useState(0);
   const [selectedStash, setSelectedStash] = useState<StashEntry | null>(null);
   const [graphRefreshToken, setGraphRefreshToken] = useState(0);
-  
+  const [conflictRefreshToken, setConflictRefreshToken] = useState(0);
+
   // File explorer state
-  const [selectedExplorerFile, setSelectedExplorerFile] = useState<string | null>(null);
-  
+  const [selectedExplorerFile, setSelectedExplorerFile] = useState<
+    string | null
+  >(null);
+
   // Loading states for different panels
   const [loadingBranches, setLoadingBranches] = useState(false);
   const [loadingReflog, setLoadingReflog] = useState(false);
@@ -58,12 +79,13 @@ const App: React.FC = () => {
   const [loadingConflicts, setLoadingConflicts] = useState(false);
 
   // Search view state
-  const [selectedSearchCommit, setSelectedSearchCommit] = useState<SearchResult | null>(null);
+  const [selectedSearchCommit, setSelectedSearchCommit] =
+    useState<SearchResult | null>(null);
   const [searchCommitFiles, setSearchCommitFiles] = useState<CommitFile[]>([]);
 
   // Load saved panel width
   useEffect(() => {
-    const savedWidth = localStorage.getItem('middlePanelWidth');
+    const savedWidth = localStorage.getItem("middlePanelWidth");
     if (savedWidth) {
       setMiddlePanelWidth(parseInt(savedWidth, 10));
     }
@@ -72,54 +94,61 @@ const App: React.FC = () => {
   const handleMiddlePanelResize = (newWidth: number) => {
     const clampedWidth = Math.max(200, Math.min(800, newWidth));
     setMiddlePanelWidth(clampedWidth);
-    localStorage.setItem('middlePanelWidth', clampedWidth.toString());
+    localStorage.setItem("middlePanelWidth", clampedWidth.toString());
   };
 
   // Auto-load last folder on startup
   useEffect(() => {
     const loadLastFolder = async () => {
-      const lastFolderPath = localStorage.getItem('lastFolderPath');
+      const lastFolderPath = localStorage.getItem("lastFolderPath");
       if (lastFolderPath) {
         setScanningRepos(true);
         try {
-          const repoPaths = await window.electronAPI.scanRepositories(lastFolderPath);
+          const repoPaths =
+            await window.electronAPI.scanRepositories(lastFolderPath);
           if (repoPaths.length > 0) {
             const newRepos = new Map<string, RepositoryInfo>();
             setLoadingProgress({ current: 0, total: repoPaths.length });
-            
+
             // Параллельная загрузка всех репозиториев
             const loadPromises = repoPaths.map(async (repoPath, index) => {
               try {
-                const info = await window.electronAPI.getRepositoryInfo(repoPath);
+                const info =
+                  await window.electronAPI.getRepositoryInfo(repoPath);
                 return { repoPath, info, index };
               } catch (error) {
                 console.error(`Failed to load info for ${repoPath}:`, error);
                 return { repoPath, info: null, index };
               }
             });
-            
+
             // Отслеживаем прогресс по мере завершения промисов
             let completed = 0;
             const results = await Promise.all(
-              loadPromises.map(p => p.then(result => {
-                completed++;
-                setLoadingProgress({ current: completed, total: repoPaths.length });
-                return result;
-              }))
+              loadPromises.map((p) =>
+                p.then((result) => {
+                  completed++;
+                  setLoadingProgress({
+                    current: completed,
+                    total: repoPaths.length,
+                  });
+                  return result;
+                }),
+              ),
             );
-            
+
             // Добавляем успешно загруженные репозитории
             results.forEach(({ repoPath, info }) => {
               if (info) {
                 newRepos.set(repoPath, info);
               }
             });
-            
+
             setRepositories(newRepos);
             setLoadingProgress({ current: 0, total: 0 });
           }
         } catch (error) {
-          console.error('Error loading last folder:', error);
+          console.error("Error loading last folder:", error);
         } finally {
           setScanningRepos(false);
         }
@@ -132,24 +161,24 @@ const App: React.FC = () => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ctrl+O - Open folder
-      if (e.ctrlKey && e.key === 'o') {
+      if (e.ctrlKey && e.key === "o") {
         e.preventDefault();
         handleOpenFolder();
       }
       // Ctrl+R - Refresh
-      if (e.ctrlKey && e.key === 'r') {
+      if (e.ctrlKey && e.key === "r") {
         e.preventDefault();
         handleRefresh();
       }
       // Ctrl+T - Toggle theme
-      if (e.ctrlKey && e.key === 't') {
+      if (e.ctrlKey && e.key === "t") {
         e.preventDefault();
         toggleTheme();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [repositories, selectedRepo]);
 
   const handleOpenFolder = async () => {
@@ -158,22 +187,24 @@ const App: React.FC = () => {
       if (!folderPath) return;
 
       setScanningRepos(true);
-      message.info('Scanning for repositories...');
+      message.info("Scanning for repositories...");
 
       const repoPaths = await window.electronAPI.scanRepositories(folderPath);
-      
+
       if (repoPaths.length === 0) {
-        message.warning('No Git repositories found in the selected folder');
+        message.warning("No Git repositories found in the selected folder");
         setScanningRepos(false);
         return;
       }
 
-      message.success(`Found ${repoPaths.length} repositories. Loading information...`);
+      message.success(
+        `Found ${repoPaths.length} repositories. Loading information...`,
+      );
 
       // Load info for each repository
       const newRepos = new Map<string, RepositoryInfo>();
       setLoadingProgress({ current: 0, total: repoPaths.length });
-      
+
       // Параллельная загрузка всех репозиториев
       const loadPromises = repoPaths.map(async (repoPath) => {
         try {
@@ -185,17 +216,19 @@ const App: React.FC = () => {
           return { repoPath, info: null };
         }
       });
-      
+
       // Отслеживаем прогресс по мере завершения промисов
       let completed = 0;
       const results = await Promise.all(
-        loadPromises.map(p => p.then(result => {
-          completed++;
-          setLoadingProgress({ current: completed, total: repoPaths.length });
-          return result;
-        }))
+        loadPromises.map((p) =>
+          p.then((result) => {
+            completed++;
+            setLoadingProgress({ current: completed, total: repoPaths.length });
+            return result;
+          }),
+        ),
       );
-      
+
       // Добавляем успешно загруженные репозитории
       results.forEach(({ repoPath, info }) => {
         if (info) {
@@ -207,12 +240,12 @@ const App: React.FC = () => {
       setScanningRepos(false);
       setLoadingProgress({ current: 0, total: 0 });
       message.success(`Successfully loaded ${newRepos.size} repositories`);
-      
+
       // Save folder path to localStorage
-      localStorage.setItem('lastFolderPath', folderPath);
+      localStorage.setItem("lastFolderPath", folderPath);
     } catch (error) {
-      console.error('Error opening folder:', error);
-      message.error('Failed to open folder');
+      console.error("Error opening folder:", error);
+      message.error("Failed to open folder");
       setScanningRepos(false);
     }
   };
@@ -221,24 +254,29 @@ const App: React.FC = () => {
     if (repositories.size === 0) return;
 
     setRefreshing(true);
-    message.info('Refreshing repositories...');
+    message.info("Refreshing repositories...");
 
     const updatedRepos = new Map<string, RepositoryInfo>();
 
     // Параллельное обновление всех репозиториев
-    const refreshPromises = Array.from(repositories.entries()).map(async ([repoPath, oldInfo]) => {
-      try {
-        const info = await window.electronAPI.getRepositoryInfo(repoPath, true);
-        return { repoPath, info };
-      } catch (error) {
-        console.error(`Failed to refresh ${repoPath}:`, error);
-        // Keep old info if refresh fails
-        return { repoPath, info: oldInfo };
-      }
-    });
-    
+    const refreshPromises = Array.from(repositories.entries()).map(
+      async ([repoPath, oldInfo]) => {
+        try {
+          const info = await window.electronAPI.getRepositoryInfo(
+            repoPath,
+            true,
+          );
+          return { repoPath, info };
+        } catch (error) {
+          console.error(`Failed to refresh ${repoPath}:`, error);
+          // Keep old info if refresh fails
+          return { repoPath, info: oldInfo };
+        }
+      },
+    );
+
     const results = await Promise.all(refreshPromises);
-    
+
     // Добавляем обновленные репозитории
     results.forEach(({ repoPath, info }) => {
       updatedRepos.set(repoPath, info);
@@ -246,7 +284,7 @@ const App: React.FC = () => {
 
     setRepositories(updatedRepos);
     setRefreshing(false);
-    message.success('Repositories refreshed successfully');
+    message.success("Repositories refreshed successfully");
 
     // Refresh current repo data if one is selected
     if (selectedRepo && updatedRepos.has(selectedRepo)) {
@@ -264,7 +302,7 @@ const App: React.FC = () => {
           setBranches(branchesData);
           bumpGraphRefresh();
         } catch (error) {
-          console.error('Error refreshing selected repository:', error);
+          console.error("Error refreshing selected repository:", error);
         }
       }
     }
@@ -273,10 +311,10 @@ const App: React.FC = () => {
   const handleSelectRepository = async (repoPath: string) => {
     setSelectedRepo(repoPath);
     setLoading(true);
-    
+
     // Очистка всех данных предыдущего репозитория при переключении
-    setActiveView('commits');
-    setMainPanelView('graph');
+    setActiveView("commits");
+    setMainPanelView("graph");
     setSelectedCommit(null);
     setCommitFiles([]);
     setSelectedFile(null);
@@ -288,7 +326,7 @@ const App: React.FC = () => {
     setLoadingMoreCommits(false);
     setConflictCount(0);
     setSelectedStash(null);
-    setCurrentBranch('');
+    setCurrentBranch("");
     setLoadingBranches(false);
     setLoadingReflog(false);
     setLoadingStash(false);
@@ -311,8 +349,8 @@ const App: React.FC = () => {
       setHasMoreCommits(commitsData.length === 25);
       setCurrentBranch(repo.currentBranch);
     } catch (error) {
-      console.error('Error loading repository data:', error);
-      message.error('Failed to load repository data');
+      console.error("Error loading repository data:", error);
+      message.error("Failed to load repository data");
     } finally {
       setLoading(false);
     }
@@ -326,35 +364,44 @@ const App: React.FC = () => {
     });
   };
 
-  const refreshSelectedRepoPanels = async (repoPath: string, info: RepositoryInfo) => {
+  const refreshSelectedRepoPanels = async (
+    repoPath: string,
+    info: RepositoryInfo,
+  ) => {
     if (selectedRepo !== repoPath) return;
 
     setCurrentBranch(info.currentBranch);
     try {
       // Refresh only if on commits view
-      if (activeView === 'commits') {
-        const commitsData = await window.electronAPI.getCommits(repoPath, undefined, 0, 25);
+      if (activeView === "commits") {
+        const commitsData = await window.electronAPI.getCommits(
+          repoPath,
+          undefined,
+          0,
+          25,
+        );
         setCommits(commitsData);
         setHasMoreCommits(commitsData.length === 25);
       }
       // Refresh branches if on branches view
-      if (activeView === 'branches') {
+      if (activeView === "branches") {
         const branchesData = await window.electronAPI.getBranches(repoPath);
         setBranches(branchesData);
       }
       // Refresh conflicts if on conflicts view
-      if (activeView === 'conflicts') {
+      if (activeView === "conflicts") {
         await loadConflictCount(repoPath);
       }
     } catch (error) {
-      console.error('Error refreshing selected repository panels:', error);
+      console.error("Error refreshing selected repository panels:", error);
     }
   };
 
   const loadConflictCount = async (repoPath: string) => {
     setLoadingConflicts(true);
     try {
-      const conflictedFiles = await window.electronAPI.getConflictedFiles(repoPath);
+      const conflictedFiles =
+        await window.electronAPI.getConflictedFiles(repoPath);
       setConflictCount(conflictedFiles.length);
     } catch (error) {
       // Ignore errors, conflicts might not exist
@@ -369,18 +416,23 @@ const App: React.FC = () => {
 
     setLoadingMoreCommits(true);
     try {
-      const newCommits = await window.electronAPI.getCommits(selectedRepo, undefined, commits.length, 25);
-      
+      const newCommits = await window.electronAPI.getCommits(
+        selectedRepo,
+        undefined,
+        commits.length,
+        25,
+      );
+
       if (newCommits.length > 0) {
-        setCommits(prevCommits => [...prevCommits, ...newCommits]);
+        setCommits((prevCommits) => [...prevCommits, ...newCommits]);
         // If we got fewer than 25 commits, we've reached the end
         setHasMoreCommits(newCommits.length === 25);
       } else {
         setHasMoreCommits(false);
       }
     } catch (error) {
-      console.error('Error loading more commits:', error);
-      message.error('Failed to load more commits');
+      console.error("Error loading more commits:", error);
+      message.error("Failed to load more commits");
     } finally {
       setLoadingMoreCommits(false);
     }
@@ -397,7 +449,7 @@ const App: React.FC = () => {
   const handlePullRepository = async (repoPath: string) => {
     if (repoOps[repoPath]) return;
 
-    setRepoOps((prev) => ({ ...prev, [repoPath]: 'pull' }));
+    setRepoOps((prev) => ({ ...prev, [repoPath]: "pull" }));
     try {
       const info = await window.electronAPI.pullRepository(repoPath);
       updateRepoInfo(repoPath, info);
@@ -405,29 +457,34 @@ const App: React.FC = () => {
       if (repoPath === selectedRepo) {
         bumpGraphRefresh();
       }
-      message.success('Pull completed');
+      message.success("Pull completed");
     } catch (error: any) {
-      console.error('Pull failed:', error);
-      message.error(error?.message ? `Pull failed: ${error.message}` : 'Pull failed');
+      console.error("Pull failed:", error);
+      message.error(
+        error?.message ? `Pull failed: ${error.message}` : "Pull failed",
+      );
     } finally {
       clearRepoOp(repoPath);
     }
   };
 
   const isNonFastForwardPushError = (err: any) => {
-    const msg = (err?.message || String(err || '')).toLowerCase();
+    const msg = (err?.message || String(err || "")).toLowerCase();
     return (
-      msg.includes('non-fast-forward') ||
-      msg.includes('fetch first') ||
-      msg.includes('updates were rejected') ||
-      (msg.includes('rejected') && msg.includes('fast-forward'))
+      msg.includes("non-fast-forward") ||
+      msg.includes("fetch first") ||
+      msg.includes("updates were rejected") ||
+      (msg.includes("rejected") && msg.includes("fast-forward"))
     );
   };
 
-  const handlePushRepository = async (repoPath: string, options?: { force?: boolean; forceWithLease?: boolean }) => {
+  const handlePushRepository = async (
+    repoPath: string,
+    options?: { force?: boolean; forceWithLease?: boolean },
+  ) => {
     if (repoOps[repoPath]) return;
 
-    setRepoOps((prev) => ({ ...prev, [repoPath]: 'push' }));
+    setRepoOps((prev) => ({ ...prev, [repoPath]: "push" }));
     try {
       const info = await window.electronAPI.pushRepository(repoPath, options);
       updateRepoInfo(repoPath, info);
@@ -435,50 +492,56 @@ const App: React.FC = () => {
       if (repoPath === selectedRepo) {
         bumpGraphRefresh();
       }
-      message.success('Push completed');
+      message.success("Push completed");
     } catch (error: any) {
-      console.error('Push failed:', error);
+      console.error("Push failed:", error);
       if (!options && isNonFastForwardPushError(error)) {
         modal.confirm({
-          title: 'Push rejected (non-fast-forward)',
+          title: "Push rejected (non-fast-forward)",
           content: (
             <div>
               <p>
-                Remote has commits your local history no longer fast-forwards to.
-                This is expected after an interactive rebase.
+                Remote has commits your local history no longer fast-forwards
+                to. This is expected after an interactive rebase.
               </p>
-              <p>
-                Recommended: force push with lease (safer than -f).
-              </p>
+              <p>Recommended: force push with lease (safer than -f).</p>
             </div>
           ),
-          okText: 'Force Push (with lease)',
-          cancelText: 'Cancel',
+          okText: "Force Push (with lease)",
+          cancelText: "Cancel",
           onOk: async () => {
             try {
               await handlePushRepository(repoPath, { forceWithLease: true });
             } catch (leaseErr: any) {
               // If lease fails (remote moved), optionally allow plain -f.
-              if (isNonFastForwardPushError(leaseErr) || (leaseErr?.message || '').toLowerCase().includes('stale')) {
+              if (
+                isNonFastForwardPushError(leaseErr) ||
+                (leaseErr?.message || "").toLowerCase().includes("stale")
+              ) {
                 modal.confirm({
-                  title: 'Force-with-lease failed',
+                  title: "Force-with-lease failed",
                   content: (
                     <div>
                       <p>
-                        The remote branch changed since your last fetch. You can retry with plain force push (-f),
-                        but it may overwrite others' work.
+                        The remote branch changed since your last fetch. You can
+                        retry with plain force push (-f), but it may overwrite
+                        others' work.
                       </p>
                     </div>
                   ),
-                  okText: 'Force Push (-f)',
-                  okType: 'danger',
-                  cancelText: 'Cancel',
+                  okText: "Force Push (-f)",
+                  okType: "danger",
+                  cancelText: "Cancel",
                   onOk: async () => {
                     await handlePushRepository(repoPath, { force: true });
                   },
                 });
               } else {
-                message.error(leaseErr?.message ? `Push failed: ${leaseErr.message}` : 'Push failed');
+                message.error(
+                  leaseErr?.message
+                    ? `Push failed: ${leaseErr.message}`
+                    : "Push failed",
+                );
               }
             }
           },
@@ -486,7 +549,9 @@ const App: React.FC = () => {
         return;
       }
 
-      message.error(error?.message ? `Push failed: ${error.message}` : 'Push failed');
+      message.error(
+        error?.message ? `Push failed: ${error.message}` : "Push failed",
+      );
     } finally {
       clearRepoOp(repoPath);
     }
@@ -494,76 +559,89 @@ const App: React.FC = () => {
 
   const handleCommitClick = async (commit: CommitInfo) => {
     if (!selectedRepo) return;
-    
+
     setSelectedCommit(commit);
-    
+
     try {
-      const files = await window.electronAPI.getCommitFiles(selectedRepo, commit.hash);
+      const files = await window.electronAPI.getCommitFiles(
+        selectedRepo,
+        commit.hash,
+      );
       setCommitFiles(files);
       setShowingCommitFiles(true);
     } catch (error) {
-      console.error('Error loading commit files:', error);
-      message.error('Failed to load commit files');
+      console.error("Error loading commit files:", error);
+      message.error("Failed to load commit files");
     }
   };
 
-  const handleGraphCommitClick = async (commitHash: string, messageText?: string) => {
+  const handleGraphCommitClick = async (
+    commitHash: string,
+    messageText?: string,
+  ) => {
     if (!selectedRepo) return;
 
     const commitInfo: CommitInfo = {
       hash: commitHash,
-      date: '',
-      message: messageText ?? '',
-      author: '',
-      refs: '',
+      date: "",
+      message: messageText ?? "",
+      author: "",
+      refs: "",
     };
 
     setSelectedCommit(commitInfo);
 
     try {
-      const files = await window.electronAPI.getCommitFiles(selectedRepo, commitHash);
+      const files = await window.electronAPI.getCommitFiles(
+        selectedRepo,
+        commitHash,
+      );
       setCommitFiles(files);
       setShowingCommitFiles(true);
     } catch (error) {
-      console.error('Error loading commit files from graph:', error);
-      message.error('Failed to load commit files');
+      console.error("Error loading commit files from graph:", error);
+      message.error("Failed to load commit files");
     }
   };
 
   const handleFileClick = async (file: CommitFile) => {
     if (!selectedRepo || !selectedCommit) return;
-    
+
     setSelectedFile(file);
     setLoadingFileDiff(true);
-    setMainPanelView('diff');
-    
+    setMainPanelView("diff");
+
     try {
-      const diff = await window.electronAPI.getFileDiff(selectedRepo, selectedCommit.hash, file.path);
-      
-      console.log('Loaded diff for regular commit:', {
+      const diff = await window.electronAPI.getFileDiff(
+        selectedRepo,
+        selectedCommit.hash,
+        file.path,
+      );
+
+      console.log("Loaded diff for regular commit:", {
         path: file.path,
         commitHash: selectedCommit.hash,
         diffLength: diff.diff?.length,
         diffPreview: diff.diff?.substring(0, 200),
         additions: diff.additions,
-        deletions: diff.deletions
+        deletions: diff.deletions,
       });
-      
+
       // Check if diff is empty or file is binary
-      if (!diff.diff || diff.diff.trim() === '') {
-        if (file.status === 'added') {
-          message.info('New file added (binary or empty)');
-        } else if (file.status === 'deleted') {
-          message.info('File was deleted');
+      if (!diff.diff || diff.diff.trim() === "") {
+        if (file.status === "added") {
+          message.info("New file added (binary or empty)");
+        } else if (file.status === "deleted") {
+          message.info("File was deleted");
         } else {
-          message.info('No text diff available (binary file or no changes)');
+          message.info("No text diff available (binary file or no changes)");
         }
       }
-      
+
       setFileDiff(diff);
     } catch (error) {
-      console.error('Error loading file diff:', error);
-      message.error('Failed to load file diff');
+      console.error("Error loading file diff:", error);
+      message.error("Failed to load file diff");
       // Clear diff on error to show empty state
       setFileDiff(null);
     } finally {
@@ -579,12 +657,15 @@ const App: React.FC = () => {
 
   const handleReflogEntryClick = async (entry: ReflogEntry) => {
     if (!selectedRepo) return;
-    
+
     try {
       // Load commit details for the reflog entry
-      const files = await window.electronAPI.getCommitFiles(selectedRepo, entry.hash);
+      const files = await window.electronAPI.getCommitFiles(
+        selectedRepo,
+        entry.hash,
+      );
       setCommitFiles(files);
-      
+
       // Create a CommitInfo object from ReflogEntry for consistency
       const commitInfo: CommitInfo = {
         hash: entry.hash,
@@ -593,47 +674,47 @@ const App: React.FC = () => {
         author: entry.author,
         refs: entry.refName,
       };
-      
+
       setSelectedCommit(commitInfo);
       setShowingCommitFiles(true);
     } catch (error) {
-      console.error('Error loading reflog entry details:', error);
-      message.error('Failed to load reflog entry details');
+      console.error("Error loading reflog entry details:", error);
+      message.error("Failed to load reflog entry details");
     }
   };
 
   const handleViewChange = async (view: ViewType) => {
     setActiveView(view);
-    
+
     // Reset commit files view when switching views
-    if (view !== 'commits') {
+    if (view !== "commits") {
       setShowingCommitFiles(false);
       setCommitFiles([]);
       setSelectedCommit(null);
     }
-    
+
     // Reset stash selection when leaving stash view
-    if (view !== 'stash') {
+    if (view !== "stash") {
       setSelectedStash(null);
     }
-    
+
     // Reset search state when leaving search view
-    if (view !== 'search') {
+    if (view !== "search") {
       setSelectedSearchCommit(null);
       setSearchCommitFiles([]);
     }
-    
+
     // Reset right panel state and show appropriate view for the mode
-    if (view === 'graph') {
-      setMainPanelView('graph');
+    if (view === "graph") {
+      setMainPanelView("graph");
       setFileDiff(null);
       setSelectedFile(null);
-    } else if (view === 'reflog') {
+    } else if (view === "reflog") {
       // Reflog is shown in main panel, clear diff state
-      setMainPanelView('graph');
+      setMainPanelView("graph");
       setFileDiff(null);
       setSelectedFile(null);
-    } else if (view === 'changes') {
+    } else if (view === "changes") {
       // For changes view, keep the diff state so clicking files shows diff in right panel
       // Don't reset fileDiff or mainPanelView
     } else {
@@ -641,25 +722,25 @@ const App: React.FC = () => {
       // This ensures the right panel doesn't get stuck showing a diff
       setFileDiff(null);
       setSelectedFile(null);
-      setMainPanelView('graph');
+      setMainPanelView("graph");
     }
 
     // Load data on-demand when switching to specific views
     if (!selectedRepo) return;
-    
+
     try {
-      if ((view === 'branches' || view === 'rebase') && branches.length === 0) {
+      if ((view === "branches" || view === "rebase") && branches.length === 0) {
         // Load branches only when needed (e.g. branches tab or rebase panel)
         setLoadingBranches(true);
         const branchesData = await window.electronAPI.getBranches(selectedRepo);
         setBranches(branchesData);
         setLoadingBranches(false);
-      } else if (view === 'conflicts') {
+      } else if (view === "conflicts") {
         // Load conflicts count when user clicks on conflicts tab
         await loadConflictCount(selectedRepo);
       }
     } catch (error) {
-      console.error('Error loading view data:', error);
+      console.error("Error loading view data:", error);
       setLoadingBranches(false);
       setLoadingConflicts(false);
     }
@@ -667,81 +748,97 @@ const App: React.FC = () => {
 
   const handleChangesRefresh = async () => {
     if (!selectedRepo) return;
-    
+
     try {
       const info = await window.electronAPI.getRepositoryInfo(selectedRepo);
       updateRepoInfo(selectedRepo, info);
       await refreshSelectedRepoPanels(selectedRepo, info);
-      
+
       // Refresh loading states based on current view
-      if (activeView === 'branches' && branches.length === 0) {
+      if (activeView === "branches" && branches.length === 0) {
         setLoadingBranches(true);
         const branchesData = await window.electronAPI.getBranches(selectedRepo);
         setBranches(branchesData);
         setLoadingBranches(false);
       }
-      
+
       // Refresh git graph as changes may affect history (e.g., creating branch from stash)
       bumpGraphRefresh();
     } catch (error) {
-      console.error('Error refreshing after changes:', error);
+      console.error("Error refreshing after changes:", error);
       setLoadingBranches(false);
     }
   };
 
   const handleChangedFileClick = async (file: FileStatus) => {
     if (!selectedRepo) return;
-    
+
     try {
-      const diff = await window.electronAPI.getWorkingFileDiff(selectedRepo, file.path, file.staged);
+      const diff = await window.electronAPI.getWorkingFileDiff(
+        selectedRepo,
+        file.path,
+        file.staged,
+      );
       setFileDiff(diff);
-      setMainPanelView('diff');
+      setMainPanelView("diff");
     } catch (error) {
-      console.error('Error loading file diff:', error);
-      message.error('Failed to load file diff');
+      console.error("Error loading file diff:", error);
+      message.error("Failed to load file diff");
     }
   };
 
   const handleFileExplorerFileClick = async (filePath: string) => {
     if (!selectedRepo) return;
-    
+
     // Set the file to view in the FileEditorPanel
     setSelectedExplorerFile(filePath);
-    setMainPanelView('editor');
+    setMainPanelView("editor");
   };
 
   const handleCheckoutBranch = async (branchName: string) => {
     if (!selectedRepo) return;
-    
+
     try {
-      const info = await window.electronAPI.checkoutBranch(selectedRepo, branchName);
+      const info = await window.electronAPI.checkoutBranch(
+        selectedRepo,
+        branchName,
+      );
       updateRepoInfo(selectedRepo, info);
       await refreshSelectedRepoPanels(selectedRepo, info);
       bumpGraphRefresh();
       message.success(`Checked out branch: ${branchName}`);
     } catch (error: any) {
-      console.error('Error checking out branch:', error);
+      console.error("Error checking out branch:", error);
       // Show error message for normal checkout (not from BranchSwitcher)
       if (error?.hasUncommittedChanges) {
-        message.error(`Cannot checkout: you have ${error.modifiedFiles?.length || 0} uncommitted file(s). Please commit or stash them first.`);
+        message.error(
+          `Cannot checkout: you have ${error.modifiedFiles?.length || 0} uncommitted file(s). Please commit or stash them first.`,
+        );
       } else {
-        message.error(error?.message ? `Checkout failed: ${error.message}` : 'Failed to checkout branch');
+        message.error(
+          error?.message
+            ? `Checkout failed: ${error.message}`
+            : "Failed to checkout branch",
+        );
       }
     }
   };
 
   const handleBranchSwitch = async (repoPath: string, branchName: string) => {
     try {
-      const info = await window.electronAPI.checkoutBranch(repoPath, branchName);
+      const info = await window.electronAPI.checkoutBranch(
+        repoPath,
+        branchName,
+      );
       updateRepoInfo(repoPath, info);
-      
+
       // If this is the selected repo, refresh panels
       if (repoPath === selectedRepo) {
         await refreshSelectedRepoPanels(repoPath, info);
         bumpGraphRefresh();
       }
     } catch (error: any) {
-      console.error('Error switching branch:', error);
+      console.error("Error switching branch:", error);
       // Re-throw to let BranchSwitcher handle it
       throw error;
     }
@@ -749,66 +846,94 @@ const App: React.FC = () => {
 
   const handleStashAndSwitch = async (repoPath: string, branchName: string) => {
     try {
-      const info = await window.electronAPI.stashAndCheckout(repoPath, branchName);
+      const info = await window.electronAPI.stashAndCheckout(
+        repoPath,
+        branchName,
+      );
       updateRepoInfo(repoPath, info);
-      
+
       // If this is the selected repo, refresh panels
       if (repoPath === selectedRepo) {
         await refreshSelectedRepoPanels(repoPath, info);
         bumpGraphRefresh();
       }
     } catch (error: any) {
-      console.error('Error stashing and switching branch:', error);
+      console.error("Error stashing and switching branch:", error);
       throw error;
     }
   };
 
-  const handleDiscardAndSwitch = async (repoPath: string, branchName: string) => {
+  const handleDiscardAndSwitch = async (
+    repoPath: string,
+    branchName: string,
+  ) => {
     try {
-      const info = await window.electronAPI.discardAndCheckout(repoPath, branchName);
+      const info = await window.electronAPI.discardAndCheckout(
+        repoPath,
+        branchName,
+      );
       updateRepoInfo(repoPath, info);
-      
+
       // If this is the selected repo, refresh panels
       if (repoPath === selectedRepo) {
         await refreshSelectedRepoPanels(repoPath, info);
         bumpGraphRefresh();
       }
     } catch (error: any) {
-      console.error('Error discarding and switching branch:', error);
+      console.error("Error discarding and switching branch:", error);
       throw error;
     }
   };
 
-  const handleMergeBranch = async (branchName: string, mergeMode: 'auto' | 'no-ff' | 'ff-only' = 'no-ff') => {
+  const handleMergeBranch = async (
+    branchName: string,
+    mergeMode: "auto" | "no-ff" | "ff-only" = "no-ff",
+  ) => {
     if (!selectedRepo) return;
-    
+
     try {
-      const info = await window.electronAPI.mergeBranch(selectedRepo, branchName, mergeMode);
+      const info = await window.electronAPI.mergeBranch(
+        selectedRepo,
+        branchName,
+        mergeMode,
+      );
       updateRepoInfo(selectedRepo, info);
-      
+
       // Force refresh commits after merge
-      const commitsData = await window.electronAPI.getCommits(selectedRepo, undefined, 0, 25);
+      const commitsData = await window.electronAPI.getCommits(
+        selectedRepo,
+        undefined,
+        0,
+        25,
+      );
       setCommits(commitsData);
       setHasMoreCommits(commitsData.length === 25);
-      
+
       // Refresh branches
       const branchesData = await window.electronAPI.getBranches(selectedRepo);
       setBranches(branchesData);
-      
+
       await refreshSelectedRepoPanels(selectedRepo, info);
       bumpGraphRefresh();
       message.success(`Merged branch: ${branchName}`);
-      
+
       // Check if merge created conflicts
-      const conflictedFiles = await window.electronAPI.getConflictedFiles(selectedRepo);
+      const conflictedFiles =
+        await window.electronAPI.getConflictedFiles(selectedRepo);
       if (conflictedFiles.length > 0) {
-        message.warning(`Merge created ${conflictedFiles.length} conflict(s). Please resolve them.`);
-        setActiveView('conflicts');
+        message.warning(
+          `Merge created ${conflictedFiles.length} conflict(s). Please resolve them.`,
+        );
+        setActiveView("conflicts");
       }
     } catch (error: any) {
-      console.error('Error merging branch:', error);
-      message.error(error?.message ? `Merge failed: ${error.message}` : 'Failed to merge branch');
-      
+      console.error("Error merging branch:", error);
+      message.error(
+        error?.message
+          ? `Merge failed: ${error.message}`
+          : "Failed to merge branch",
+      );
+
       // Check for conflicts even on error
       if (selectedRepo) {
         await loadConflictCount(selectedRepo);
@@ -818,20 +943,20 @@ const App: React.FC = () => {
 
   const handleBranchesRefresh = async () => {
     if (!selectedRepo) return;
-    
+
     try {
       setLoadingBranches(true);
       const [branchesData, info] = await Promise.all([
         window.electronAPI.getBranches(selectedRepo),
-        window.electronAPI.getRepositoryInfo(selectedRepo)
+        window.electronAPI.getRepositoryInfo(selectedRepo),
       ]);
       setBranches(branchesData);
       setCurrentBranch(info.currentBranch);
       updateRepoInfo(selectedRepo, info);
       bumpGraphRefresh();
     } catch (error: any) {
-      console.error('Error refreshing branches:', error);
-      message.error('Failed to refresh branches');
+      console.error("Error refreshing branches:", error);
+      message.error("Failed to refresh branches");
     } finally {
       setLoadingBranches(false);
     }
@@ -839,28 +964,34 @@ const App: React.FC = () => {
 
   const handleConflictFileClick = async (filePath: string) => {
     if (!selectedRepo) return;
-    
+
     try {
       // Get working file diff to show in the right panel
-      const diff = await window.electronAPI.getWorkingFileDiff(selectedRepo, filePath, false);
+      const diff = await window.electronAPI.getWorkingFileDiff(
+        selectedRepo,
+        filePath,
+        false,
+      );
       setFileDiff(diff);
-      setMainPanelView('diff');
+      setMainPanelView("diff");
     } catch (error) {
-      console.error('Error loading conflict file diff:', error);
-      message.error('Failed to load file diff');
+      console.error("Error loading conflict file diff:", error);
+      message.error("Failed to load file diff");
     }
   };
 
   const handleConflictsRefresh = async () => {
     if (!selectedRepo) return;
-    
+
     try {
       const info = await window.electronAPI.getRepositoryInfo(selectedRepo);
       updateRepoInfo(selectedRepo, info);
       await refreshSelectedRepoPanels(selectedRepo, info);
       bumpGraphRefresh();
+      // Trigger conflict list refresh
+      setConflictRefreshToken((prev) => prev + 1);
     } catch (error) {
-      console.error('Error refreshing after conflict resolution:', error);
+      console.error("Error refreshing after conflict resolution:", error);
     }
   };
 
@@ -869,15 +1000,16 @@ const App: React.FC = () => {
 
     try {
       // Check if we're currently in a rebase operation
-      const rebaseStatus = await window.electronAPI.getRebaseStatus(selectedRepo);
-      
+      const rebaseStatus =
+        await window.electronAPI.getRebaseStatus(selectedRepo);
+
       if (rebaseStatus.inProgress && !rebaseStatus.hasConflicts) {
         // We're in a rebase and all conflicts are resolved, navigate back to rebase view
-        message.success('All conflicts resolved! Returning to rebase panel...');
-        setActiveView('rebase');
+        message.success("All conflicts resolved! Returning to rebase panel...");
+        setActiveView("rebase");
       }
     } catch (error) {
-      console.error('Error checking rebase status:', error);
+      console.error("Error checking rebase status:", error);
     }
   };
 
@@ -893,11 +1025,16 @@ const App: React.FC = () => {
 
     // Keep commits list fresh for when user switches back.
     try {
-      const commitsData = await window.electronAPI.getCommits(selectedRepo, undefined, 0, 25);
+      const commitsData = await window.electronAPI.getCommits(
+        selectedRepo,
+        undefined,
+        0,
+        25,
+      );
       setCommits(commitsData);
       setHasMoreCommits(commitsData.length === 25);
     } catch (error) {
-      console.error('Error refreshing commits after history change:', error);
+      console.error("Error refreshing commits after history change:", error);
     }
   };
 
@@ -907,15 +1044,18 @@ const App: React.FC = () => {
 
   const handleSearchCommitClick = async (commit: SearchResult) => {
     if (!selectedRepo) return;
-    
+
     setSelectedSearchCommit(commit);
-    
+
     try {
-      const files = await window.electronAPI.getCommitFiles(selectedRepo, commit.hash);
+      const files = await window.electronAPI.getCommitFiles(
+        selectedRepo,
+        commit.hash,
+      );
       setSearchCommitFiles(files);
     } catch (error) {
-      console.error('Error loading search commit files:', error);
-      message.error('Failed to load commit files');
+      console.error("Error loading search commit files:", error);
+      message.error("Failed to load commit files");
     }
   };
 
@@ -923,13 +1063,13 @@ const App: React.FC = () => {
     if (!selectedRepo) return;
 
     // Switch to commits view to show the commit
-    setActiveView('commits');
-    setMainPanelView('graph');
+    setActiveView("commits");
+    setMainPanelView("graph");
     setSelectedExplorerFile(null);
 
     // Try to find commit in current commits list
-    const existingCommit = commits.find(c => c.hash.startsWith(commitHash));
-    
+    const existingCommit = commits.find((c) => c.hash.startsWith(commitHash));
+
     if (existingCommit) {
       // If found, use it directly
       await handleCommitClick(existingCommit);
@@ -938,61 +1078,68 @@ const App: React.FC = () => {
       try {
         const commitInfo: CommitInfo = {
           hash: commitHash,
-          date: '',
-          message: '',
-          author: '',
-          refs: '',
+          date: "",
+          message: "",
+          author: "",
+          refs: "",
         };
 
         setSelectedCommit(commitInfo);
-        const files = await window.electronAPI.getCommitFiles(selectedRepo, commitHash);
+        const files = await window.electronAPI.getCommitFiles(
+          selectedRepo,
+          commitHash,
+        );
         setCommitFiles(files);
         setShowingCommitFiles(true);
-        
+
         message.success(`Navigated to commit ${commitHash.substring(0, 7)}`);
       } catch (error) {
-        console.error('Error loading commit from blame:', error);
-        message.error('Failed to load commit details');
+        console.error("Error loading commit from blame:", error);
+        message.error("Failed to load commit details");
       }
     }
   };
 
   const handleSearchFileClick = async (file: CommitFile) => {
     if (!selectedRepo || !selectedSearchCommit) return;
-    
+
     setSelectedFile(file);
     setLoadingFileDiff(true);
-    setMainPanelView('diff');
-    
+    setMainPanelView("diff");
+
     try {
-      const diff = await window.electronAPI.getFileDiff(selectedRepo, selectedSearchCommit.hash, file.path);
-      
-      console.log('Loaded diff for search:', {
+      const diff = await window.electronAPI.getFileDiff(
+        selectedRepo,
+        selectedSearchCommit.hash,
+        file.path,
+      );
+
+      console.log("Loaded diff for search:", {
         path: file.path,
         commitHash: selectedSearchCommit.hash,
         diffLength: diff.diff?.length,
         diffPreview: diff.diff?.substring(0, 200),
         additions: diff.additions,
-        deletions: diff.deletions
+        deletions: diff.deletions,
       });
-      
+
       // Always set the diff, even if it appears empty
       setFileDiff(diff);
-      
+
       // Check if diff is empty or file is binary (but don't block display)
-      if (!diff.diff || diff.diff.trim() === '') {
-        console.warn('Empty diff for file:', file.path);
-        if (file.status === 'added') {
-          message.warning('New file added - diff may be large or binary');
-        } else if (file.status === 'deleted') {
-          message.info('File was deleted');
+      if (!diff.diff || diff.diff.trim() === "") {
+        console.warn("Empty diff for file:", file.path);
+        if (file.status === "added") {
+          message.warning("New file added - diff may be large or binary");
+        } else if (file.status === "deleted") {
+          message.info("File was deleted");
         } else {
-          message.warning('Diff appears empty - may be binary or too large');
+          message.warning("Diff appears empty - may be binary or too large");
         }
       }
     } catch (error) {
-      console.error('Error loading file diff:', error);
-      message.error('Failed to load file diff');
+      console.error("Error loading file diff:", error);
+      message.error("Failed to load file diff");
       setFileDiff(null);
     } finally {
       setLoadingFileDiff(false);
@@ -1001,9 +1148,9 @@ const App: React.FC = () => {
 
   const renderMainPanel = () => {
     // Show remote management panel when remotes view is active
-    if (activeView === 'remotes' && selectedRepo) {
+    if (activeView === "remotes" && selectedRepo) {
       return (
-        <div style={{ height: '100%', overflow: 'auto' }}>
+        <div style={{ height: "100%", overflow: "auto" }}>
           <RemoteManagementPanel
             repoPath={selectedRepo}
             onRefresh={handleRefresh}
@@ -1013,28 +1160,25 @@ const App: React.FC = () => {
     }
 
     // Show tags management panel when tags view is active
-    if (activeView === 'tags' && selectedRepo) {
+    if (activeView === "tags" && selectedRepo) {
       return (
-        <div style={{ height: '100%', overflow: 'auto' }}>
-          <TagsPanel
-            repoPath={selectedRepo}
-            onRefresh={handleRefresh}
-          />
+        <div style={{ height: "100%", overflow: "auto" }}>
+          <TagsPanel repoPath={selectedRepo} onRefresh={handleRefresh} />
         </div>
       );
     }
 
     // Show interactive rebase panel when rebase view is active
-    if (activeView === 'rebase' && selectedRepo) {
+    if (activeView === "rebase" && selectedRepo) {
       return (
-        <div style={{ height: '100%', overflow: 'auto' }}>
+        <div style={{ height: "100%", overflow: "auto" }}>
           <InteractiveRebasePanel
             repoPath={selectedRepo}
             branches={branches}
             currentBranch={currentBranch}
             onRefresh={handleRefresh}
             onSwitchToConflicts={(filePath) => {
-              setActiveView('conflicts');
+              setActiveView("conflicts");
               handleConflictFileClick(filePath);
             }}
           />
@@ -1043,15 +1187,17 @@ const App: React.FC = () => {
     }
 
     // Show file editor when viewing file from explorer
-    if (mainPanelView === 'editor' && selectedExplorerFile && selectedRepo) {
+    if (mainPanelView === "editor" && selectedExplorerFile && selectedRepo) {
       return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <FileEditorPanel 
+        <div
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
+        >
+          <FileEditorPanel
             repoPath={selectedRepo}
             filePath={selectedExplorerFile}
             onBack={() => {
               setSelectedExplorerFile(null);
-              setMainPanelView('graph');
+              setMainPanelView("graph");
             }}
             onCommitClick={handleBlameCommitClick}
           />
@@ -1060,12 +1206,14 @@ const App: React.FC = () => {
     }
 
     // Show file diff if requested (for commits)
-    if (mainPanelView === 'diff' && fileDiff) {
+    if (mainPanelView === "diff" && fileDiff) {
       return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-          <FileDiffPanel 
-            diff={fileDiff} 
-            onBack={() => setMainPanelView('graph')} 
+        <div
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
+        >
+          <FileDiffPanel
+            diff={fileDiff}
+            onBack={() => setMainPanelView("graph")}
             repoPath={selectedRepo}
             filePath={fileDiff.path}
             onRefresh={handleConflictsRefresh}
@@ -1074,11 +1222,13 @@ const App: React.FC = () => {
         </div>
       );
     }
-    
+
     // Show reflog in main panel when reflog view is active
-    if (activeView === 'reflog' && selectedRepo) {
+    if (activeView === "reflog" && selectedRepo) {
       return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
+        >
           <ReflogPanel
             repoPath={selectedRepo}
             onEntryClick={handleReflogEntryClick}
@@ -1086,11 +1236,13 @@ const App: React.FC = () => {
         </div>
       );
     }
-    
+
     // Show stash details when stash is selected and view is active
-    if (activeView === 'stash' && selectedRepo) {
+    if (activeView === "stash" && selectedRepo) {
       return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
+        >
           <StashDetailsPanel
             repoPath={selectedRepo}
             selectedStash={selectedStash}
@@ -1098,9 +1250,9 @@ const App: React.FC = () => {
         </div>
       );
     }
-    
+
     // Show git graph for normal view (when not showing diff)
-    if (selectedRepo && branches.length > 0 && mainPanelView !== 'diff') {
+    if (selectedRepo && branches.length > 0 && mainPanelView !== "diff") {
       return (
         <GitGraphView
           repoPath={selectedRepo}
@@ -1110,7 +1262,7 @@ const App: React.FC = () => {
         />
       );
     }
-    
+
     return (
       <div className="empty-state">
         <h3>Select a repository to view the Git Graph</h3>
@@ -1137,7 +1289,7 @@ const App: React.FC = () => {
         onStashAndSwitch={handleStashAndSwitch}
         onDiscardAndSwitch={handleDiscardAndSwitch}
       />
-      
+
       {!selectedRepo ? (
         <div className="main-content">
           <div className="empty-state">
@@ -1145,34 +1297,44 @@ const App: React.FC = () => {
             <h2>No Repository Selected</h2>
             <p>Open a folder to scan for Git repositories</p>
             {scanningRepos && loadingProgress.total > 0 && (
-              <div style={{ width: '300px', marginBottom: '16px' }}>
-                <div style={{ 
-                  fontSize: '14px', 
-                  marginBottom: '8px',
-                  color: isDarkMode ? '#d4d4d4' : '#333'
-                }}>
-                  Loading repositories: {loadingProgress.current} / {loadingProgress.total} 
-                  ({Math.round((loadingProgress.current / loadingProgress.total) * 100)}%)
+              <div style={{ width: "300px", marginBottom: "16px" }}>
+                <div
+                  style={{
+                    fontSize: "14px",
+                    marginBottom: "8px",
+                    color: isDarkMode ? "#d4d4d4" : "#333",
+                  }}
+                >
+                  Loading repositories: {loadingProgress.current} /{" "}
+                  {loadingProgress.total}(
+                  {Math.round(
+                    (loadingProgress.current / loadingProgress.total) * 100,
+                  )}
+                  %)
                 </div>
-                <div style={{ 
-                  width: '100%', 
-                  height: '8px', 
-                  backgroundColor: isDarkMode ? '#333' : '#e0e0e0',
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{ 
-                    width: `${(loadingProgress.current / loadingProgress.total) * 100}%`,
-                    height: '100%',
-                    backgroundColor: '#1890ff',
-                    transition: 'width 0.3s ease'
-                  }} />
+                <div
+                  style={{
+                    width: "100%",
+                    height: "8px",
+                    backgroundColor: isDarkMode ? "#333" : "#e0e0e0",
+                    borderRadius: "4px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${(loadingProgress.current / loadingProgress.total) * 100}%`,
+                      height: "100%",
+                      backgroundColor: "#1890ff",
+                      transition: "width 0.3s ease",
+                    }}
+                  />
                 </div>
               </div>
             )}
-            <Button 
-              type="primary" 
-              icon={<FolderOpenOutlined />} 
+            <Button
+              type="primary"
+              icon={<FolderOpenOutlined />}
               onClick={handleOpenFolder}
               loading={scanningRepos}
             >
@@ -1188,12 +1350,12 @@ const App: React.FC = () => {
         </div>
       ) : (
         <>
-          <IconSidebar 
-            activeView={activeView} 
+          <IconSidebar
+            activeView={activeView}
             onViewChange={handleViewChange}
             conflictCount={conflictCount}
           />
-          
+
           <MiddlePanel
             view={activeView}
             repoPath={selectedRepo}
@@ -1222,6 +1384,7 @@ const App: React.FC = () => {
             onConflictFileClick={handleConflictFileClick}
             onConflictsRefresh={handleConflictsRefresh}
             onAllConflictsResolved={handleAllConflictsResolved}
+            conflictRefreshToken={conflictRefreshToken}
             loadingBranches={loadingBranches}
             loadingReflog={loadingReflog}
             loadingStash={loadingStash}
@@ -1236,10 +1399,8 @@ const App: React.FC = () => {
             selectedSearchCommit={selectedSearchCommit}
             searchCommitFiles={searchCommitFiles}
           />
-          
-          <div className="main-panel">
-            {renderMainPanel()}
-          </div>
+
+          <div className="main-panel">{renderMainPanel()}</div>
         </>
       )}
     </div>
