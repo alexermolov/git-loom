@@ -1,21 +1,20 @@
-import React, { useState } from "react";
-import { Button, Spin, Badge, Tooltip, Input, Tag } from "antd";
 import {
-  FolderOpenOutlined,
-  BranchesOutlined,
-  ArrowUpOutlined,
   ArrowDownOutlined,
-  ReloadOutlined,
-  SearchOutlined,
-  FileTextOutlined,
-  PlusOutlined,
-  MinusOutlined,
+  ArrowUpOutlined,
+  BranchesOutlined,
+  BulbFilled,
+  BulbOutlined,
   EditOutlined,
+  FolderOpenOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  BulbOutlined,
-  BulbFilled,
+  MinusOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
+import { Button, Input, Spin, Tag, Tooltip } from "antd";
+import React, { useState } from "react";
 import { useTheme } from "../ThemeContext";
 import { RepositoryInfo } from "../types";
 import BranchSwitcher from "./BranchSwitcher";
