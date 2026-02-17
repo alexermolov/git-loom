@@ -277,7 +277,10 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div
                 key={repo.path}
                 className={`repository-item ${selectedRepo === repo.path ? "active" : ""}`}
-                onClick={() => onSelectRepo(repo.path)}
+                onClick={() => {
+                  onSelectRepo(repo.path);
+                  setCollapsed(true);
+                }}
               >
                 <div className="repository-name">{repo.name}</div>
                 <div
@@ -288,7 +291,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                     marginBottom: 4,
                   }}
                 >
-                  <Tooltip title={repo.isRebasing ? "Rebasing in progress" : "Click to switch branch"}>
+                  <Tooltip
+                    title={
+                      repo.isRebasing
+                        ? "Rebasing in progress"
+                        : "Click to switch branch"
+                    }
+                  >
                     <div
                       className="repository-branch"
                       onClick={(e) => {
@@ -316,7 +325,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                       {repo.isRebasing ? (
                         <>
                           <BranchesOutlined />{" "}
-                          <Tag color="processing" style={{ margin: 0, fontSize: 11 }}>
+                          <Tag
+                            color="processing"
+                            style={{ margin: 0, fontSize: 11 }}
+                          >
                             REBASING
                           </Tag>
                         </>
