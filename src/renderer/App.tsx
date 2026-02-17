@@ -300,8 +300,11 @@ const App: React.FC = () => {
       const repo = repositories.get(repoPath);
       if (!repo) return;
 
-      // Load only commits initially - branches and conflicts will load on-demand
-      const commitsData = await window.electronAPI.getCommits(repoPath, undefined, 0, 25);
+      // Load commits + conflicts сразу (чтобы счетчик конфликтов обновился мгновенно при выборе репозитория)
+      const [commitsData] = await Promise.all([
+        window.electronAPI.getCommits(repoPath, undefined, 0, 25),
+        loadConflictCount(repoPath),
+      ]);
 
       setCommits(commitsData);
       // Check if there are potentially more commits (if we got exactly 25, there might be more)
