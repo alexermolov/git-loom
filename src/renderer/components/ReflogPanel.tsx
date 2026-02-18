@@ -1,5 +1,19 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Button, Dropdown, Space, Tag, Tooltip, Modal, message, Select, Input, DatePicker, Checkbox, Timeline, Collapse } from 'antd';
+import React, { useState, useEffect, useMemo } from "react";
+import {
+  Button,
+  Dropdown,
+  Space,
+  Tag,
+  Tooltip,
+  Modal,
+  message,
+  Select,
+  Input,
+  DatePicker,
+  Checkbox,
+  Timeline,
+  Collapse,
+} from "antd";
 import {
   ClockCircleOutlined,
   ReloadOutlined,
@@ -15,11 +29,11 @@ import {
   FilterOutlined,
   ClearOutlined,
   PullRequestOutlined,
-} from '@ant-design/icons';
-import { useTheme } from '../ThemeContext';
-import { ReflogEntry } from '../types';
-import dayjs, { Dayjs } from 'dayjs';
-import isBetween from 'dayjs/plugin/isBetween';
+} from "@ant-design/icons";
+import { useTheme } from "../ThemeContext";
+import { ReflogEntry } from "../types";
+import dayjs, { Dayjs } from "dayjs";
+import isBetween from "dayjs/plugin/isBetween";
 
 dayjs.extend(isBetween);
 
@@ -32,19 +46,26 @@ interface ReflogPanelProps {
   onEntryClick?: (entry: ReflogEntry) => void;
 }
 
-const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => {
+const ReflogPanel: React.FC<ReflogPanelProps> = ({
+  repoPath,
+  onEntryClick,
+}) => {
   const { isDarkMode } = useTheme();
   const [reflogEntries, setReflogEntries] = useState<ReflogEntry[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedRef, setSelectedRef] = useState<string>('HEAD');
+  const [selectedRef, setSelectedRef] = useState<string>("HEAD");
   const [resetModalVisible, setResetModalVisible] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<ReflogEntry | null>(null);
-  const [resetMode, setResetMode] = useState<'soft' | 'mixed' | 'hard'>('mixed');
-  
+  const [resetMode, setResetMode] = useState<"soft" | "mixed" | "hard">(
+    "mixed",
+  );
+
   // Filter states
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
   const [selectedActionTypes, setSelectedActionTypes] = useState<string[]>([]);
-  const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [dateRange, setDateRange] = useState<
+    [Dayjs | null, Dayjs | null] | null
+  >(null);
   const [selectedAuthors, setSelectedAuthors] = useState<string[]>([]);
   const [showOnlyImportant, setShowOnlyImportant] = useState(false);
 
@@ -57,24 +78,33 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
 
     setLoading(true);
     try {
-      const entries = await window.electronAPI.getReflog(repoPath, selectedRef, 100);
+      const entries = await window.electronAPI.getReflog(
+        repoPath,
+        selectedRef,
+        100,
+      );
       setReflogEntries(entries);
     } catch (error) {
-      console.error('Error loading reflog:', error);
-      message.error('Failed to load reflog');
+      console.error("Error loading reflog:", error);
+      message.error("Failed to load reflog");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResetToCommit = async (entry: ReflogEntry, mode: 'soft' | 'mixed' | 'hard') => {
+  const handleResetToCommit = async (
+    entry: ReflogEntry,
+    mode: "soft" | "mixed" | "hard",
+  ) => {
     try {
       await window.electronAPI.resetToCommit(repoPath, entry.hash, mode);
-      message.success(`Successfully reset to ${entry.hash.substring(0, 7)} (${mode})`);
+      message.success(
+        `Successfully reset to ${entry.hash.substring(0, 7)} (${mode})`,
+      );
       loadReflog();
     } catch (error) {
-      console.error('Error resetting to commit:', error);
-      message.error('Failed to reset to commit');
+      console.error("Error resetting to commit:", error);
+      message.error("Failed to reset to commit");
     }
   };
 
@@ -94,16 +124,18 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
   const handleCherryPick = async (entry: ReflogEntry) => {
     try {
       await window.electronAPI.cherryPickCommit(repoPath, entry.hash);
-      message.success(`Successfully cherry-picked commit ${entry.hash.substring(0, 7)}`);
+      message.success(
+        `Successfully cherry-picked commit ${entry.hash.substring(0, 7)}`,
+      );
       loadReflog();
     } catch (error) {
-      console.error('Error cherry-picking commit:', error);
-      message.error('Failed to cherry-pick commit. Check for conflicts.');
+      console.error("Error cherry-picking commit:", error);
+      message.error("Failed to cherry-pick commit. Check for conflicts.");
     }
   };
 
   const clearFilters = () => {
-    setSearchText('');
+    setSearchText("");
     setSelectedActionTypes([]);
     setDateRange(null);
     setSelectedAuthors([]);
@@ -112,7 +144,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
 
   const getUniqueActionTypes = (): string[] => {
     const types = new Set<string>();
-    reflogEntries.forEach(entry => {
+    reflogEntries.forEach((entry) => {
       types.add(entry.action);
     });
     return Array.from(types).sort();
@@ -120,7 +152,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
 
   const getUniqueAuthors = (): string[] => {
     const authors = new Set<string>();
-    reflogEntries.forEach(entry => {
+    reflogEntries.forEach((entry) => {
       authors.add(entry.author);
     });
     return Array.from(authors).sort();
@@ -131,113 +163,143 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
   };
 
   const isImportantAction = (action: string): boolean => {
-    const importantActions = ['commit', 'merge', 'rebase', 'reset', 'pull', 'push', 'initial'];
+    const importantActions = [
+      "commit",
+      "merge",
+      "rebase",
+      "reset",
+      "pull",
+      "push",
+      "initial",
+    ];
     return importantActions.includes(action.toLowerCase());
   };
 
   const getActionIcon = (action: string) => {
-    const iconStyle = { fontSize: '14px' };
+    const iconStyle = { fontSize: "14px" };
     switch (action.toLowerCase()) {
-      case 'commit':
-        return <CheckCircleOutlined style={{ color: '#52c41a', ...iconStyle }} />;
-      case 'checkout':
-        return <BranchesOutlined style={{ color: '#1890ff', ...iconStyle }} />;
-      case 'merge':
-        return <MergeCellsOutlined style={{ color: '#722ed1', ...iconStyle }} />;
-      case 'reset':
-        return <RollbackOutlined style={{ color: '#fa8c16', ...iconStyle }} />;
-      case 'rebase':
-        return <EditOutlined style={{ color: '#eb2f96', ...iconStyle }} />;
-      case 'pull':
-        return <PullRequestOutlined style={{ color: '#13c2c2', ...iconStyle }} />;
-      case 'push':
-        return <PullRequestOutlined style={{ color: '#096dd9', transform: 'rotate(180deg)', ...iconStyle }} />;
-      case 'fetch':
-        return <ReloadOutlined style={{ color: '#1890ff', ...iconStyle }} />;
-      case 'amend':
-        return <EditOutlined style={{ color: '#faad14', ...iconStyle }} />;
-      case 'cherry-pick':
-        return <CheckCircleOutlined style={{ color: '#f759ab', ...iconStyle }} />;
-      case 'branch':
-        return <BranchesOutlined style={{ color: '#52c41a', ...iconStyle }} />;
-      case 'stash':
-        return <ClockCircleOutlined style={{ color: '#8c8c8c', ...iconStyle }} />;
-      case 'initial':
-        return <CheckCircleOutlined style={{ color: '#389e0d', ...iconStyle }} />;
-      case 'clone':
-        return <ReloadOutlined style={{ color: '#096dd9', ...iconStyle }} />;
+      case "commit":
+        return (
+          <CheckCircleOutlined style={{ color: "#52c41a", ...iconStyle }} />
+        );
+      case "checkout":
+        return <BranchesOutlined style={{ color: "#1890ff", ...iconStyle }} />;
+      case "merge":
+        return (
+          <MergeCellsOutlined style={{ color: "#722ed1", ...iconStyle }} />
+        );
+      case "reset":
+        return <RollbackOutlined style={{ color: "#fa8c16", ...iconStyle }} />;
+      case "rebase":
+        return <EditOutlined style={{ color: "#eb2f96", ...iconStyle }} />;
+      case "pull":
+        return (
+          <PullRequestOutlined style={{ color: "#13c2c2", ...iconStyle }} />
+        );
+      case "push":
+        return (
+          <PullRequestOutlined
+            style={{
+              color: "#096dd9",
+              transform: "rotate(180deg)",
+              ...iconStyle,
+            }}
+          />
+        );
+      case "fetch":
+        return <ReloadOutlined style={{ color: "#1890ff", ...iconStyle }} />;
+      case "amend":
+        return <EditOutlined style={{ color: "#faad14", ...iconStyle }} />;
+      case "cherry-pick":
+        return (
+          <CheckCircleOutlined style={{ color: "#f759ab", ...iconStyle }} />
+        );
+      case "branch":
+        return <BranchesOutlined style={{ color: "#52c41a", ...iconStyle }} />;
+      case "stash":
+        return (
+          <ClockCircleOutlined style={{ color: "#8c8c8c", ...iconStyle }} />
+        );
+      case "initial":
+        return (
+          <CheckCircleOutlined style={{ color: "#389e0d", ...iconStyle }} />
+        );
+      case "clone":
+        return <ReloadOutlined style={{ color: "#096dd9", ...iconStyle }} />;
       default:
-        return <ClockCircleOutlined style={{ color: '#8c8c8c', ...iconStyle }} />;
+        return (
+          <ClockCircleOutlined style={{ color: "#8c8c8c", ...iconStyle }} />
+        );
     }
   };
 
   const getActionColor = (action: string) => {
     switch (action.toLowerCase()) {
-      case 'commit':
-        return 'success';
-      case 'checkout':
-        return 'processing';
-      case 'merge':
-        return 'purple';
-      case 'reset':
-        return 'warning';
-      case 'rebase':
-        return 'magenta';
-      case 'pull':
-        return 'cyan';
-      case 'push':
-        return 'blue';
-      case 'fetch':
-        return 'geekblue';
-      case 'amend':
-        return 'gold';
-      case 'cherry-pick':
-        return 'pink';
-      case 'branch':
-        return 'lime';
-      case 'stash':
-        return 'default';
-      case 'initial':
-        return 'green';
-      case 'clone':
-        return 'blue';
+      case "commit":
+        return "success";
+      case "checkout":
+        return "processing";
+      case "merge":
+        return "purple";
+      case "reset":
+        return "warning";
+      case "rebase":
+        return "magenta";
+      case "pull":
+        return "cyan";
+      case "push":
+        return "blue";
+      case "fetch":
+        return "geekblue";
+      case "amend":
+        return "gold";
+      case "cherry-pick":
+        return "pink";
+      case "branch":
+        return "lime";
+      case "stash":
+        return "default";
+      case "initial":
+        return "green";
+      case "clone":
+        return "blue";
       default:
-        return 'default';
+        return "default";
     }
   };
 
   const getTimelineColor = (action: string) => {
     switch (action.toLowerCase()) {
-      case 'commit':
-        return '#52c41a';
-      case 'checkout':
-        return '#1890ff';
-      case 'merge':
-        return '#722ed1';
-      case 'reset':
-        return '#fa8c16';
-      case 'rebase':
-        return '#eb2f96';
-      case 'pull':
-        return '#13c2c2';
-      case 'push':
-        return '#096dd9';
-      case 'fetch':
-        return '#2f54eb';
-      case 'amend':
-        return '#faad14';
-      case 'cherry-pick':
-        return '#f759ab';
-      case 'branch':
-        return '#52c41a';
-      case 'stash':
-        return '#8c8c8c';
-      case 'initial':
-        return '#389e0d';
-      case 'clone':
-        return '#096dd9';
+      case "commit":
+        return "#52c41a";
+      case "checkout":
+        return "#1890ff";
+      case "merge":
+        return "#722ed1";
+      case "reset":
+        return "#fa8c16";
+      case "rebase":
+        return "#eb2f96";
+      case "pull":
+        return "#13c2c2";
+      case "push":
+        return "#096dd9";
+      case "fetch":
+        return "#2f54eb";
+      case "amend":
+        return "#faad14";
+      case "cherry-pick":
+        return "#f759ab";
+      case "branch":
+        return "#52c41a";
+      case "stash":
+        return "#8c8c8c";
+      case "initial":
+        return "#389e0d";
+      case "clone":
+        return "#096dd9";
       default:
-        return '#8c8c8c';
+        return "#8c8c8c";
     }
   };
 
@@ -249,19 +311,21 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60)
+      return `${diffMins} minute${diffMins > 1 ? "s" : ""} ago`;
+    if (diffHours < 24)
+      return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? "s" : ""} ago`;
+
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
   };
 
   const getMenuItems = (entry: ReflogEntry) => [
     {
-      key: 'view',
+      key: "view",
       icon: <EyeOutlined />,
-      label: 'View Commit Details',
+      label: "View Commit Details",
       onClick: () => {
         if (onEntryClick) {
           onEntryClick(entry);
@@ -269,53 +333,53 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
       },
     },
     {
-      key: 'cherry-pick',
+      key: "cherry-pick",
       icon: <PullRequestOutlined />,
-      label: 'Cherry-pick Commit',
+      label: "Cherry-pick Commit",
       onClick: () => handleCherryPick(entry),
     },
     {
-      type: 'divider' as const,
+      type: "divider" as const,
     },
     {
-      key: 'reset-soft',
+      key: "reset-soft",
       icon: <RollbackOutlined />,
-      label: 'Reset (Soft)',
-      onClick: () => handleResetToCommit(entry, 'soft'),
+      label: "Reset (Soft)",
+      onClick: () => handleResetToCommit(entry, "soft"),
     },
     {
-      key: 'reset-mixed',
+      key: "reset-mixed",
       icon: <RollbackOutlined />,
-      label: 'Reset (Mixed)',
-      onClick: () => handleResetToCommit(entry, 'mixed'),
+      label: "Reset (Mixed)",
+      onClick: () => handleResetToCommit(entry, "mixed"),
     },
     {
-      key: 'reset-hard',
+      key: "reset-hard",
       icon: <RollbackOutlined />,
-      label: 'Reset (Hard)',
+      label: "Reset (Hard)",
       danger: true,
       onClick: () => showResetModal(entry),
     },
     {
-      type: 'divider' as const,
+      type: "divider" as const,
     },
     {
-      key: 'copy-hash',
-      label: 'Copy Commit Hash',
+      key: "copy-hash",
+      label: "Copy Commit Hash",
       onClick: () => {
         navigator.clipboard.writeText(entry.hash);
-        message.success('Commit hash copied to clipboard');
+        message.success("Commit hash copied to clipboard");
       },
     },
   ];
 
   // Filter entries based on search, action types, date range, authors, and importance
   const filteredEntries = useMemo(() => {
-    return reflogEntries.filter(entry => {
+    return reflogEntries.filter((entry) => {
       // Search filter
       if (searchText) {
         const search = searchText.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           entry.hash.toLowerCase().includes(search) ||
           entry.message.toLowerCase().includes(search) ||
           entry.author.toLowerCase().includes(search) ||
@@ -331,7 +395,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
       // Date range filter
       if (dateRange && dateRange[0] && dateRange[1]) {
         const entryDate = dayjs(entry.date);
-        if (!entryDate.isBetween(dateRange[0], dateRange[1], 'day', '[]')) {
+        if (!entryDate.isBetween(dateRange[0], dateRange[1], "day", "[]")) {
           return false;
         }
       }
@@ -348,12 +412,19 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
 
       return true;
     });
-  }, [reflogEntries, searchText, selectedActionTypes, dateRange, selectedAuthors, showOnlyImportant]);
+  }, [
+    reflogEntries,
+    searchText,
+    selectedActionTypes,
+    dateRange,
+    selectedAuthors,
+    showOnlyImportant,
+  ]);
 
   return (
     <div className="reflog-panel">
       <div className="reflog-panel-header">
-        <Space direction="vertical" style={{ width: '100%' }} size="small">
+        <Space direction="vertical" style={{ width: "100%" }} size="small">
           <Space wrap>
             <Select
               value={selectedRef}
@@ -365,44 +436,54 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
               <Option value="HEAD@{upstream}">Upstream</Option>
               <Option value="--all">All Refs</Option>
             </Select>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={loadReflog}
-              loading={loading}
-              size="small"
-            >
-              Refresh
-            </Button>
+            <Tooltip title="Refresh reflog">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={loadReflog}
+                loading={loading}
+                size="small"
+              />
+            </Tooltip>
           </Space>
 
           <Collapse ghost size="small">
-            <Panel 
+            <Panel
               header={
                 <Space>
                   <FilterOutlined />
                   <span>Filters & Search</span>
-                  {(searchText || selectedActionTypes.length > 0 || dateRange || selectedAuthors.length > 0 || showOnlyImportant) && (
-                    <Tag color="blue">Active</Tag>
-                  )}
+                  {(searchText ||
+                    selectedActionTypes.length > 0 ||
+                    dateRange ||
+                    selectedAuthors.length > 0 ||
+                    showOnlyImportant) && <Tag color="blue">Active</Tag>}
                 </Space>
-              } 
+              }
               key="filters"
             >
-              <Space direction="vertical" style={{ width: '100%' }} size="small">
+              <Space
+                direction="vertical"
+                style={{ width: "100%" }}
+                size="small"
+              >
                 {/* Quick Filters */}
                 <div>
                   <div className="reflog-filter-label">Quick Filters:</div>
                   <Space wrap size={[4, 4]}>
                     <Button
                       size="small"
-                      type={selectedActionTypes.length === 0 && !showOnlyImportant ? 'primary' : 'default'}
+                      type={
+                        selectedActionTypes.length === 0 && !showOnlyImportant
+                          ? "primary"
+                          : "default"
+                      }
                       onClick={clearFilters}
                     >
                       All
                     </Button>
                     <Button
                       size="small"
-                      type={showOnlyImportant ? 'primary' : 'default'}
+                      type={showOnlyImportant ? "primary" : "default"}
                       onClick={() => setShowOnlyImportant(!showOnlyImportant)}
                       icon={<CheckCircleOutlined />}
                     >
@@ -410,33 +491,54 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
                     </Button>
                     <Button
                       size="small"
-                      type={selectedActionTypes.includes('commit') && selectedActionTypes.length === 1 ? 'primary' : 'default'}
-                      onClick={() => setQuickFilter(['commit'])}
-                      icon={getActionIcon('commit')}
+                      type={
+                        selectedActionTypes.includes("commit") &&
+                        selectedActionTypes.length === 1
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => setQuickFilter(["commit"])}
+                      icon={getActionIcon("commit")}
                     >
                       Commits
                     </Button>
                     <Button
                       size="small"
-                      type={selectedActionTypes.includes('merge') && selectedActionTypes.length === 1 ? 'primary' : 'default'}
-                      onClick={() => setQuickFilter(['merge'])}
-                      icon={getActionIcon('merge')}
+                      type={
+                        selectedActionTypes.includes("merge") &&
+                        selectedActionTypes.length === 1
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => setQuickFilter(["merge"])}
+                      icon={getActionIcon("merge")}
                     >
                       Merges
                     </Button>
                     <Button
                       size="small"
-                      type={selectedActionTypes.includes('checkout') && selectedActionTypes.length === 1 ? 'primary' : 'default'}
-                      onClick={() => setQuickFilter(['checkout'])}
-                      icon={getActionIcon('checkout')}
+                      type={
+                        selectedActionTypes.includes("checkout") &&
+                        selectedActionTypes.length === 1
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => setQuickFilter(["checkout"])}
+                      icon={getActionIcon("checkout")}
                     >
                       Checkouts
                     </Button>
                     <Button
                       size="small"
-                      type={(selectedActionTypes.includes('pull') || selectedActionTypes.includes('push')) && selectedActionTypes.length <= 2 ? 'primary' : 'default'}
-                      onClick={() => setQuickFilter(['pull', 'push'])}
-                      icon={getActionIcon('pull')}
+                      type={
+                        (selectedActionTypes.includes("pull") ||
+                          selectedActionTypes.includes("push")) &&
+                        selectedActionTypes.length <= 2
+                          ? "primary"
+                          : "default"
+                      }
+                      onClick={() => setQuickFilter(["pull", "push"])}
+                      icon={getActionIcon("pull")}
                     >
                       Pull/Push
                     </Button>
@@ -452,21 +554,24 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
                   allowClear
                   size="small"
                 />
-                
+
                 {/* Action Types Filter */}
                 <div>
                   <div className="reflog-filter-label">Action Types:</div>
                   <Checkbox.Group
                     value={selectedActionTypes}
                     onChange={setSelectedActionTypes}
-                    style={{ width: '100%' }}
+                    style={{ width: "100%" }}
                   >
                     <Space wrap>
-                      {getUniqueActionTypes().map(type => (
+                      {getUniqueActionTypes().map((type) => (
                         <Checkbox key={type} value={type}>
                           <Space size={4}>
                             {getActionIcon(type)}
-                            <Tag color={getActionColor(type)} style={{ margin: 0 }}>
+                            <Tag
+                              color={getActionColor(type)}
+                              style={{ margin: 0 }}
+                            >
                               {type.toUpperCase()}
                             </Tag>
                           </Space>
@@ -483,14 +588,16 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
                     mode="multiple"
                     value={selectedAuthors}
                     onChange={setSelectedAuthors}
-                    style={{ width: '100%' }}
+                    style={{ width: "100%" }}
                     placeholder="Select authors to filter..."
                     size="small"
                     allowClear
                     maxTagCount="responsive"
                   >
-                    {getUniqueAuthors().map(author => (
-                      <Option key={author} value={author}>{author}</Option>
+                    {getUniqueAuthors().map((author) => (
+                      <Option key={author} value={author}>
+                        {author}
+                      </Option>
                     ))}
                   </Select>
                 </div>
@@ -501,10 +608,10 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
                   <RangePicker
                     value={dateRange}
                     onChange={setDateRange}
-                    style={{ width: '100%' }}
+                    style={{ width: "100%" }}
                     size="small"
                     format="YYYY-MM-DD"
-                    placeholder={['Start date', 'End date']}
+                    placeholder={["Start date", "End date"]}
                   />
                 </div>
 
@@ -514,12 +621,19 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
                     icon={<ClearOutlined />}
                     onClick={clearFilters}
                     size="small"
-                    disabled={!searchText && selectedActionTypes.length === 0 && !dateRange && selectedAuthors.length === 0 && !showOnlyImportant}
+                    disabled={
+                      !searchText &&
+                      selectedActionTypes.length === 0 &&
+                      !dateRange &&
+                      selectedAuthors.length === 0 &&
+                      !showOnlyImportant
+                    }
                   >
                     Clear All Filters
                   </Button>
                   <div className="reflog-entry-count">
-                    Showing {filteredEntries.length} of {reflogEntries.length} entries
+                    Showing {filteredEntries.length} of {reflogEntries.length}{" "}
+                    entries
                   </div>
                 </Space>
               </Space>
@@ -532,9 +646,15 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
         {filteredEntries.length === 0 ? (
           <div className="reflog-empty">
             <ClockCircleOutlined className="reflog-empty-icon" />
-            <p>{reflogEntries.length === 0 ? 'No reflog entries found' : 'No entries match the current filters'}</p>
+            <p>
+              {reflogEntries.length === 0
+                ? "No reflog entries found"
+                : "No entries match the current filters"}
+            </p>
             {reflogEntries.length > 0 && (
-              <Button onClick={clearFilters} size="small">Clear Filters</Button>
+              <Button onClick={clearFilters} size="small">
+                Clear Filters
+              </Button>
             )}
           </div>
         ) : (
@@ -546,18 +666,25 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
               dot: getActionIcon(entry.action),
               label: formatDate(entry.date),
               children: (
-                <div 
-                  className="timeline-entry" 
+                <div
+                  className="timeline-entry"
                   onClick={() => onEntryClick && onEntryClick(entry)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: "pointer" }}
                 >
                   <div className="timeline-entry-header">
                     <Space size="small">
-                      <Tag color={getActionColor(entry.action)}>{entry.action.toUpperCase()}</Tag>
-                      <span className="reflog-hash">{entry.hash.substring(0, 7)}</span>
+                      <Tag color={getActionColor(entry.action)}>
+                        {entry.action.toUpperCase()}
+                      </Tag>
+                      <span className="reflog-hash">
+                        {entry.hash.substring(0, 7)}
+                      </span>
                       <span className="reflog-selector">{entry.selector}</span>
                     </Space>
-                    <Dropdown menu={{ items: getMenuItems(entry) }} trigger={['click']}>
+                    <Dropdown
+                      menu={{ items: getMenuItems(entry) }}
+                      trigger={["click"]}
+                    >
                       <Button
                         type="text"
                         size="small"
@@ -589,10 +716,16 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
         okButtonProps={{ danger: true }}
       >
         <div style={{ marginBottom: 16 }}>
-          <p><strong>Warning:</strong> Hard reset will discard all uncommitted changes.</p>
+          <p>
+            <strong>Warning:</strong> Hard reset will discard all uncommitted
+            changes.
+          </p>
           {selectedEntry && (
             <div>
-              <p>Reset to commit: <code>{selectedEntry.hash.substring(0, 7)}</code></p>
+              <p>
+                Reset to commit:{" "}
+                <code>{selectedEntry.hash.substring(0, 7)}</code>
+              </p>
               <p>Message: {selectedEntry.message}</p>
             </div>
           )}
@@ -602,7 +735,7 @@ const ReflogPanel: React.FC<ReflogPanelProps> = ({ repoPath, onEntryClick }) => 
           <Select
             value={resetMode}
             onChange={setResetMode}
-            style={{ width: '100%' }}
+            style={{ width: "100%" }}
           >
             <Option value="soft">
               <strong>Soft:</strong> Keep changes staged

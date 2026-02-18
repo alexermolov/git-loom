@@ -24,6 +24,7 @@ import {
   SearchOutlined,
   RollbackOutlined,
   CloudUploadOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { FileStatus, CommitInfo } from "../types";
 
@@ -288,9 +289,14 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
           }}
         >
           <h3 style={{ margin: 0, fontSize: "16px" }}>Changes</h3>
-          <Button onClick={loadStatus} loading={loading} size="small">
-            Refresh
-          </Button>
+          <Tooltip title="Refresh changes">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadStatus}
+              loading={loading}
+              size="small"
+            />
+          </Tooltip>
         </div>
 
         <Input
@@ -563,13 +569,14 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
             <CloudUploadOutlined style={{ marginRight: "6px" }} />
             Unpushed Commits ({unpushedCommits.length})
           </h3>
-          <Button
-            onClick={loadUnpushedCommits}
-            loading={loadingUnpushed}
-            size="small"
-          >
-            Refresh
-          </Button>
+          <Tooltip title="Refresh unpushed commits">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadUnpushedCommits}
+              loading={loadingUnpushed}
+              size="small"
+            />
+          </Tooltip>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>

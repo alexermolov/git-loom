@@ -12,6 +12,8 @@ import {
   Radio,
   Space,
   App,
+  Button,
+  Tooltip,
 } from "antd";
 import type { MenuProps } from "antd";
 import {
@@ -27,6 +29,7 @@ import {
   LinkOutlined,
   DisconnectOutlined,
   DiffOutlined,
+  ReloadOutlined,
 } from "@ant-design/icons";
 import { BranchInfo } from "../types";
 import type { DataNode } from "antd/es/tree";
@@ -889,14 +892,25 @@ const BranchTreePanel: React.FC<BranchTreePanelProps> = ({
             <BranchesOutlined />
             Git Branches
           </div>
-          <button
-            onClick={() => handleCreateBranch()}
-            className="new-branch-btn"
-            title="Create new branch"
-          >
-            <PlusOutlined />
-            New Branch
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Tooltip title="Refresh branches and graph">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => onRefresh?.()}
+                loading={loading}
+                disabled={!repoPath}
+                size="small"
+              />
+            </Tooltip>
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusOutlined />}
+              onClick={() => handleCreateBranch()}
+            >
+              New Branch
+            </Button>
+          </div>
         </div>
 
         <Input

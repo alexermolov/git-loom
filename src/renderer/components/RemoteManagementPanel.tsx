@@ -52,17 +52,20 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
   const [showEditModal, setShowEditModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showSetUpstreamModal, setShowSetUpstreamModal] = useState(false);
-  
+
   const [selectedRemote, setSelectedRemote] = useState<RemoteInfo | null>(null);
   const [remoteName, setRemoteName] = useState("");
   const [remoteUrl, setRemoteUrl] = useState("");
   const [newRemoteName, setNewRemoteName] = useState("");
   const [editIsPushUrl, setEditIsPushUrl] = useState(false);
   const [fetchWithPrune, setFetchWithPrune] = useState(false);
-  
+
   const [upstreamRemote, setUpstreamRemote] = useState<string>("");
   const [upstreamBranch, setUpstreamBranch] = useState<string>("");
-  const [currentUpstream, setCurrentUpstream] = useState<{ remote: string; branch: string } | null>(null);
+  const [currentUpstream, setCurrentUpstream] = useState<{
+    remote: string;
+    branch: string;
+  } | null>(null);
 
   useEffect(() => {
     if (repoPath) {
@@ -92,7 +95,7 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
       const upstream = await window.electronAPI.getUpstream(repoPath);
       setCurrentUpstream(upstream);
     } catch (error: any) {
-      console.error('Error loading upstream:', error);
+      console.error("Error loading upstream:", error);
     }
   };
 
@@ -105,7 +108,11 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
 
     setLoading(true);
     try {
-      await window.electronAPI.addRemote(repoPath, remoteName.trim(), remoteUrl.trim());
+      await window.electronAPI.addRemote(
+        repoPath,
+        remoteName.trim(),
+        remoteUrl.trim(),
+      );
       message.success(`Remote '${remoteName}' added successfully`);
       setRemoteName("");
       setRemoteUrl("");
@@ -144,7 +151,11 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
 
     setLoading(true);
     try {
-      await window.electronAPI.renameRemote(repoPath, selectedRemote.name, newRemoteName.trim());
+      await window.electronAPI.renameRemote(
+        repoPath,
+        selectedRemote.name,
+        newRemoteName.trim(),
+      );
       message.success(`Remote renamed to '${newRemoteName}'`);
       setNewRemoteName("");
       setShowRenameModal(false);
@@ -171,9 +182,11 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
         repoPath,
         selectedRemote.name,
         remoteUrl.trim(),
-        editIsPushUrl
+        editIsPushUrl,
       );
-      message.success(`Remote '${selectedRemote.name}' URL updated successfully`);
+      message.success(
+        `Remote '${selectedRemote.name}' URL updated successfully`,
+      );
       setRemoteUrl("");
       setShowEditModal(false);
       setSelectedRemote(null);
@@ -208,9 +221,14 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
 
     setLoading(true);
     try {
-      const prunedBranches = await window.electronAPI.pruneRemote(repoPath, name);
+      const prunedBranches = await window.electronAPI.pruneRemote(
+        repoPath,
+        name,
+      );
       if (prunedBranches.length > 0) {
-        message.success(`Pruned ${prunedBranches.length} stale branch(es) from '${name}'`);
+        message.success(
+          `Pruned ${prunedBranches.length} stale branch(es) from '${name}'`,
+        );
       } else {
         message.info(`No stale branches to prune from '${name}'`);
       }
@@ -232,7 +250,11 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
 
     setLoading(true);
     try {
-      await window.electronAPI.setUpstream(repoPath, upstreamRemote, upstreamBranch);
+      await window.electronAPI.setUpstream(
+        repoPath,
+        upstreamRemote,
+        upstreamBranch,
+      );
       message.success(`Upstream set to '${upstreamRemote}/${upstreamBranch}'`);
       setShowSetUpstreamModal(false);
       setUpstreamRemote("");
@@ -275,21 +297,34 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
 
   const getAvailableBranches = (): string[] => {
     if (!upstreamRemote) return [];
-    const remote = remotes.find(r => r.name === upstreamRemote);
+    const remote = remotes.find((r) => r.name === upstreamRemote);
     return remote?.branches || [];
   };
 
   if (!repoPath) {
     return (
-      <div className="remote-management-panel" style={{ padding: 24, textAlign: "center" }}>
+      <div
+        className="remote-management-panel"
+        style={{ padding: 24, textAlign: "center" }}
+      >
         <Empty description="No repository selected" />
       </div>
     );
   }
 
   return (
-    <div className="remote-management-panel" style={{ padding: 16, height: "100%", overflowY: "auto" }}>
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div
+      className="remote-management-panel"
+      style={{ padding: 16, height: "100%", overflowY: "auto" }}
+    >
+      <div
+        style={{
+          marginBottom: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
         <Title level={4} style={{ margin: 0 }}>
           Remote Management
         </Title>
@@ -303,10 +338,18 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
               unCheckedChildren="Prune"
             />
           </Tooltip>
-          <Button icon={<ReloadOutlined />} onClick={loadRemotes} loading={loading}>
-            Refresh
-          </Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowAddModal(true)}>
+          <Tooltip title="Refresh remotes">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadRemotes}
+              loading={loading}
+            />
+          </Tooltip>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => setShowAddModal(true)}
+          >
             Add Remote
           </Button>
         </Space>
@@ -315,10 +358,10 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
       {currentUpstream && (
         <Card
           size="small"
-          style={{ 
-            marginBottom: 16, 
+          style={{
+            marginBottom: 16,
             background: isDarkMode ? "rgba(255, 255, 255, 0.04)" : "#f6f8fa",
-            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "#d9d9d9"
+            borderColor: isDarkMode ? "rgba(255, 255, 255, 0.12)" : "#d9d9d9",
           }}
           title={
             <Space>
@@ -339,12 +382,12 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
       )}
 
       {!currentUpstream && remotes.length > 0 && (
-        <Card 
-          size="small" 
-          style={{ 
-            marginBottom: 16, 
-            background: isDarkMode ? "rgba(250, 173, 20, 0.1)" : "#fff7e6", 
-            borderColor: isDarkMode ? "rgba(250, 173, 20, 0.3)" : "#ffc53d"
+        <Card
+          size="small"
+          style={{
+            marginBottom: 16,
+            background: isDarkMode ? "rgba(250, 173, 20, 0.1)" : "#fff7e6",
+            borderColor: isDarkMode ? "rgba(250, 173, 20, 0.3)" : "#ffc53d",
           }}
         >
           <Space>
@@ -363,7 +406,11 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             style={{ marginTop: 48 }}
           >
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowAddModal(true)}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setShowAddModal(true)}
+            >
               Add Your First Remote
             </Button>
           </Empty>
@@ -373,14 +420,22 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
             renderItem={(remote) => (
               <Card
                 key={remote.name}
-                style={{ 
+                style={{
                   marginBottom: 12,
                   background: isDarkMode ? "rgba(255, 255, 255, 0.02)" : "#fff",
-                  borderColor: isDarkMode ? "rgba(255, 255, 255, 0.1)" : "#d9d9d9"
+                  borderColor: isDarkMode
+                    ? "rgba(255, 255, 255, 0.1)"
+                    : "#d9d9d9",
                 }}
                 bodyStyle={{ padding: 16 }}
               >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                  }}
+                >
                   <div style={{ flex: 1 }}>
                     <Space align="start" size="large">
                       <div>
@@ -404,7 +459,8 @@ const RemoteManagementPanel: React.FC<RemoteManagementPanelProps> = ({
                         {remote.branches.length > 0 && (
                           <div style={{ marginTop: 8 }}>
                             <Text type="secondary" style={{ fontSize: 12 }}>
-                              <BranchesOutlined /> {remote.branches.length} remote branch(es)
+                              <BranchesOutlined /> {remote.branches.length}{" "}
+                              remote branch(es)
                             </Text>
                           </div>
                         )}
