@@ -338,13 +338,15 @@ const App: React.FC = () => {
       const repo = repositories.get(repoPath);
       if (!repo) return;
 
-      // Load commits + conflicts сразу (чтобы счетчик конфликтов обновился мгновенно при выборе репозитория)
-      const [commitsData] = await Promise.all([
+      // Load commits + branches + conflicts сразу (чтобы счетчик конфликтов обновился мгновенно при выборе репозитория и отобразился Git Graph)
+      const [commitsData, branchesData] = await Promise.all([
         window.electronAPI.getCommits(repoPath, undefined, 0, 25),
+        window.electronAPI.getBranches(repoPath),
         loadConflictCount(repoPath),
       ]);
 
       setCommits(commitsData);
+      setBranches(branchesData);
       // Check if there are potentially more commits (if we got exactly 25, there might be more)
       setHasMoreCommits(commitsData.length === 25);
       setCurrentBranch(repo.currentBranch);
