@@ -21,6 +21,55 @@ import {
 } from "../types";
 import { ViewType } from "./IconSidebar";
 
+type DocumentationSection = {
+  title: string;
+  content: React.ReactNode;
+};
+
+const renderDocumentationView = (
+  title: string,
+  subtitle: React.ReactNode,
+  sections: DocumentationSection[],
+  note?: React.ReactNode,
+) => (
+  <div className="middle-panel-content">
+    <div className="middle-panel-header">
+      <div className="middle-panel-title">{title}</div>
+    </div>
+    <div
+      className="middle-panel-info"
+      style={{ padding: "20px", maxWidth: "800px" }}
+    >
+      <p style={{ marginTop: 0, color: "var(--text-secondary)" }}>
+        {subtitle}
+      </p>
+
+      {sections.map((section) => (
+        <div key={section.title} style={{ marginBottom: "20px" }}>
+          <h3 style={{ color: "var(--primary-color)", marginBottom: "8px" }}>
+            {section.title}
+          </h3>
+          <div style={{ lineHeight: "1.8" }}>{section.content}</div>
+        </div>
+      ))}
+
+      {note ? (
+        <div
+          style={{
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning-border)",
+            borderRadius: "4px",
+            padding: "12px",
+            color: "var(--warning-text)",
+          }}
+        >
+          {note}
+        </div>
+      ) : null}
+    </div>
+  </div>
+);
+
 interface MiddlePanelProps {
   view: ViewType;
   repoPath: string;
@@ -282,6 +331,190 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
           </div>
         );
 
+      case "tags":
+        return renderDocumentationView(
+          "Git Tags Documentation",
+          <>
+            Tags mark important points in history, usually releases, milestones,
+            or externally referenced builds. The full tag management UI is
+            shown in the main panel.
+          </>,
+          [
+            {
+              title: "What Tags Are For",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>Mark releases such as v1.0.0 or v2.3.1</li>
+                  <li>Keep a stable reference for deployments or QA builds</li>
+                  <li>Annotate important historical points in the repository</li>
+                </ul>
+              ),
+            },
+            {
+              title: "Tag Types",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>
+                    <strong>Lightweight tag:</strong> a simple named pointer to
+                    a commit
+                  </li>
+                  <li>
+                    <strong>Annotated tag:</strong> stores tagger, date, and a
+                    message, which is better for releases
+                  </li>
+                </ul>
+              ),
+            },
+            {
+              title: "Actions In This Tab",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>Create a tag on HEAD or a specific commit hash</li>
+                  <li>Inspect tag details and linked commit metadata</li>
+                  <li>Checkout a tag to inspect code in detached HEAD mode</li>
+                  <li>Push one tag or all tags to a remote</li>
+                  <li>Delete tags locally or from a remote</li>
+                </ul>
+              ),
+            },
+          ],
+          <ul style={{ margin: 0, paddingLeft: "20px" }}>
+            <li>Tags are not pushed automatically with normal branch pushes</li>
+            <li>
+              Checking out a tag places Git into detached HEAD until you create
+              or switch to a branch
+            </li>
+            <li>Prefer annotated tags for public releases</li>
+          </ul>,
+        );
+
+      case "remotes":
+        return renderDocumentationView(
+          "Git Remotes Documentation",
+          <>
+            Remotes connect this local repository to shared servers such as
+            GitHub, GitLab, or another bare repository. Remote management is
+            available in the main panel.
+          </>,
+          [
+            {
+              title: "What A Remote Does",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>Defines where you fetch branches and tags from</li>
+                  <li>Defines where you push local work to</li>
+                  <li>Can use separate fetch and push URLs for the same name</li>
+                </ul>
+              ),
+            },
+            {
+              title: "Actions In This Tab",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>Add, rename, edit, or remove remotes</li>
+                  <li>Fetch from a remote, optionally with prune</li>
+                  <li>Prune stale remote-tracking branches</li>
+                  <li>Review fetch and push URLs</li>
+                  <li>Set or change upstream tracking for the current branch</li>
+                </ul>
+              ),
+            },
+            {
+              title: "Why Upstream Matters",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>
+                    Upstream links a local branch to a remote branch such as
+                    <code> origin/main</code>
+                  </li>
+                  <li>
+                    It enables simpler pull and push workflows without entering
+                    the full remote/branch pair every time
+                  </li>
+                  <li>
+                    It also powers ahead/behind status in many Git views
+                  </li>
+                </ul>
+              ),
+            },
+          ],
+          <ul style={{ margin: 0, paddingLeft: "20px" }}>
+            <li>Use prune carefully if you rely on stale remote branch refs</li>
+            <li>
+              Removing a remote deletes the configuration, not your local
+              branches or commits
+            </li>
+            <li>
+              A repository can have multiple remotes, for example origin and
+              upstream
+            </li>
+          </ul>,
+        );
+
+      case "rebase":
+        return renderDocumentationView(
+          "Interactive Rebase Documentation",
+          <>
+            Interactive rebase rewrites commit history before sharing it,
+            letting you clean up messages, combine commits, or reorder work.
+            The rebase controls are shown in the main panel.
+          </>,
+          [
+            {
+              title: "What Interactive Rebase Is For",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>Reorder commits into a clearer story</li>
+                  <li>Squash or fixup small commits before opening a PR</li>
+                  <li>Rewrite commit messages for clarity</li>
+                  <li>Drop commits that should not remain in history</li>
+                </ul>
+              ),
+            },
+            {
+              title: "Common Rebase Operations",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>
+                    <strong>pick:</strong> keep the commit as-is
+                  </li>
+                  <li>
+                    <strong>reword:</strong> keep content, change message
+                  </li>
+                  <li>
+                    <strong>squash/fixup:</strong> combine commits
+                  </li>
+                  <li>
+                    <strong>drop:</strong> remove a commit from history
+                  </li>
+                </ul>
+              ),
+            },
+            {
+              title: "When To Use It",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>Before pushing a feature branch for review</li>
+                  <li>Before merging, to produce a cleaner linear history</li>
+                  <li>
+                    When you need to split noisy work into deliberate commits
+                  </li>
+                </ul>
+              ),
+            },
+          ],
+          <ul style={{ margin: 0, paddingLeft: "20px" }}>
+            <li>Do not rebase shared history unless the team expects it</li>
+            <li>
+              Rebase can produce conflicts; if that happens, continue from the
+              Conflicts tab
+            </li>
+            <li>
+              After rewriting pushed commits, a force push may be required
+            </li>
+          </ul>,
+        );
+
       case "reflog":
         return (
           <div className="middle-panel-content">
@@ -467,15 +700,46 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
         );
 
       case "graph":
-        return (
-          <div className="middle-panel-content">
-            <div className="middle-panel-header">
-              <div className="middle-panel-title">Git Graph</div>
-            </div>
-            <div className="middle-panel-info">
-              <Empty description="Graph view is shown in the main panel" />
-            </div>
-          </div>
+        return renderDocumentationView(
+          "Git Graph Documentation",
+          <>
+            The commit graph is rendered in the main panel. This view helps you
+            read branch structure, merges, tags, and commit flow at a glance.
+          </>,
+          [
+            {
+              title: "How To Read It",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>Each node is a commit</li>
+                  <li>Lines connect parent and child commits</li>
+                  <li>Labels identify branches, remotes, HEAD, and tags</li>
+                  <li>Merge commits show where histories come together</li>
+                </ul>
+              ),
+            },
+            {
+              title: "Useful Workflows",
+              content: (
+                <ul style={{ margin: 0, paddingLeft: "20px" }}>
+                  <li>Inspect divergence between branches</li>
+                  <li>Verify whether a feature branch was merged</li>
+                  <li>Find the commit behind a release tag</li>
+                  <li>Open commit details directly from the graph</li>
+                </ul>
+              ),
+            },
+          ],
+          <ul style={{ margin: 0, paddingLeft: "20px" }}>
+            <li>
+              If branch data looks stale, refresh repository data before relying
+              on the graph
+            </li>
+            <li>
+              The graph is most useful together with the commit details and file
+              diff views
+            </li>
+          </ul>,
         );
 
       case "search":
