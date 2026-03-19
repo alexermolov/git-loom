@@ -45,3 +45,6 @@ export * from "./reflog";
 
 // Export blame operations
 export * from "./blame";
+
+// Export file history operations
+export * from "./fileHistory";

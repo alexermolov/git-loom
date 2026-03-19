@@ -101,6 +101,14 @@ import {
   getReflog,
   // Blame operations
   getFileBlame,
+  // File history operations
+  getFileHistory,
+  compareFileAcrossCommits,
+  getFileAtCommit,
+  restoreFileFromCommit,
+  getFileStatistics,
+  getFileVersions,
+  getLineHistory,
 } from "./git";
 
 let mainWindow: BrowserWindow | null = null;
@@ -1302,6 +1310,123 @@ function setupIpcHandlers() {
         await editRebaseCommitMessage(repoPath, commitHash, newMessage);
       } catch (error) {
         console.error("Error editing rebase commit message:", error);
+        throw error;
+      }
+    },
+  );
+
+  // ============================================================================
+  // FILE HISTORY HANDLERS
+  // ============================================================================
+
+  // Get file history
+  ipcMain.handle(
+    "git:getFileHistory",
+    async (_event, repoPath: string, filePath: string, maxCount?: number) => {
+      try {
+        return await getFileHistory(repoPath, filePath, maxCount);
+      } catch (error) {
+        console.error("Error getting file history:", error);
+        throw error;
+      }
+    },
+  );
+
+  // Compare file across commits
+  ipcMain.handle(
+    "git:compareFileAcrossCommits",
+    async (
+      _event,
+      repoPath: string,
+      filePath: string,
+      fromCommitHash: string,
+      toCommitHash: string,
+    ) => {
+      try {
+        return await compareFileAcrossCommits(
+          repoPath,
+          filePath,
+          fromCommitHash,
+          toCommitHash,
+        );
+      } catch (error) {
+        console.error("Error comparing file across commits:", error);
+        throw error;
+      }
+    },
+  );
+
+  // Get file at commit
+  ipcMain.handle(
+    "git:getFileAtCommit",
+    async (_event, repoPath: string, filePath: string, commitHash: string) => {
+      try {
+        return await getFileAtCommit(repoPath, filePath, commitHash);
+      } catch (error) {
+        console.error("Error getting file at commit:", error);
+        throw error;
+      }
+    },
+  );
+
+  // Restore file from commit
+  ipcMain.handle(
+    "git:restoreFileFromCommit",
+    async (_event, repoPath: string, filePath: string, commitHash: string) => {
+      try {
+        await restoreFileFromCommit(repoPath, filePath, commitHash);
+      } catch (error) {
+        console.error("Error restoring file from commit:", error);
+        throw error;
+      }
+    },
+  );
+
+  // Get file statistics
+  ipcMain.handle(
+    "git:getFileStatistics",
+    async (_event, repoPath: string, filePath: string) => {
+      try {
+        return await getFileStatistics(repoPath, filePath);
+      } catch (error) {
+        console.error("Error getting file statistics:", error);
+        throw error;
+      }
+    },
+  );
+
+  // Get file versions
+  ipcMain.handle(
+    "git:getFileVersions",
+    async (
+      _event,
+      repoPath: string,
+      filePath: string,
+      commitHashes: string[],
+    ) => {
+      try {
+        return await getFileVersions(repoPath, filePath, commitHashes);
+      } catch (error) {
+        console.error("Error getting file versions:", error);
+        throw error;
+      }
+    },
+  );
+
+  // Get line history
+  ipcMain.handle(
+    "git:getLineHistory",
+    async (
+      _event,
+      repoPath: string,
+      filePath: string,
+      startLine: number,
+      endLine: number,
+    ) => {
+      try {
+        return await getLineHistory(repoPath, filePath, startLine, endLine);
+      } catch (error) {
+        console.error("Error getting line history:", error);
         throw error;
       }
     },

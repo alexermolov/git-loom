@@ -1,94 +1,285 @@
 export interface ElectronAPI {
   openFolder: () => Promise<string>;
   scanRepositories: (folderPath: string) => Promise<string[]>;
-  getRepositoryInfo: (repoPath: string, forceFetch?: boolean) => Promise<RepositoryInfo>;
+  getRepositoryInfo: (
+    repoPath: string,
+    forceFetch?: boolean,
+  ) => Promise<RepositoryInfo>;
   pullRepository: (repoPath: string) => Promise<RepositoryInfo>;
-  pushRepository: (repoPath: string, options?: { force?: boolean; forceWithLease?: boolean }) => Promise<RepositoryInfo>;
-  getCommits: (repoPath: string, branch?: string, skip?: number, limit?: number) => Promise<CommitInfo[]>;
+  pushRepository: (
+    repoPath: string,
+    options?: { force?: boolean; forceWithLease?: boolean },
+  ) => Promise<RepositoryInfo>;
+  getCommits: (
+    repoPath: string,
+    branch?: string,
+    skip?: number,
+    limit?: number,
+  ) => Promise<CommitInfo[]>;
   getUnpushedCommits: (repoPath: string) => Promise<CommitInfo[]>;
   getFileTree: (repoPath: string, commitHash?: string) => Promise<FileTreeNode>;
   getBranches: (repoPath: string) => Promise<BranchInfo[]>;
   getGitGraph: (repoPath: string, branch?: string) => Promise<GitGraphRow[]>;
-  getCommitDetails: (repoPath: string, branch?: string, maxCount?: number) => Promise<CommitDetail[]>;
-  getCommitFiles: (repoPath: string, commitHash: string) => Promise<CommitFile[]>;
-  getFileDiff: (repoPath: string, commitHash: string, filePath: string) => Promise<FileDiff>;
+  getCommitDetails: (
+    repoPath: string,
+    branch?: string,
+    maxCount?: number,
+  ) => Promise<CommitDetail[]>;
+  getCommitFiles: (
+    repoPath: string,
+    commitHash: string,
+  ) => Promise<CommitFile[]>;
+  getFileDiff: (
+    repoPath: string,
+    commitHash: string,
+    filePath: string,
+  ) => Promise<FileDiff>;
   getStatus: (repoPath: string) => Promise<FileStatus[]>;
   stageFiles: (repoPath: string, filePaths: string[]) => Promise<void>;
   unstageFiles: (repoPath: string, filePaths: string[]) => Promise<void>;
   discardChanges: (repoPath: string, filePaths: string[]) => Promise<void>;
   createCommit: (repoPath: string, message: string) => Promise<void>;
-  getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => Promise<FileDiff>;
-  checkoutBranch: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
-  stashAndCheckout: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
-  discardAndCheckout: (repoPath: string, branchName: string) => Promise<RepositoryInfo>;
-  mergeBranch: (repoPath: string, branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => Promise<RepositoryInfo>;
+  getWorkingFileDiff: (
+    repoPath: string,
+    filePath: string,
+    staged: boolean,
+  ) => Promise<FileDiff>;
+  checkoutBranch: (
+    repoPath: string,
+    branchName: string,
+  ) => Promise<RepositoryInfo>;
+  stashAndCheckout: (
+    repoPath: string,
+    branchName: string,
+  ) => Promise<RepositoryInfo>;
+  discardAndCheckout: (
+    repoPath: string,
+    branchName: string,
+  ) => Promise<RepositoryInfo>;
+  mergeBranch: (
+    repoPath: string,
+    branchName: string,
+    mergeMode?: "auto" | "no-ff" | "ff-only",
+  ) => Promise<RepositoryInfo>;
   // Branch management
-  createBranch: (repoPath: string, branchName: string, startPoint?: string, switchAfterCreate?: boolean, pushAfterCreate?: boolean) => Promise<BranchInfo[]>;
-  deleteBranch: (repoPath: string, branchName: string, force: boolean) => Promise<{ success: boolean; branches?: BranchInfo[]; warning?: string }>;
-  deleteRemoteBranch: (repoPath: string, remoteName: string, branchName: string) => Promise<BranchInfo[]>;
-  renameBranch: (repoPath: string, oldName: string, newName: string, renameRemote: boolean) => Promise<BranchInfo[]>;
-  setUpstreamBranch: (repoPath: string, localBranch: string, remoteName: string, remoteBranch: string) => Promise<BranchInfo[]>;
-  unsetUpstreamBranch: (repoPath: string, branchName: string) => Promise<BranchInfo[]>;
-  compareBranches: (repoPath: string, baseBranch: string, compareBranch: string) => Promise<BranchComparison>;
-  getReflog: (repoPath: string, ref?: string, maxCount?: number) => Promise<ReflogEntry[]>;
-  resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => Promise<void>;
+  createBranch: (
+    repoPath: string,
+    branchName: string,
+    startPoint?: string,
+    switchAfterCreate?: boolean,
+    pushAfterCreate?: boolean,
+  ) => Promise<BranchInfo[]>;
+  deleteBranch: (
+    repoPath: string,
+    branchName: string,
+    force: boolean,
+  ) => Promise<{ success: boolean; branches?: BranchInfo[]; warning?: string }>;
+  deleteRemoteBranch: (
+    repoPath: string,
+    remoteName: string,
+    branchName: string,
+  ) => Promise<BranchInfo[]>;
+  renameBranch: (
+    repoPath: string,
+    oldName: string,
+    newName: string,
+    renameRemote: boolean,
+  ) => Promise<BranchInfo[]>;
+  setUpstreamBranch: (
+    repoPath: string,
+    localBranch: string,
+    remoteName: string,
+    remoteBranch: string,
+  ) => Promise<BranchInfo[]>;
+  unsetUpstreamBranch: (
+    repoPath: string,
+    branchName: string,
+  ) => Promise<BranchInfo[]>;
+  compareBranches: (
+    repoPath: string,
+    baseBranch: string,
+    compareBranch: string,
+  ) => Promise<BranchComparison>;
+  getReflog: (
+    repoPath: string,
+    ref?: string,
+    maxCount?: number,
+  ) => Promise<ReflogEntry[]>;
+  resetToCommit: (
+    repoPath: string,
+    commitHash: string,
+    mode: "soft" | "mixed" | "hard",
+  ) => Promise<void>;
   cherryPickCommit: (repoPath: string, commitHash: string) => Promise<void>;
   revertCommit: (repoPath: string, commitHash: string) => Promise<void>;
-  abortRevert: (repoPath: string) => Promise<'aborted' | 'noop'>;
-  continueRevert: (repoPath: string) => Promise<'continued' | 'noop'>;
+  abortRevert: (repoPath: string) => Promise<"aborted" | "noop">;
+  continueRevert: (repoPath: string) => Promise<"continued" | "noop">;
   getFileContent: (repoPath: string, filePath: string) => Promise<string>;
   // Stash operations
-  createStash: (repoPath: string, message?: string, includeUntracked?: boolean) => Promise<void>;
+  createStash: (
+    repoPath: string,
+    message?: string,
+    includeUntracked?: boolean,
+  ) => Promise<void>;
   getStashList: (repoPath: string) => Promise<StashEntry[]>;
   applyStash: (repoPath: string, index: number) => Promise<void>;
   popStash: (repoPath: string, index: number) => Promise<void>;
   dropStash: (repoPath: string, index: number) => Promise<void>;
   getStashDiff: (repoPath: string, index: number) => Promise<string>;
   getStashFiles: (repoPath: string, index: number) => Promise<CommitFile[]>;
-  createBranchFromStash: (repoPath: string, index: number, branchName: string) => Promise<void>;
+  createBranchFromStash: (
+    repoPath: string,
+    index: number,
+    branchName: string,
+  ) => Promise<void>;
   clearAllStashes: (repoPath: string) => Promise<void>;
   // Conflict resolution
   getConflictedFiles: (repoPath: string) => Promise<string[]>;
-  getFileConflicts: (repoPath: string, filePath: string) => Promise<ConflictFile>;
-  resolveConflict: (repoPath: string, filePath: string, resolution: 'ours' | 'theirs' | 'both', conflictIndex?: number) => Promise<void>;
-  resolveConflictManual: (repoPath: string, filePath: string, content: string) => Promise<void>;
+  getFileConflicts: (
+    repoPath: string,
+    filePath: string,
+  ) => Promise<ConflictFile>;
+  resolveConflict: (
+    repoPath: string,
+    filePath: string,
+    resolution: "ours" | "theirs" | "both",
+    conflictIndex?: number,
+  ) => Promise<void>;
+  resolveConflictManual: (
+    repoPath: string,
+    filePath: string,
+    content: string,
+  ) => Promise<void>;
   launchMergeTool: (repoPath: string, filePath: string) => Promise<void>;
   abortMerge: (repoPath: string) => Promise<void>;
   continueMerge: (repoPath: string) => Promise<void>;
   // Search operations
-  searchCommits: (repoPath: string, filter: SearchFilter, limit?: number) => Promise<SearchResult[]>;
-  searchCommitsMultiRepo: (repoPaths: string[], filter: SearchFilter, limit?: number) => Promise<Record<string, SearchResult[]>>;
+  searchCommits: (
+    repoPath: string,
+    filter: SearchFilter,
+    limit?: number,
+  ) => Promise<SearchResult[]>;
+  searchCommitsMultiRepo: (
+    repoPaths: string[],
+    filter: SearchFilter,
+    limit?: number,
+  ) => Promise<Record<string, SearchResult[]>>;
   getAuthors: (repoPath: string) => Promise<string[]>;
   // Remote management
   getRemotes: (repoPath: string) => Promise<RemoteInfo[]>;
   addRemote: (repoPath: string, name: string, url: string) => Promise<void>;
   removeRemote: (repoPath: string, name: string) => Promise<void>;
-  renameRemote: (repoPath: string, oldName: string, newName: string) => Promise<void>;
-  setRemoteUrl: (repoPath: string, name: string, url: string, isPushUrl?: boolean) => Promise<void>;
-  fetchRemote: (repoPath: string, remoteName: string, prune?: boolean) => Promise<void>;
+  renameRemote: (
+    repoPath: string,
+    oldName: string,
+    newName: string,
+  ) => Promise<void>;
+  setRemoteUrl: (
+    repoPath: string,
+    name: string,
+    url: string,
+    isPushUrl?: boolean,
+  ) => Promise<void>;
+  fetchRemote: (
+    repoPath: string,
+    remoteName: string,
+    prune?: boolean,
+  ) => Promise<void>;
   pruneRemote: (repoPath: string, remoteName: string) => Promise<string[]>;
-  setUpstream: (repoPath: string, remoteName: string, remoteBranch: string) => Promise<void>;
-  getUpstream: (repoPath: string) => Promise<{ remote: string; branch: string } | null>;
+  setUpstream: (
+    repoPath: string,
+    remoteName: string,
+    remoteBranch: string,
+  ) => Promise<void>;
+  getUpstream: (
+    repoPath: string,
+  ) => Promise<{ remote: string; branch: string } | null>;
   // Tag management
   getTags: (repoPath: string) => Promise<TagInfo[]>;
-  createLightweightTag: (repoPath: string, tagName: string, commitHash?: string) => Promise<void>;
-  createAnnotatedTag: (repoPath: string, tagName: string, message: string, commitHash?: string) => Promise<void>;
+  createLightweightTag: (
+    repoPath: string,
+    tagName: string,
+    commitHash?: string,
+  ) => Promise<void>;
+  createAnnotatedTag: (
+    repoPath: string,
+    tagName: string,
+    message: string,
+    commitHash?: string,
+  ) => Promise<void>;
   deleteTag: (repoPath: string, tagName: string) => Promise<void>;
-  deleteRemoteTag: (repoPath: string, remoteName: string, tagName: string) => Promise<void>;
-  pushTags: (repoPath: string, remoteName: string, tagName?: string) => Promise<void>;
+  deleteRemoteTag: (
+    repoPath: string,
+    remoteName: string,
+    tagName: string,
+  ) => Promise<void>;
+  pushTags: (
+    repoPath: string,
+    remoteName: string,
+    tagName?: string,
+  ) => Promise<void>;
   checkoutTag: (repoPath: string, tagName: string) => Promise<void>;
   checkoutCommit: (repoPath: string, commitHash: string) => Promise<void>;
   getTagDetails: (repoPath: string, tagName: string) => Promise<TagInfo | null>;
   // File editor operations
   getFileBlame: (repoPath: string, filePath: string) => Promise<BlameLine[]>;
+  // File history operations
+  getFileHistory: (
+    repoPath: string,
+    filePath: string,
+    maxCount?: number,
+  ) => Promise<FileHistoryTimeline>;
+  compareFileAcrossCommits: (
+    repoPath: string,
+    filePath: string,
+    fromCommitHash: string,
+    toCommitHash: string,
+  ) => Promise<FileComparisonResult>;
+  getFileAtCommit: (
+    repoPath: string,
+    filePath: string,
+    commitHash: string,
+  ) => Promise<FileVersionContent>;
+  restoreFileFromCommit: (
+    repoPath: string,
+    filePath: string,
+    commitHash: string,
+  ) => Promise<void>;
+  getFileStatistics: (
+    repoPath: string,
+    filePath: string,
+  ) => Promise<FileStatistics>;
+  getFileVersions: (
+    repoPath: string,
+    filePath: string,
+    commitHashes: string[],
+  ) => Promise<FileVersionContent[]>;
+  getLineHistory: (
+    repoPath: string,
+    filePath: string,
+    startLine: number,
+    endLine: number,
+  ) => Promise<FileHistoryEntry[]>;
   // Interactive rebase operations
-  getRebasePlan: (repoPath: string, sourceBranch: string, targetBranch: string) => Promise<RebasePlan>;
-  startInteractiveRebase: (repoPath: string, targetBranch: string, rebasePlan: RebaseCommit[]) => Promise<RebaseStatus>;
+  getRebasePlan: (
+    repoPath: string,
+    sourceBranch: string,
+    targetBranch: string,
+  ) => Promise<RebasePlan>;
+  startInteractiveRebase: (
+    repoPath: string,
+    targetBranch: string,
+    rebasePlan: RebaseCommit[],
+  ) => Promise<RebaseStatus>;
   getRebaseStatus: (repoPath: string) => Promise<RebaseStatus>;
   continueRebase: (repoPath: string) => Promise<RebaseStatus>;
   abortRebase: (repoPath: string) => Promise<void>;
   skipRebaseCommit: (repoPath: string) => Promise<RebaseStatus>;
-  editRebaseCommitMessage: (repoPath: string, commitHash: string, newMessage: string) => Promise<void>;
+  editRebaseCommitMessage: (
+    repoPath: string,
+    commitHash: string,
+    newMessage: string,
+  ) => Promise<void>;
 }
 
 export interface SearchFilter {
@@ -144,7 +335,7 @@ export interface CommitInfo {
 export interface FileTreeNode {
   name: string;
   path: string;
-  type: 'file' | 'directory';
+  type: "file" | "directory";
   children?: FileTreeNode[];
 }
 
@@ -169,7 +360,7 @@ export interface BranchComparison {
 
 export interface CommitFile {
   path: string;
-  status: 'added' | 'modified' | 'deleted' | 'renamed';
+  status: "added" | "modified" | "deleted" | "renamed";
   additions: number;
   deletions: number;
   oldPath?: string;
@@ -184,7 +375,7 @@ export interface FileDiff {
 
 export interface FileStatus {
   path: string;
-  status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked';
+  status: "modified" | "added" | "deleted" | "renamed" | "untracked";
   staged: boolean;
   oldPath?: string;
 }
@@ -233,7 +424,7 @@ export interface TagInfo {
   name: string;
   commitHash: string;
   message?: string;
-  type: 'lightweight' | 'annotated';
+  type: "lightweight" | "annotated";
   tagger?: string;
   date?: string;
 }
@@ -250,7 +441,7 @@ export interface BlameLine {
 export interface RebaseCommit {
   hash: string;
   shortHash: string;
-  action: 'pick' | 'reword' | 'edit' | 'squash' | 'fixup' | 'drop';
+  action: "pick" | "reword" | "edit" | "squash" | "fixup" | "drop";
   message: string;
   author: string;
   date: string;
@@ -269,6 +460,89 @@ export interface RebaseStatus {
   remainingCommits?: number;
   hasConflicts?: boolean;
   conflictedFiles?: string[];
+}
+
+export interface FileHistoryEntry {
+  hash: string;
+  shortHash: string;
+  date: string;
+  message: string;
+  author: string;
+  authorEmail: string;
+  status: "added" | "modified" | "deleted" | "renamed";
+  additions: number;
+  deletions: number;
+  oldPath?: string;
+}
+
+export interface FileHistoryTimeline {
+  filePath: string;
+  currentPath: string;
+  totalCommits: number;
+  firstCommit: FileHistoryEntry;
+  lastCommit: FileHistoryEntry;
+  history: FileHistoryEntry[];
+  renames: Array<{ from: string; to: string; hash: string; date: string }>;
+}
+
+export interface FileComparisonResult {
+  filePath: string;
+  fromCommit: {
+    hash: string;
+    date: string;
+    author: string;
+    message: string;
+  };
+  toCommit: {
+    hash: string;
+    date: string;
+    author: string;
+    message: string;
+  };
+  diff: string;
+  additions: number;
+  deletions: number;
+  changedLines: number;
+}
+
+export interface FileVersionContent {
+  filePath: string;
+  commitHash: string;
+  content: string;
+  date: string;
+  author: string;
+  message: string;
+  size: number;
+}
+
+export interface AuthorContribution {
+  author: string;
+  email: string;
+  commits: number;
+  additions: number;
+  deletions: number;
+  firstCommit: string;
+  lastCommit: string;
+  percentage: number;
+}
+
+export interface FileStatistics {
+  filePath: string;
+  totalCommits: number;
+  totalAuthors: number;
+  totalAdditions: number;
+  totalDeletions: number;
+  totalChanges: number;
+  firstCommitDate: string;
+  lastCommitDate: string;
+  ageInDays: number;
+  authors: AuthorContribution[];
+  activityByMonth: Array<{
+    month: string;
+    commits: number;
+    additions: number;
+    deletions: number;
+  }>;
 }
 
 declare global {

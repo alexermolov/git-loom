@@ -80,6 +80,7 @@ interface MiddlePanelProps {
   // Sub-view state
   showingCommitFiles?: boolean;
   onBackToCommits?: () => void;
+  onBackToCommitsLabel?: string;
 
   // Panel resize
   width?: number;
@@ -121,6 +122,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   loadingFile,
   showingCommitFiles = false,
   onBackToCommits,
+  onBackToCommitsLabel = "Back to Commits",
   onConflictFileClick,
   onConflictsRefresh,
   onAllConflictsResolved,
@@ -185,7 +187,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               onClick={onBackToCommits}
               size="small"
             >
-              Back to Commits
+              {onBackToCommitsLabel}
             </Button>
             <div className="middle-panel-title">Commit Files</div>
           </div>

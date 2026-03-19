@@ -22,6 +22,7 @@ git/
 ├── search.ts         # Commit search and filtering
 ├── reflog.ts         # Reflog operations
 ├── blame.ts          # Blame information
+├── fileHistory.ts    # File history and time machine operations
 └── README.md         # This file
 ```
 
@@ -150,6 +151,16 @@ Reflog operations:
 ### `blame.ts`
 Blame information:
 - `getFileBlame(repoPath, filePath)` - Get line-by-line blame information
+
+### `fileHistory.ts`
+File history and time machine operations:
+- `getFileHistory(repoPath, filePath, maxCount?)` - Get file timeline across commits and renames
+- `compareFileAcrossCommits(repoPath, filePath, fromCommitHash, toCommitHash)` - Compare one file between two commits
+- `getFileAtCommit(repoPath, filePath, commitHash)` - Read file content from a specific commit
+- `restoreFileFromCommit(repoPath, filePath, commitHash)` - Restore file content into the working tree
+- `getFileStatistics(repoPath, filePath)` - Get file-level statistics and author contributions
+- `getFileVersions(repoPath, filePath, commitHashes)` - Load multiple historical file versions
+- `getLineHistory(repoPath, filePath, startLine, endLine)` - Get history for a line range
 
 ## Design Principles
 

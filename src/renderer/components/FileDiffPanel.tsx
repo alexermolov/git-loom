@@ -36,6 +36,7 @@ const Diff2Html = require("diff2html") as {
 interface FileDiffPanelProps {
   diff: FileDiff | null;
   onBack: () => void;
+  backLabel?: string;
   repoPath?: string | null;
   filePath?: string;
   onRefresh?: () => void;
@@ -45,6 +46,7 @@ interface FileDiffPanelProps {
 const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   diff,
   onBack,
+  backLabel = "Back to Files",
   repoPath,
   filePath,
   onRefresh,
@@ -541,7 +543,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
       <div className="file-diff-panel">
         <div style={{ marginBottom: 16 }}>
           <Button icon={<ArrowLeftOutlined />} onClick={onBack}>
-            Back to Files
+            {backLabel}
           </Button>
         </div>
         <Empty
@@ -566,7 +568,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
           onClick={onBack}
           style={{ marginBottom: 12 }}
         >
-          Back to Files
+          {backLabel}
         </Button>
 
         <div

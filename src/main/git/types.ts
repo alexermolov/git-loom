@@ -197,3 +197,87 @@ export type ContinueRevertResult = {
   hasConflicts?: boolean;
   conflictedFiles?: string[];
 };
+
+// File History types
+export interface FileHistoryEntry {
+  hash: string;
+  shortHash: string;
+  date: string;
+  message: string;
+  author: string;
+  authorEmail: string;
+  status: "added" | "modified" | "deleted" | "renamed";
+  additions: number;
+  deletions: number;
+  oldPath?: string;
+}
+
+export interface FileHistoryTimeline {
+  filePath: string;
+  currentPath: string;
+  totalCommits: number;
+  firstCommit: FileHistoryEntry;
+  lastCommit: FileHistoryEntry;
+  history: FileHistoryEntry[];
+  renames: Array<{ from: string; to: string; hash: string; date: string }>;
+}
+
+export interface FileComparisonResult {
+  filePath: string;
+  fromCommit: {
+    hash: string;
+    date: string;
+    author: string;
+    message: string;
+  };
+  toCommit: {
+    hash: string;
+    date: string;
+    author: string;
+    message: string;
+  };
+  diff: string;
+  additions: number;
+  deletions: number;
+  changedLines: number;
+}
+
+export interface FileVersionContent {
+  filePath: string;
+  commitHash: string;
+  content: string;
+  date: string;
+  author: string;
+  message: string;
+  size: number;
+}
+
+export interface AuthorContribution {
+  author: string;
+  email: string;
+  commits: number;
+  additions: number;
+  deletions: number;
+  firstCommit: string;
+  lastCommit: string;
+  percentage: number;
+}
+
+export interface FileStatistics {
+  filePath: string;
+  totalCommits: number;
+  totalAuthors: number;
+  totalAdditions: number;
+  totalDeletions: number;
+  totalChanges: number;
+  firstCommitDate: string;
+  lastCommitDate: string;
+  ageInDays: number;
+  authors: AuthorContribution[];
+  activityByMonth: Array<{
+    month: string;
+    commits: number;
+    additions: number;
+    deletions: number;
+  }>;
+}

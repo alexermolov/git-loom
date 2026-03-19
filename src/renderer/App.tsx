@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useTheme } from "./ThemeContext";
 import FileDiffPanel from "./components/FileDiffPanel";
 import FileEditorPanel from "./components/FileEditorPanel";
+import FileHistoryPanel from "./components/FileHistoryPanel";
 import GitGraphView from "./components/GitGraphView";
 import IconSidebar, { ViewType } from "./components/IconSidebar";
 import InteractiveRebasePanel from "./components/InteractiveRebasePanel";
@@ -24,6 +25,30 @@ import {
   SearchResult,
   StashEntry,
 } from "./types";
+
+type MainPanelView = "graph" | "diff" | "editor" | "fileHistory";
+
+type NavigationSnapshot = {
+  activeView: ViewType;
+  mainPanelView: MainPanelView;
+  selectedCommit: CommitInfo | null;
+  commitFiles: CommitFile[];
+  selectedFile: CommitFile | null;
+  fileDiff: FileDiff | null;
+  showingCommitFiles: boolean;
+  selectedExplorerFile: string | null;
+  selectedHistoryFile: string | null;
+  selectedSearchCommit: SearchResult | null;
+  searchCommitFiles: CommitFile[];
+  selectedStash: StashEntry | null;
+};
+
+type BackLabelDefaults = {
+  commitFiles: string;
+  diff: string;
+  editor: string;
+  fileHistory: string;
+};
 
 const App: React.FC = () => {
   const { modal } = AntApp.useApp();
@@ -52,9 +77,7 @@ const App: React.FC = () => {
 
   // New three-panel state management
   const [activeView, setActiveView] = useState<ViewType>("commits");
-  const [mainPanelView, setMainPanelView] = useState<
-    "graph" | "diff" | "editor"
-  >("graph");
+  const [mainPanelView, setMainPanelView] = useState<MainPanelView>("graph");
   const [selectedCommit, setSelectedCommit] = useState<CommitInfo | null>(null);
   const [commitFiles, setCommitFiles] = useState<CommitFile[]>([]);
   const [selectedFile, setSelectedFile] = useState<CommitFile | null>(null);
@@ -71,6 +94,14 @@ const App: React.FC = () => {
   const [selectedExplorerFile, setSelectedExplorerFile] = useState<
     string | null
   >(null);
+
+  // File history state
+  const [selectedHistoryFile, setSelectedHistoryFile] = useState<string | null>(
+    null,
+  );
+  const [navigationStack, setNavigationStack] = useState<NavigationSnapshot[]>(
+    [],
+  );
 
   // Loading states for different panels
   const [loadingBranches, setLoadingBranches] = useState(false);
@@ -95,6 +126,157 @@ const App: React.FC = () => {
     const clampedWidth = Math.max(200, Math.min(800, newWidth));
     setMiddlePanelWidth(clampedWidth);
     localStorage.setItem("middlePanelWidth", clampedWidth.toString());
+  };
+
+  const captureNavigationSnapshot = (): NavigationSnapshot => ({
+    activeView,
+    mainPanelView,
+    selectedCommit,
+    commitFiles,
+    selectedFile,
+    fileDiff,
+    showingCommitFiles,
+    selectedExplorerFile,
+    selectedHistoryFile,
+    selectedSearchCommit,
+    searchCommitFiles,
+    selectedStash,
+  });
+
+  const applyNavigationSnapshot = (snapshot: NavigationSnapshot) => {
+    setActiveView(snapshot.activeView);
+    setMainPanelView(snapshot.mainPanelView);
+    setSelectedCommit(snapshot.selectedCommit);
+    setCommitFiles(snapshot.commitFiles);
+    setSelectedFile(snapshot.selectedFile);
+    setFileDiff(snapshot.fileDiff);
+    setShowingCommitFiles(snapshot.showingCommitFiles);
+    setSelectedExplorerFile(snapshot.selectedExplorerFile);
+    setSelectedHistoryFile(snapshot.selectedHistoryFile);
+    setSelectedSearchCommit(snapshot.selectedSearchCommit);
+    setSearchCommitFiles(snapshot.searchCommitFiles);
+    setSelectedStash(snapshot.selectedStash);
+  };
+
+  const pushNavigationSnapshot = () => {
+    setNavigationStack((prev) => [...prev, captureNavigationSnapshot()]);
+  };
+
+  const goBackInNavigation = (
+    fallback?: () => void,
+  ) => {
+    const previousSnapshot = navigationStack[navigationStack.length - 1];
+
+    if (!previousSnapshot) {
+      fallback?.();
+      return;
+    }
+
+    setNavigationStack((prev) => prev.slice(0, -1));
+    applyNavigationSnapshot(previousSnapshot);
+  };
+
+  const getSnapshotDisplayName = (snapshot: NavigationSnapshot): string => {
+    if (snapshot.showingCommitFiles) {
+      return "Commit Files";
+    }
+
+    if (snapshot.mainPanelView === "fileHistory") {
+      return "File Timeline";
+    }
+
+    if (snapshot.mainPanelView === "editor") {
+      return "File Editor";
+    }
+
+    if (snapshot.mainPanelView === "diff") {
+      return "Files";
+    }
+
+    switch (snapshot.activeView) {
+      case "commits":
+        return "Commits";
+      case "changes":
+        return "Changes";
+      case "fileTree":
+        return "File Explorer";
+      case "branches":
+        return "Branches";
+      case "reflog":
+        return "Reflog";
+      case "stash":
+        return "Stash";
+      case "conflicts":
+        return "Conflicts";
+      case "search":
+        return "Search";
+      case "rebase":
+        return "Rebase";
+      case "remotes":
+        return "Remotes";
+      case "tags":
+        return "Tags";
+      case "graph":
+      default:
+        return "Graph";
+    }
+  };
+
+  const getBackLabels = (): BackLabelDefaults => {
+    const previousSnapshot = navigationStack[navigationStack.length - 1];
+    const destinationLabel = previousSnapshot
+      ? getSnapshotDisplayName(previousSnapshot)
+      : null;
+
+    return {
+      commitFiles: destinationLabel
+        ? `Back to ${destinationLabel}`
+        : "Back to Commits",
+      diff: destinationLabel ? `Back to ${destinationLabel}` : "Back to Files",
+      editor: destinationLabel ? `Back to ${destinationLabel}` : "Back",
+      fileHistory: destinationLabel ? `Back to ${destinationLabel}` : "Back",
+    };
+  };
+
+  const openCommitDetails = async (
+    commitInfo: CommitInfo,
+    options?: {
+      pushHistory?: boolean;
+      targetActiveView?: ViewType;
+      clearDetailPanels?: boolean;
+    },
+  ) => {
+    if (!selectedRepo) return;
+
+    if (options?.pushHistory !== false) {
+      pushNavigationSnapshot();
+    }
+
+    if (options?.targetActiveView) {
+      setActiveView(options.targetActiveView);
+    }
+
+    if (options?.clearDetailPanels) {
+      setMainPanelView("graph");
+      setSelectedExplorerFile(null);
+      setSelectedHistoryFile(null);
+      setFileDiff(null);
+      setSelectedFile(null);
+    }
+
+    setSelectedCommit(commitInfo);
+
+    try {
+      const files = await window.electronAPI.getCommitFiles(
+        selectedRepo,
+        commitInfo.hash,
+      );
+      setCommitFiles(files);
+      setShowingCommitFiles(true);
+    } catch (error) {
+      console.error("Error loading commit files:", error);
+      message.error("Failed to load commit files");
+    }
   };
 
   // Auto-load last folder on startup
@@ -311,6 +493,7 @@ const App: React.FC = () => {
   const handleSelectRepository = async (repoPath: string) => {
     setSelectedRepo(repoPath);
     setLoading(true);
+    setNavigationStack([]);
 
     // Очистка всех данных предыдущего репозитория при переключении
     setActiveView("commits");
@@ -560,29 +743,13 @@ const App: React.FC = () => {
   };
 
   const handleCommitClick = async (commit: CommitInfo) => {
-    if (!selectedRepo) return;
-
-    setSelectedCommit(commit);
-
-    try {
-      const files = await window.electronAPI.getCommitFiles(
-        selectedRepo,
-        commit.hash,
-      );
-      setCommitFiles(files);
-      setShowingCommitFiles(true);
-    } catch (error) {
-      console.error("Error loading commit files:", error);
-      message.error("Failed to load commit files");
-    }
+    await openCommitDetails(commit);
   };
 
   const handleGraphCommitClick = async (
     commitHash: string,
     messageText?: string,
   ) => {
-    if (!selectedRepo) return;
-
     const commitInfo: CommitInfo = {
       hash: commitHash,
       date: "",
@@ -591,24 +758,13 @@ const App: React.FC = () => {
       refs: "",
     };
 
-    setSelectedCommit(commitInfo);
-
-    try {
-      const files = await window.electronAPI.getCommitFiles(
-        selectedRepo,
-        commitHash,
-      );
-      setCommitFiles(files);
-      setShowingCommitFiles(true);
-    } catch (error) {
-      console.error("Error loading commit files from graph:", error);
-      message.error("Failed to load commit files");
-    }
+    await openCommitDetails(commitInfo);
   };
 
   const handleFileClick = async (file: CommitFile) => {
     if (!selectedRepo || !selectedCommit) return;
 
+    pushNavigationSnapshot();
     setSelectedFile(file);
     setLoadingFileDiff(true);
     setMainPanelView("diff");
@@ -652,40 +808,27 @@ const App: React.FC = () => {
   };
 
   const handleBackToCommits = () => {
-    setShowingCommitFiles(false);
-    setCommitFiles([]);
-    setSelectedCommit(null);
+    goBackInNavigation(() => {
+      setShowingCommitFiles(false);
+      setCommitFiles([]);
+      setSelectedCommit(null);
+    });
   };
 
   const handleReflogEntryClick = async (entry: ReflogEntry) => {
-    if (!selectedRepo) return;
+    const commitInfo: CommitInfo = {
+      hash: entry.hash,
+      date: entry.date,
+      message: entry.message,
+      author: entry.author,
+      refs: entry.refName,
+    };
 
-    try {
-      // Load commit details for the reflog entry
-      const files = await window.electronAPI.getCommitFiles(
-        selectedRepo,
-        entry.hash,
-      );
-      setCommitFiles(files);
-
-      // Create a CommitInfo object from ReflogEntry for consistency
-      const commitInfo: CommitInfo = {
-        hash: entry.hash,
-        date: entry.date,
-        message: entry.message,
-        author: entry.author,
-        refs: entry.refName,
-      };
-
-      setSelectedCommit(commitInfo);
-      setShowingCommitFiles(true);
-    } catch (error) {
-      console.error("Error loading reflog entry details:", error);
-      message.error("Failed to load reflog entry details");
-    }
+    await openCommitDetails(commitInfo);
   };
 
   const handleViewChange = async (view: ViewType) => {
+    setNavigationStack([]);
     setActiveView(view);
 
     // Reset commit files view when switching views
@@ -776,6 +919,7 @@ const App: React.FC = () => {
     if (!selectedRepo) return;
 
     try {
+      pushNavigationSnapshot();
       const diff = await window.electronAPI.getWorkingFileDiff(
         selectedRepo,
         file.path,
@@ -793,8 +937,24 @@ const App: React.FC = () => {
     if (!selectedRepo) return;
 
     // Set the file to view in the FileEditorPanel
+    pushNavigationSnapshot();
     setSelectedExplorerFile(filePath);
     setMainPanelView("editor");
+  };
+
+  const handleFileHistoryClick = (filePath: string) => {
+    if (!selectedRepo) return;
+
+    pushNavigationSnapshot();
+    setSelectedHistoryFile(filePath);
+    setMainPanelView("fileHistory");
+  };
+
+  const handleBackFromFileHistory = () => {
+    goBackInNavigation(() => {
+      setSelectedHistoryFile(null);
+      setMainPanelView("graph");
+    });
   };
 
   const handleCheckoutBranch = async (branchName: string) => {
@@ -969,6 +1129,7 @@ const App: React.FC = () => {
 
     try {
       // Get working file diff to show in the right panel
+      pushNavigationSnapshot();
       const diff = await window.electronAPI.getWorkingFileDiff(
         selectedRepo,
         filePath,
@@ -1047,6 +1208,7 @@ const App: React.FC = () => {
   const handleSearchCommitClick = async (commit: SearchResult) => {
     if (!selectedRepo) return;
 
+    pushNavigationSnapshot();
     setSelectedSearchCommit(commit);
 
     try {
@@ -1064,19 +1226,15 @@ const App: React.FC = () => {
   const handleBlameCommitClick = async (commitHash: string) => {
     if (!selectedRepo) return;
 
-    // Switch to commits view to show the commit
-    setActiveView("commits");
-    setMainPanelView("graph");
-    setSelectedExplorerFile(null);
-
     // Try to find commit in current commits list
     const existingCommit = commits.find((c) => c.hash.startsWith(commitHash));
 
     if (existingCommit) {
-      // If found, use it directly
-      await handleCommitClick(existingCommit);
+      await openCommitDetails(existingCommit, {
+        targetActiveView: "commits",
+        clearDetailPanels: true,
+      });
     } else {
-      // If not found, load commit details
       try {
         const commitInfo: CommitInfo = {
           hash: commitHash,
@@ -1086,14 +1244,10 @@ const App: React.FC = () => {
           refs: "",
         };
 
-        setSelectedCommit(commitInfo);
-        const files = await window.electronAPI.getCommitFiles(
-          selectedRepo,
-          commitHash,
-        );
-        setCommitFiles(files);
-        setShowingCommitFiles(true);
-
+        await openCommitDetails(commitInfo, {
+          targetActiveView: "commits",
+          clearDetailPanels: true,
+        });
         message.success(`Navigated to commit ${commitHash.substring(0, 7)}`);
       } catch (error) {
         console.error("Error loading commit from blame:", error);
@@ -1105,6 +1259,7 @@ const App: React.FC = () => {
   const handleSearchFileClick = async (file: CommitFile) => {
     if (!selectedRepo || !selectedSearchCommit) return;
 
+    pushNavigationSnapshot();
     setSelectedFile(file);
     setLoadingFileDiff(true);
     setMainPanelView("diff");
@@ -1149,6 +1304,8 @@ const App: React.FC = () => {
   };
 
   const renderMainPanel = () => {
+    const backLabels = getBackLabels();
+
     // Show remote management panel when remotes view is active
     if (activeView === "remotes" && selectedRepo) {
       return (
@@ -1197,10 +1354,35 @@ const App: React.FC = () => {
           <FileEditorPanel
             repoPath={selectedRepo}
             filePath={selectedExplorerFile}
-            onBack={() => {
-              setSelectedExplorerFile(null);
-              setMainPanelView("graph");
-            }}
+            backLabel={backLabels.editor}
+            onBack={() =>
+              goBackInNavigation(() => {
+                setSelectedExplorerFile(null);
+                setMainPanelView("graph");
+              })
+            }
+            onCommitClick={handleBlameCommitClick}
+            onFileHistoryClick={handleFileHistoryClick}
+          />
+        </div>
+      );
+    }
+
+    // Show file history when selected
+    if (
+      mainPanelView === "fileHistory" &&
+      selectedHistoryFile &&
+      selectedRepo
+    ) {
+      return (
+        <div
+          style={{ height: "100%", display: "flex", flexDirection: "column" }}
+        >
+          <FileHistoryPanel
+            repoPath={selectedRepo}
+            filePath={selectedHistoryFile}
+            backLabel={backLabels.fileHistory}
+            onBack={handleBackFromFileHistory}
             onCommitClick={handleBlameCommitClick}
           />
         </div>
@@ -1215,7 +1397,14 @@ const App: React.FC = () => {
         >
           <FileDiffPanel
             diff={fileDiff}
-            onBack={() => setMainPanelView("graph")}
+            backLabel={backLabels.diff}
+            onBack={() =>
+              goBackInNavigation(() => {
+                setSelectedFile(null);
+                setFileDiff(null);
+                setMainPanelView("graph");
+              })
+            }
             repoPath={selectedRepo}
             filePath={fileDiff.path}
             onRefresh={handleConflictsRefresh}
@@ -1393,6 +1582,7 @@ const App: React.FC = () => {
             loadingConflicts={loadingConflicts}
             showingCommitFiles={showingCommitFiles}
             onBackToCommits={handleBackToCommits}
+            onBackToCommitsLabel={getBackLabels().commitFiles}
             width={middlePanelWidth}
             onResize={handleMiddlePanelResize}
             repositories={repositories}

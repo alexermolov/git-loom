@@ -88,7 +88,13 @@ Click the folder icon in the top toolbar, select a parent folder containing Git 
 
 ### How do I view file history?
 
-In v0.1.0, you can view commit history. File-specific history viewing is planned for v0.4.0.
+1. Open a repository
+2. Open a file in the file editor
+3. Click `File History` in the header
+
+From there you can inspect the timeline, compare two versions, open an older version, restore a file, and view file statistics.
+
+See [FILE_HISTORY.md](FILE_HISTORY.md) for the full guide.
 
 ### Can I compare two commits?
 

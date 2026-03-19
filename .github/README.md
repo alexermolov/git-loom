@@ -98,6 +98,7 @@ Start here, then jump to the deeper docs:
 
 - [Architecture](ARCHITECTURE.md)
 - [Changelog](CHANGELOG.md)
+- [File History Guide](FILE_HISTORY.md)
 - [FAQ](FAQ.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)

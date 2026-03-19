@@ -1,94 +1,376 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer } from "electron";
 
-contextBridge.exposeInMainWorld('electronAPI', {
-  openFolder: () => ipcRenderer.invoke('dialog:openFolder'),
-  scanRepositories: (folderPath: string) => ipcRenderer.invoke('git:scanRepositories', folderPath),
-  getRepositoryInfo: (repoPath: string, forceFetch?: boolean) => ipcRenderer.invoke('git:getRepositoryInfo', repoPath, forceFetch),
-  pullRepository: (repoPath: string) => ipcRenderer.invoke('git:pullRepository', repoPath),
-  pushRepository: (repoPath: string, options?: { force?: boolean; forceWithLease?: boolean }) => ipcRenderer.invoke('git:pushRepository', repoPath, options),
-  getCommits: (repoPath: string, branch?: string, skip?: number, limit?: number) => ipcRenderer.invoke('git:getCommits', repoPath, branch, skip, limit),
-  getUnpushedCommits: (repoPath: string) => ipcRenderer.invoke('git:getUnpushedCommits', repoPath),
-  getFileTree: (repoPath: string, commitHash?: string) => ipcRenderer.invoke('git:getFileTree', repoPath, commitHash),
-  getBranches: (repoPath: string) => ipcRenderer.invoke('git:getBranches', repoPath),
-  getGitGraph: (repoPath: string, branch?: string) => ipcRenderer.invoke('git:getGitGraph', repoPath, branch),
-  getCommitDetails: (repoPath: string, branch?: string, maxCount?: number) => ipcRenderer.invoke('git:getCommitDetails', repoPath, branch, maxCount),
-  getCommitFiles: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:getCommitFiles', repoPath, commitHash),
-  getFileDiff: (repoPath: string, commitHash: string, filePath: string) => ipcRenderer.invoke('git:getFileDiff', repoPath, commitHash, filePath),
-  getStatus: (repoPath: string) => ipcRenderer.invoke('git:getStatus', repoPath),
-  stageFiles: (repoPath: string, filePaths: string[]) => ipcRenderer.invoke('git:stageFiles', repoPath, filePaths),
-  unstageFiles: (repoPath: string, filePaths: string[]) => ipcRenderer.invoke('git:unstageFiles', repoPath, filePaths),
-  discardChanges: (repoPath: string, filePaths: string[]) => ipcRenderer.invoke('git:discardChanges', repoPath, filePaths),
-  createCommit: (repoPath: string, message: string) => ipcRenderer.invoke('git:createCommit', repoPath, message),
-  getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) => ipcRenderer.invoke('git:getWorkingFileDiff', repoPath, filePath, staged),
-  checkoutBranch: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:checkoutBranch', repoPath, branchName),
-  stashAndCheckout: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:stashAndCheckout', repoPath, branchName),
-  discardAndCheckout: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:discardAndCheckout', repoPath, branchName),
-  mergeBranch: (repoPath: string, branchName: string, mergeMode?: 'auto' | 'no-ff' | 'ff-only') => ipcRenderer.invoke('git:mergeBranch', repoPath, branchName, mergeMode),
-  createBranch: (repoPath: string, branchName: string, startPoint?: string, switchAfterCreate?: boolean, pushAfterCreate?: boolean) => ipcRenderer.invoke('git:createBranch', repoPath, branchName, startPoint, switchAfterCreate, pushAfterCreate),
-  deleteBranch: (repoPath: string, branchName: string, force: boolean) => ipcRenderer.invoke('git:deleteBranch', repoPath, branchName, force),
-  deleteRemoteBranch: (repoPath: string, remoteName: string, branchName: string) => ipcRenderer.invoke('git:deleteRemoteBranch', repoPath, remoteName, branchName),
-  renameBranch: (repoPath: string, oldName: string, newName: string, renameRemote: boolean) => ipcRenderer.invoke('git:renameBranch', repoPath, oldName, newName, renameRemote),
-  setUpstreamBranch: (repoPath: string, localBranch: string, remoteName: string, remoteBranch: string) => ipcRenderer.invoke('git:setUpstreamBranch', repoPath, localBranch, remoteName, remoteBranch),
-  unsetUpstreamBranch: (repoPath: string, branchName: string) => ipcRenderer.invoke('git:unsetUpstreamBranch', repoPath, branchName),
-  compareBranches: (repoPath: string, baseBranch: string, compareBranch: string) => ipcRenderer.invoke('git:compareBranches', repoPath, baseBranch, compareBranch),
-  getReflog: (repoPath: string, ref?: string, maxCount?: number) => ipcRenderer.invoke('git:getReflog', repoPath, ref, maxCount),
-  resetToCommit: (repoPath: string, commitHash: string, mode: 'soft' | 'mixed' | 'hard') => ipcRenderer.invoke('git:resetToCommit', repoPath, commitHash, mode),
-  cherryPickCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:cherryPickCommit', repoPath, commitHash),
-  revertCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:revertCommit', repoPath, commitHash),
-  abortRevert: (repoPath: string) => ipcRenderer.invoke('git:abortRevert', repoPath) as Promise<'aborted' | 'noop'>,
-  continueRevert: (repoPath: string) => ipcRenderer.invoke('git:continueRevert', repoPath) as Promise<'continued' | 'noop'>,
-  getFileContent: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileContent', repoPath, filePath),
+contextBridge.exposeInMainWorld("electronAPI", {
+  openFolder: () => ipcRenderer.invoke("dialog:openFolder"),
+  scanRepositories: (folderPath: string) =>
+    ipcRenderer.invoke("git:scanRepositories", folderPath),
+  getRepositoryInfo: (repoPath: string, forceFetch?: boolean) =>
+    ipcRenderer.invoke("git:getRepositoryInfo", repoPath, forceFetch),
+  pullRepository: (repoPath: string) =>
+    ipcRenderer.invoke("git:pullRepository", repoPath),
+  pushRepository: (
+    repoPath: string,
+    options?: { force?: boolean; forceWithLease?: boolean },
+  ) => ipcRenderer.invoke("git:pushRepository", repoPath, options),
+  getCommits: (
+    repoPath: string,
+    branch?: string,
+    skip?: number,
+    limit?: number,
+  ) => ipcRenderer.invoke("git:getCommits", repoPath, branch, skip, limit),
+  getUnpushedCommits: (repoPath: string) =>
+    ipcRenderer.invoke("git:getUnpushedCommits", repoPath),
+  getFileTree: (repoPath: string, commitHash?: string) =>
+    ipcRenderer.invoke("git:getFileTree", repoPath, commitHash),
+  getBranches: (repoPath: string) =>
+    ipcRenderer.invoke("git:getBranches", repoPath),
+  getGitGraph: (repoPath: string, branch?: string) =>
+    ipcRenderer.invoke("git:getGitGraph", repoPath, branch),
+  getCommitDetails: (repoPath: string, branch?: string, maxCount?: number) =>
+    ipcRenderer.invoke("git:getCommitDetails", repoPath, branch, maxCount),
+  getCommitFiles: (repoPath: string, commitHash: string) =>
+    ipcRenderer.invoke("git:getCommitFiles", repoPath, commitHash),
+  getFileDiff: (repoPath: string, commitHash: string, filePath: string) =>
+    ipcRenderer.invoke("git:getFileDiff", repoPath, commitHash, filePath),
+  getStatus: (repoPath: string) =>
+    ipcRenderer.invoke("git:getStatus", repoPath),
+  stageFiles: (repoPath: string, filePaths: string[]) =>
+    ipcRenderer.invoke("git:stageFiles", repoPath, filePaths),
+  unstageFiles: (repoPath: string, filePaths: string[]) =>
+    ipcRenderer.invoke("git:unstageFiles", repoPath, filePaths),
+  discardChanges: (repoPath: string, filePaths: string[]) =>
+    ipcRenderer.invoke("git:discardChanges", repoPath, filePaths),
+  createCommit: (repoPath: string, message: string) =>
+    ipcRenderer.invoke("git:createCommit", repoPath, message),
+  getWorkingFileDiff: (repoPath: string, filePath: string, staged: boolean) =>
+    ipcRenderer.invoke("git:getWorkingFileDiff", repoPath, filePath, staged),
+  checkoutBranch: (repoPath: string, branchName: string) =>
+    ipcRenderer.invoke("git:checkoutBranch", repoPath, branchName),
+  stashAndCheckout: (repoPath: string, branchName: string) =>
+    ipcRenderer.invoke("git:stashAndCheckout", repoPath, branchName),
+  discardAndCheckout: (repoPath: string, branchName: string) =>
+    ipcRenderer.invoke("git:discardAndCheckout", repoPath, branchName),
+  mergeBranch: (
+    repoPath: string,
+    branchName: string,
+    mergeMode?: "auto" | "no-ff" | "ff-only",
+  ) => ipcRenderer.invoke("git:mergeBranch", repoPath, branchName, mergeMode),
+  createBranch: (
+    repoPath: string,
+    branchName: string,
+    startPoint?: string,
+    switchAfterCreate?: boolean,
+    pushAfterCreate?: boolean,
+  ) =>
+    ipcRenderer.invoke(
+      "git:createBranch",
+      repoPath,
+      branchName,
+      startPoint,
+      switchAfterCreate,
+      pushAfterCreate,
+    ),
+  deleteBranch: (repoPath: string, branchName: string, force: boolean) =>
+    ipcRenderer.invoke("git:deleteBranch", repoPath, branchName, force),
+  deleteRemoteBranch: (
+    repoPath: string,
+    remoteName: string,
+    branchName: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:deleteRemoteBranch",
+      repoPath,
+      remoteName,
+      branchName,
+    ),
+  renameBranch: (
+    repoPath: string,
+    oldName: string,
+    newName: string,
+    renameRemote: boolean,
+  ) =>
+    ipcRenderer.invoke(
+      "git:renameBranch",
+      repoPath,
+      oldName,
+      newName,
+      renameRemote,
+    ),
+  setUpstreamBranch: (
+    repoPath: string,
+    localBranch: string,
+    remoteName: string,
+    remoteBranch: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:setUpstreamBranch",
+      repoPath,
+      localBranch,
+      remoteName,
+      remoteBranch,
+    ),
+  unsetUpstreamBranch: (repoPath: string, branchName: string) =>
+    ipcRenderer.invoke("git:unsetUpstreamBranch", repoPath, branchName),
+  compareBranches: (
+    repoPath: string,
+    baseBranch: string,
+    compareBranch: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:compareBranches",
+      repoPath,
+      baseBranch,
+      compareBranch,
+    ),
+  getReflog: (repoPath: string, ref?: string, maxCount?: number) =>
+    ipcRenderer.invoke("git:getReflog", repoPath, ref, maxCount),
+  resetToCommit: (
+    repoPath: string,
+    commitHash: string,
+    mode: "soft" | "mixed" | "hard",
+  ) => ipcRenderer.invoke("git:resetToCommit", repoPath, commitHash, mode),
+  cherryPickCommit: (repoPath: string, commitHash: string) =>
+    ipcRenderer.invoke("git:cherryPickCommit", repoPath, commitHash),
+  revertCommit: (repoPath: string, commitHash: string) =>
+    ipcRenderer.invoke("git:revertCommit", repoPath, commitHash),
+  abortRevert: (repoPath: string) =>
+    ipcRenderer.invoke("git:abortRevert", repoPath) as Promise<
+      "aborted" | "noop"
+    >,
+  continueRevert: (repoPath: string) =>
+    ipcRenderer.invoke("git:continueRevert", repoPath) as Promise<
+      "continued" | "noop"
+    >,
+  getFileContent: (repoPath: string, filePath: string) =>
+    ipcRenderer.invoke("git:getFileContent", repoPath, filePath),
   // Stash operations
-  createStash: (repoPath: string, message?: string, includeUntracked?: boolean) => ipcRenderer.invoke('git:createStash', repoPath, message, includeUntracked),
-  getStashList: (repoPath: string) => ipcRenderer.invoke('git:getStashList', repoPath),
-  applyStash: (repoPath: string, index: number) => ipcRenderer.invoke('git:applyStash', repoPath, index),
-  popStash: (repoPath: string, index: number) => ipcRenderer.invoke('git:popStash', repoPath, index),
-  dropStash: (repoPath: string, index: number) => ipcRenderer.invoke('git:dropStash', repoPath, index),
-  getStashDiff: (repoPath: string, index: number) => ipcRenderer.invoke('git:getStashDiff', repoPath, index),
-  getStashFiles: (repoPath: string, index: number) => ipcRenderer.invoke('git:getStashFiles', repoPath, index),
-  createBranchFromStash: (repoPath: string, index: number, branchName: string) => ipcRenderer.invoke('git:createBranchFromStash', repoPath, index, branchName),
-  clearAllStashes: (repoPath: string) => ipcRenderer.invoke('git:clearAllStashes', repoPath),
+  createStash: (
+    repoPath: string,
+    message?: string,
+    includeUntracked?: boolean,
+  ) =>
+    ipcRenderer.invoke("git:createStash", repoPath, message, includeUntracked),
+  getStashList: (repoPath: string) =>
+    ipcRenderer.invoke("git:getStashList", repoPath),
+  applyStash: (repoPath: string, index: number) =>
+    ipcRenderer.invoke("git:applyStash", repoPath, index),
+  popStash: (repoPath: string, index: number) =>
+    ipcRenderer.invoke("git:popStash", repoPath, index),
+  dropStash: (repoPath: string, index: number) =>
+    ipcRenderer.invoke("git:dropStash", repoPath, index),
+  getStashDiff: (repoPath: string, index: number) =>
+    ipcRenderer.invoke("git:getStashDiff", repoPath, index),
+  getStashFiles: (repoPath: string, index: number) =>
+    ipcRenderer.invoke("git:getStashFiles", repoPath, index),
+  createBranchFromStash: (
+    repoPath: string,
+    index: number,
+    branchName: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:createBranchFromStash",
+      repoPath,
+      index,
+      branchName,
+    ),
+  clearAllStashes: (repoPath: string) =>
+    ipcRenderer.invoke("git:clearAllStashes", repoPath),
   // Conflict resolution
-  getConflictedFiles: (repoPath: string) => ipcRenderer.invoke('git:getConflictedFiles', repoPath),
-  getFileConflicts: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileConflicts', repoPath, filePath),
-  resolveConflict: (repoPath: string, filePath: string, resolution: 'ours' | 'theirs' | 'both', conflictIndex?: number) => ipcRenderer.invoke('git:resolveConflict', repoPath, filePath, resolution, conflictIndex),
-  resolveConflictManual: (repoPath: string, filePath: string, content: string) => ipcRenderer.invoke('git:resolveConflictManual', repoPath, filePath, content),
-  launchMergeTool: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:launchMergeTool', repoPath, filePath),
-  abortMerge: (repoPath: string) => ipcRenderer.invoke('git:abortMerge', repoPath),
-  continueMerge: (repoPath: string) => ipcRenderer.invoke('git:continueMerge', repoPath),
+  getConflictedFiles: (repoPath: string) =>
+    ipcRenderer.invoke("git:getConflictedFiles", repoPath),
+  getFileConflicts: (repoPath: string, filePath: string) =>
+    ipcRenderer.invoke("git:getFileConflicts", repoPath, filePath),
+  resolveConflict: (
+    repoPath: string,
+    filePath: string,
+    resolution: "ours" | "theirs" | "both",
+    conflictIndex?: number,
+  ) =>
+    ipcRenderer.invoke(
+      "git:resolveConflict",
+      repoPath,
+      filePath,
+      resolution,
+      conflictIndex,
+    ),
+  resolveConflictManual: (
+    repoPath: string,
+    filePath: string,
+    content: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:resolveConflictManual",
+      repoPath,
+      filePath,
+      content,
+    ),
+  launchMergeTool: (repoPath: string, filePath: string) =>
+    ipcRenderer.invoke("git:launchMergeTool", repoPath, filePath),
+  abortMerge: (repoPath: string) =>
+    ipcRenderer.invoke("git:abortMerge", repoPath),
+  continueMerge: (repoPath: string) =>
+    ipcRenderer.invoke("git:continueMerge", repoPath),
   // Search operations
-  searchCommits: (repoPath: string, filter: any, limit?: number) => ipcRenderer.invoke('git:searchCommits', repoPath, filter, limit),
-  searchCommitsMultiRepo: (repoPaths: string[], filter: any, limit?: number) => ipcRenderer.invoke('git:searchCommitsMultiRepo', repoPaths, filter, limit),
-  getAuthors: (repoPath: string) => ipcRenderer.invoke('git:getAuthors', repoPath),
+  searchCommits: (repoPath: string, filter: any, limit?: number) =>
+    ipcRenderer.invoke("git:searchCommits", repoPath, filter, limit),
+  searchCommitsMultiRepo: (repoPaths: string[], filter: any, limit?: number) =>
+    ipcRenderer.invoke("git:searchCommitsMultiRepo", repoPaths, filter, limit),
+  getAuthors: (repoPath: string) =>
+    ipcRenderer.invoke("git:getAuthors", repoPath),
   // Remote management
-  getRemotes: (repoPath: string) => ipcRenderer.invoke('git:getRemotes', repoPath),
-  addRemote: (repoPath: string, name: string, url: string) => ipcRenderer.invoke('git:addRemote', repoPath, name, url),
-  removeRemote: (repoPath: string, name: string) => ipcRenderer.invoke('git:removeRemote', repoPath, name),
-  renameRemote: (repoPath: string, oldName: string, newName: string) => ipcRenderer.invoke('git:renameRemote', repoPath, oldName, newName),
-  setRemoteUrl: (repoPath: string, name: string, url: string, isPushUrl?: boolean) => ipcRenderer.invoke('git:setRemoteUrl', repoPath, name, url, isPushUrl),
-  fetchRemote: (repoPath: string, remoteName: string, prune?: boolean) => ipcRenderer.invoke('git:fetchRemote', repoPath, remoteName, prune),
-  pruneRemote: (repoPath: string, remoteName: string) => ipcRenderer.invoke('git:pruneRemote', repoPath, remoteName),
-  setUpstream: (repoPath: string, remoteName: string, remoteBranch: string) => ipcRenderer.invoke('git:setUpstream', repoPath, remoteName, remoteBranch),
-  getUpstream: (repoPath: string) => ipcRenderer.invoke('git:getUpstream', repoPath),
+  getRemotes: (repoPath: string) =>
+    ipcRenderer.invoke("git:getRemotes", repoPath),
+  addRemote: (repoPath: string, name: string, url: string) =>
+    ipcRenderer.invoke("git:addRemote", repoPath, name, url),
+  removeRemote: (repoPath: string, name: string) =>
+    ipcRenderer.invoke("git:removeRemote", repoPath, name),
+  renameRemote: (repoPath: string, oldName: string, newName: string) =>
+    ipcRenderer.invoke("git:renameRemote", repoPath, oldName, newName),
+  setRemoteUrl: (
+    repoPath: string,
+    name: string,
+    url: string,
+    isPushUrl?: boolean,
+  ) => ipcRenderer.invoke("git:setRemoteUrl", repoPath, name, url, isPushUrl),
+  fetchRemote: (repoPath: string, remoteName: string, prune?: boolean) =>
+    ipcRenderer.invoke("git:fetchRemote", repoPath, remoteName, prune),
+  pruneRemote: (repoPath: string, remoteName: string) =>
+    ipcRenderer.invoke("git:pruneRemote", repoPath, remoteName),
+  setUpstream: (repoPath: string, remoteName: string, remoteBranch: string) =>
+    ipcRenderer.invoke("git:setUpstream", repoPath, remoteName, remoteBranch),
+  getUpstream: (repoPath: string) =>
+    ipcRenderer.invoke("git:getUpstream", repoPath),
   // Tag management
-  getTags: (repoPath: string) => ipcRenderer.invoke('git:getTags', repoPath),
-  createLightweightTag: (repoPath: string, tagName: string, commitHash?: string) => ipcRenderer.invoke('git:createLightweightTag', repoPath, tagName, commitHash),
-  createAnnotatedTag: (repoPath: string, tagName: string, message: string, commitHash?: string) => ipcRenderer.invoke('git:createAnnotatedTag', repoPath, tagName, message, commitHash),
-  deleteTag: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:deleteTag', repoPath, tagName),
-  deleteRemoteTag: (repoPath: string, remoteName: string, tagName: string) => ipcRenderer.invoke('git:deleteRemoteTag', repoPath, remoteName, tagName),
-  pushTags: (repoPath: string, remoteName: string, tagName?: string) => ipcRenderer.invoke('git:pushTags', repoPath, remoteName, tagName),
-  checkoutTag: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:checkoutTag', repoPath, tagName),
-  checkoutCommit: (repoPath: string, commitHash: string) => ipcRenderer.invoke('git:checkoutCommit', repoPath, commitHash),
-  getTagDetails: (repoPath: string, tagName: string) => ipcRenderer.invoke('git:getTagDetails', repoPath, tagName),
+  getTags: (repoPath: string) => ipcRenderer.invoke("git:getTags", repoPath),
+  createLightweightTag: (
+    repoPath: string,
+    tagName: string,
+    commitHash?: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:createLightweightTag",
+      repoPath,
+      tagName,
+      commitHash,
+    ),
+  createAnnotatedTag: (
+    repoPath: string,
+    tagName: string,
+    message: string,
+    commitHash?: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:createAnnotatedTag",
+      repoPath,
+      tagName,
+      message,
+      commitHash,
+    ),
+  deleteTag: (repoPath: string, tagName: string) =>
+    ipcRenderer.invoke("git:deleteTag", repoPath, tagName),
+  deleteRemoteTag: (repoPath: string, remoteName: string, tagName: string) =>
+    ipcRenderer.invoke("git:deleteRemoteTag", repoPath, remoteName, tagName),
+  pushTags: (repoPath: string, remoteName: string, tagName?: string) =>
+    ipcRenderer.invoke("git:pushTags", repoPath, remoteName, tagName),
+  checkoutTag: (repoPath: string, tagName: string) =>
+    ipcRenderer.invoke("git:checkoutTag", repoPath, tagName),
+  checkoutCommit: (repoPath: string, commitHash: string) =>
+    ipcRenderer.invoke("git:checkoutCommit", repoPath, commitHash),
+  getTagDetails: (repoPath: string, tagName: string) =>
+    ipcRenderer.invoke("git:getTagDetails", repoPath, tagName),
   // File editor operations
-  getFileBlame: (repoPath: string, filePath: string) => ipcRenderer.invoke('git:getFileBlame', repoPath, filePath),
+  getFileBlame: (repoPath: string, filePath: string) =>
+    ipcRenderer.invoke("git:getFileBlame", repoPath, filePath),
   // Interactive rebase operations
-  getRebasePlan: (repoPath: string, sourceBranch: string, targetBranch: string) => ipcRenderer.invoke('git:getRebasePlan', repoPath, sourceBranch, targetBranch),
-  startInteractiveRebase: (repoPath: string, targetBranch: string, rebasePlan: any[]) => ipcRenderer.invoke('git:startInteractiveRebase', repoPath, targetBranch, rebasePlan),
-  getRebaseStatus: (repoPath: string) => ipcRenderer.invoke('git:getRebaseStatus', repoPath),
-  continueRebase: (repoPath: string) => ipcRenderer.invoke('git:continueRebase', repoPath),
-  abortRebase: (repoPath: string) => ipcRenderer.invoke('git:abortRebase', repoPath),
-  skipRebaseCommit: (repoPath: string) => ipcRenderer.invoke('git:skipRebaseCommit', repoPath),
-  editRebaseCommitMessage: (repoPath: string, commitHash: string, newMessage: string) => ipcRenderer.invoke('git:editRebaseCommitMessage', repoPath, commitHash, newMessage),
+  getRebasePlan: (
+    repoPath: string,
+    sourceBranch: string,
+    targetBranch: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:getRebasePlan",
+      repoPath,
+      sourceBranch,
+      targetBranch,
+    ),
+  startInteractiveRebase: (
+    repoPath: string,
+    targetBranch: string,
+    rebasePlan: any[],
+  ) =>
+    ipcRenderer.invoke(
+      "git:startInteractiveRebase",
+      repoPath,
+      targetBranch,
+      rebasePlan,
+    ),
+  getRebaseStatus: (repoPath: string) =>
+    ipcRenderer.invoke("git:getRebaseStatus", repoPath),
+  continueRebase: (repoPath: string) =>
+    ipcRenderer.invoke("git:continueRebase", repoPath),
+  abortRebase: (repoPath: string) =>
+    ipcRenderer.invoke("git:abortRebase", repoPath),
+  skipRebaseCommit: (repoPath: string) =>
+    ipcRenderer.invoke("git:skipRebaseCommit", repoPath),
+  editRebaseCommitMessage: (
+    repoPath: string,
+    commitHash: string,
+    newMessage: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:editRebaseCommitMessage",
+      repoPath,
+      commitHash,
+      newMessage,
+    ),
+  // File history operations
+  getFileHistory: (repoPath: string, filePath: string, maxCount?: number) =>
+    ipcRenderer.invoke("git:getFileHistory", repoPath, filePath, maxCount),
+  compareFileAcrossCommits: (
+    repoPath: string,
+    filePath: string,
+    fromCommitHash: string,
+    toCommitHash: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:compareFileAcrossCommits",
+      repoPath,
+      filePath,
+      fromCommitHash,
+      toCommitHash,
+    ),
+  getFileAtCommit: (repoPath: string, filePath: string, commitHash: string) =>
+    ipcRenderer.invoke("git:getFileAtCommit", repoPath, filePath, commitHash),
+  restoreFileFromCommit: (
+    repoPath: string,
+    filePath: string,
+    commitHash: string,
+  ) =>
+    ipcRenderer.invoke(
+      "git:restoreFileFromCommit",
+      repoPath,
+      filePath,
+      commitHash,
+    ),
+  getFileStatistics: (repoPath: string, filePath: string) =>
+    ipcRenderer.invoke("git:getFileStatistics", repoPath, filePath),
+  getFileVersions: (
+    repoPath: string,
+    filePath: string,
+    commitHashes: string[],
+  ) =>
+    ipcRenderer.invoke("git:getFileVersions", repoPath, filePath, commitHashes),
+  getLineHistory: (
+    repoPath: string,
+    filePath: string,
+    startLine: number,
+    endLine: number,
+  ) =>
+    ipcRenderer.invoke(
+      "git:getLineHistory",
+      repoPath,
+      filePath,
+      startLine,
+      endLine,
+    ),
 });
-
