@@ -21,17 +21,12 @@ import {
   Tooltip,
   message,
 } from "antd";
-import "diff2html/bundles/css/diff2html.min.css";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import DiffRenderer from "./DiffRenderer";
 import { useTheme } from "../ThemeContext";
 import { ConflictFile, ConflictMarker, FileDiff } from "../types";
 import { MergeConflictResolver } from "./merge";
 
-// Import diff2html with proper typing
-const Diff2Html = require("diff2html") as {
-  html: (diffInput: string, config?: any) => string;
-  parse: (diffInput: string, config?: any) => any[];
-};
 
 interface FileDiffPanelProps {
   diff: FileDiff | null;
@@ -65,8 +60,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   const [conflictDisplayMode, setConflictDisplayMode] = useState<
     "list" | "navigation"
   >("navigation");
-  const diffContainerRef = useRef<HTMLDivElement>(null);
-
   // Helper function to check if content has unresolved conflict markers
   const hasUnresolvedConflicts = (content: string | null): boolean => {
     if (!content) return false;
@@ -259,89 +252,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
     conflictInfo !== null && conflictInfo.conflicts.length > 0;
   const showBinaryMessage = isBinary && !hasConflicts;
   const showEmptyMessage = isEmpty && !hasConflicts;
-
-  // Render diff using diff2html (layout effect prevents a flash of stale HTML)
-  useLayoutEffect(() => {
-    const container = diffContainerRef.current;
-    if (!container) return;
-
-    // Clear container first to prevent old diff from showing
-    container.innerHTML = "";
-
-    // When conflicts exist we show the interactive resolver instead of diff.
-    if (hasConflicts) {
-      return;
-    }
-
-    // Don't render diff for binary or empty files
-    if (showBinaryMessage || showEmptyMessage) {
-      return;
-    }
-
-    if (diffText) {
-      // File Explorer uses raw file text (not a patch). Render it safely as plain text.
-      if (!isDiff) {
-        const pre = document.createElement("pre");
-        pre.textContent = diffText;
-        pre.style.margin = "0";
-        pre.style.padding = "12px";
-        pre.style.whiteSpace = "pre";
-        pre.style.fontFamily = 'Consolas, Monaco, "Courier New", monospace';
-        pre.style.fontSize = "13px";
-        pre.style.lineHeight = "1.45";
-        pre.style.color = isDarkMode ? "#d4d4d4" : "#1f1f1f";
-        container.appendChild(pre);
-        return;
-      }
-
-      try {
-        const diffHtml = Diff2Html.html(diffText, {
-          drawFileList: false,
-          matching: "lines",
-          outputFormat: diffViewMode,
-          renderNothingWhenEmpty: false,
-          colorScheme: isDarkMode ? "dark" : "light",
-        });
-        container.innerHTML = diffHtml;
-
-        // Add theme class to wrapper
-        const wrapper = container.querySelector(".d2h-wrapper");
-        if (wrapper) {
-          wrapper.setAttribute("data-theme", isDarkMode ? "dark" : "light");
-        }
-      } catch (error) {
-        console.error("Error rendering diff:", error);
-        // Fallback to line-by-line view
-        try {
-          const diffHtml = Diff2Html.html(diffText, {
-            drawFileList: false,
-            matching: "lines",
-            outputFormat: "line-by-line",
-            renderNothingWhenEmpty: false,
-            colorScheme: isDarkMode ? "dark" : "light",
-          });
-          container.innerHTML = diffHtml;
-
-          // Add theme class to wrapper
-          const wrapper = container.querySelector(".d2h-wrapper");
-          if (wrapper) {
-            wrapper.setAttribute("data-theme", isDarkMode ? "dark" : "light");
-          }
-        } catch (fallbackError) {
-          console.error("Error rendering diff with fallback:", fallbackError);
-        }
-      }
-    }
-  }, [
-    diffText,
-    diff?.path,
-    isDarkMode,
-    diffViewMode,
-    isDiff,
-    hasConflicts,
-    showBinaryMessage,
-    showEmptyMessage,
-  ]);
 
   const renderConflictBlock = (
     conflict: ConflictMarker,
@@ -847,22 +757,40 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
         </div>
       ) : null}
 
-      {/* Always mount the diff container so we can reliably clear stale HTML */}
-      <div
-        key={`${diff.path}:${diffViewMode}:${isDarkMode ? "dark" : "light"}`}
-        ref={diffContainerRef}
-        style={{
-          display:
-            showBinaryMessage || showEmptyMessage || hasConflicts
-              ? "none"
-              : "block",
-          backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
-          border: "1px solid var(--border-color)",
-          borderRadius: 4,
-          overflow: "auto",
-          maxHeight: "calc(100vh - 300px)",
-        }}
-      />
+      {/* Diff / file-content view */}
+      {!showBinaryMessage && !showEmptyMessage && !hasConflicts && diffText && (
+        <div
+          style={{
+            backgroundColor: isDarkMode ? "#1e1e1e" : "#ffffff",
+            border: "1px solid var(--border-color)",
+            borderRadius: 4,
+            overflow: "auto",
+            maxHeight: "calc(100vh - 300px)",
+          }}
+        >
+          {isDiff ? (
+            <DiffRenderer
+              diffText={diffText}
+              isDarkMode={isDarkMode}
+              viewMode={diffViewMode}
+            />
+          ) : (
+            <pre
+              style={{
+                margin: 0,
+                padding: "12px",
+                whiteSpace: "pre",
+                fontFamily: 'Consolas, Monaco, "Courier New", monospace',
+                fontSize: "13px",
+                lineHeight: "1.45",
+                color: isDarkMode ? "#d4d4d4" : "#1f1f1f",
+              }}
+            >
+              {diffText}
+            </pre>
+          )}
+        </div>
+      )}
 
       {/* Manual edit modal with syntax highlighting */}
       <Modal
