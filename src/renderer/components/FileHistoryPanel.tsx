@@ -3,6 +3,7 @@ import {
   Button,
   Spin,
   Empty,
+  Segmented,
   Tooltip,
   message,
   Timeline,
@@ -40,6 +41,7 @@ import {
 import { useTheme } from '../ThemeContext';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus, vs } from 'react-syntax-highlighter/dist/esm/styles/prism';
+import DiffRenderer from './DiffRenderer';
 import type {
   FileHistoryTimeline,
   FileHistoryEntry,
@@ -79,6 +81,9 @@ const FileHistoryPanel: React.FC<FileHistoryPanelProps> = ({
   const [versionModalVisible, setVersionModalVisible] = useState(false);
   const [restoreModalVisible, setRestoreModalVisible] = useState(false);
   const [selectedRestoreCommit, setSelectedRestoreCommit] = useState<string>('');
+  const [compareDiffViewMode, setCompareDiffViewMode] = useState<
+    'side-by-side' | 'line-by-line'
+  >('side-by-side');
 
   useEffect(() => {
     setViewMode('timeline');
@@ -173,6 +178,17 @@ const FileHistoryPanel: React.FC<FileHistoryPanelProps> = ({
       console.error('Error restoring file:', error);
       message.error('Failed to restore file');
     }
+  };
+
+  const looksLikeUnifiedDiff = (text: string) => {
+    if (!text) return false;
+
+    const hasDiffGitHeader = /^diff --git\s/m.test(text);
+    const hasClassicHeaders =
+      /^---\s+a\//m.test(text) && /^\+\+\+\s+b\//m.test(text);
+    const hasHunks = /^@@\s/m.test(text);
+
+    return hasDiffGitHeader || hasClassicHeaders || hasHunks;
   };
 
   const getStatusColor = (status: string) => {
@@ -542,9 +558,41 @@ const FileHistoryPanel: React.FC<FileHistoryPanelProps> = ({
   const renderComparison = () => {
     if (!comparison) return null;
 
+    const isDiff = looksLikeUnifiedDiff(comparison.diff);
+    const comparisonStats = [
+      {
+        key: 'additions',
+        label: 'Additions',
+        value: comparison.additions,
+        icon: <PlusOutlined />,
+        color: '#3f8600',
+        background: isDarkMode ? 'rgba(82, 196, 26, 0.12)' : '#f6ffed',
+        border: isDarkMode ? 'rgba(82, 196, 26, 0.28)' : '#b7eb8f',
+      },
+      {
+        key: 'deletions',
+        label: 'Deletions',
+        value: comparison.deletions,
+        icon: <MinusOutlined />,
+        color: '#cf1322',
+        background: isDarkMode ? 'rgba(255, 77, 79, 0.12)' : '#fff2f0',
+        border: isDarkMode ? 'rgba(255, 77, 79, 0.28)' : '#ffccc7',
+      },
+      {
+        key: 'changed-lines',
+        label: 'Changed Lines',
+        value: comparison.changedLines,
+        icon: <EditOutlined />,
+        color: isDarkMode ? '#d9d9d9' : '#262626',
+        background: isDarkMode ? 'rgba(255, 255, 255, 0.04)' : '#fafafa',
+        border: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : '#d9d9d9',
+      },
+    ];
+
     return (
-      <div style={{ padding: '20px' }}>
+      <div style={{ padding: '16px' }}>
         <Card
+          size="small"
           title={
             <Space>
               <DiffOutlined />
@@ -556,17 +604,23 @@ const FileHistoryPanel: React.FC<FileHistoryPanelProps> = ({
               Back to Timeline
             </Button>
           }
+          bodyStyle={{ padding: 16 }}
         >
-          <Descriptions bordered column={2} style={{ marginBottom: 20 }}>
+          <Descriptions
+            bordered
+            size="small"
+            column={2}
+            style={{ marginBottom: 16 }}
+          >
             <Descriptions.Item label="From Commit">
-              <Space>
+              <Space size={[8, 4]} wrap>
                 <Tag color="blue">{comparison.fromCommit.hash.substring(0, 7)}</Tag>
                 <span>{comparison.fromCommit.author}</span>
                 <span style={{ color: '#999' }}>{formatDate(comparison.fromCommit.date)}</span>
               </Space>
             </Descriptions.Item>
             <Descriptions.Item label="To Commit">
-              <Space>
+              <Space size={[8, 4]} wrap>
                 <Tag color="blue">{comparison.toCommit.hash.substring(0, 7)}</Tag>
                 <span>{comparison.toCommit.author}</span>
                 <span style={{ color: '#999' }}>{formatDate(comparison.toCommit.date)}</span>
@@ -580,52 +634,93 @@ const FileHistoryPanel: React.FC<FileHistoryPanelProps> = ({
             </Descriptions.Item>
           </Descriptions>
 
-          <Row gutter={16} style={{ marginBottom: 20 }}>
-            <Col span={8}>
-              <Card>
-                <Statistic
-                  title="Additions"
-                  value={comparison.additions}
-                  valueStyle={{ color: '#3f8600' }}
-                  prefix={<PlusOutlined />}
-                />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card>
-                <Statistic
-                  title="Deletions"
-                  value={comparison.deletions}
-                  valueStyle={{ color: '#cf1322' }}
-                  prefix={<MinusOutlined />}
-                />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card>
-                <Statistic
-                  title="Changed Lines"
-                  value={comparison.changedLines}
-                  prefix={<EditOutlined />}
-                />
-              </Card>
-            </Col>
+          <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+            {comparisonStats.map((stat) => (
+              <Col key={stat.key} xs={24} sm={8}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: `1px solid ${stat.border}`,
+                    backgroundColor: stat.background,
+                  }}
+                >
+                  <Space size={8}>
+                    <span style={{ color: stat.color, fontSize: 14, display: 'flex' }}>
+                      {stat.icon}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 12,
+                        color: isDarkMode ? 'rgba(255, 255, 255, 0.7)' : '#595959',
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {stat.label}
+                    </span>
+                  </Space>
+                  <span
+                    style={{
+                      fontSize: 20,
+                      lineHeight: 1,
+                      fontWeight: 700,
+                      color: stat.color,
+                      fontVariantNumeric: 'tabular-nums',
+                    }}
+                  >
+                    {stat.value}
+                  </span>
+                </div>
+              </Col>
+            ))}
           </Row>
 
-          <Card title="Diff" bodyStyle={{ padding: 0 }}>
+          <Card
+            size="small"
+            title="Diff"
+            extra={
+              isDiff ? (
+                <Segmented
+                  size="small"
+                  value={compareDiffViewMode}
+                  onChange={(value) =>
+                    setCompareDiffViewMode(value as 'side-by-side' | 'line-by-line')
+                  }
+                  options={[
+                    { label: 'Side by Side', value: 'side-by-side' },
+                    { label: 'Inline', value: 'line-by-line' },
+                  ]}
+                />
+              ) : null
+            }
+            bodyStyle={{ padding: 0 }}
+          >
             <div style={{ maxHeight: '600px', overflow: 'auto' }}>
-              <SyntaxHighlighter
-                language="diff"
-                style={isDarkMode ? vscDarkPlus : vs}
-                customStyle={{
-                  margin: 0,
-                  borderRadius: 0,
-                  fontSize: '13px',
-                }}
-                showLineNumbers
-              >
-                {comparison.diff || 'No differences found'}
-              </SyntaxHighlighter>
+              {isDiff ? (
+                <DiffRenderer
+                  diffText={comparison.diff}
+                  isDarkMode={isDarkMode}
+                  viewMode={compareDiffViewMode}
+                />
+              ) : (
+                <SyntaxHighlighter
+                  language="diff"
+                  style={isDarkMode ? vscDarkPlus : vs}
+                  customStyle={{
+                    margin: 0,
+                    borderRadius: 0,
+                    fontSize: '13px',
+                  }}
+                  showLineNumbers
+                >
+                  {comparison.diff || 'No differences found'}
+                </SyntaxHighlighter>
+              )}
             </div>
           </Card>
         </Card>
