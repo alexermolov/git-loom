@@ -248,6 +248,7 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
   const isDiff = looksLikeUnifiedDiff(diffText);
   const isBinary = isDiff && diffContent.includes("Binary files");
   const isEmpty = diffContent === "";
+  const hasRecordedChanges = (diff?.additions ?? 0) > 0 || (diff?.deletions ?? 0) > 0;
   const hasConflicts =
     conflictInfo !== null && conflictInfo.conflicts.length > 0;
   const showBinaryMessage = isBinary && !hasConflicts;
@@ -744,12 +745,12 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             description={
               <div>
                 <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>
-                  {isDiff ? "No Changes" : "Empty File"}
+                  {hasRecordedChanges ? "Patch Unavailable" : "No Text Diff Available"}
                 </div>
                 <div style={{ color: "var(--text-secondary)" }}>
-                  {isDiff
-                    ? "This file has no visible changes."
-                    : "This file is empty."}
+                  {hasRecordedChanges
+                    ? "The file has recorded changes, but Git did not return a renderable text patch."
+                    : "Git did not return a text diff for this selection."}
                 </div>
               </div>
             }

@@ -785,14 +785,14 @@ const App: React.FC = () => {
         deletions: diff.deletions,
       });
 
-      // Check if diff is empty or file is binary
+      // Report degraded cases without claiming the file is actually empty.
       if (!diff.diff || diff.diff.trim() === "") {
         if (file.status === "added") {
-          message.info("New file added (binary or empty)");
+          message.info("Patch unavailable for the added file");
         } else if (file.status === "deleted") {
-          message.info("File was deleted");
+          message.info("Patch unavailable for the deleted file");
         } else {
-          message.info("No text diff available (binary file or no changes)");
+          message.warning("Patch unavailable for this file");
         }
       }
 
@@ -1283,15 +1283,15 @@ const App: React.FC = () => {
       // Always set the diff, even if it appears empty
       setFileDiff(diff);
 
-      // Check if diff is empty or file is binary (but don't block display)
+      // Report degraded cases without claiming the file is actually empty.
       if (!diff.diff || diff.diff.trim() === "") {
         console.warn("Empty diff for file:", file.path);
         if (file.status === "added") {
-          message.warning("New file added - diff may be large or binary");
+          message.warning("Patch unavailable for the added file");
         } else if (file.status === "deleted") {
-          message.info("File was deleted");
+          message.info("Patch unavailable for the deleted file");
         } else {
-          message.warning("Diff appears empty - may be binary or too large");
+          message.warning("Patch unavailable for this file");
         }
       }
     } catch (error) {

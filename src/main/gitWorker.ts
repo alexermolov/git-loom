@@ -144,45 +144,46 @@ export class GitWorkerPool {
       throw new Error('File path is required for diff operation');
     }
 
-    let args = ['diff', '--no-color'];
-    
-    if (commitHash) {
-      // Compare commit with its parent (commitHash^..commitHash)
-      // Using commitHash^! is shorthand for showing changes in that commit
-      // However, for initial commits (no parent), we need --root flag
-      try {
-        // Try with parent reference first
-        args.push(`${commitHash}^!`);
-        const output = await git.raw([...args, '--', filePath]);
-        
-        // If maxLines is specified, truncate the output
-        if (maxLines && typeof maxLines === 'number') {
-          const lines = output.split('\n');
-          if (lines.length > maxLines) {
-            return lines.slice(0, maxLines).join('\n') + '\n... (truncated)';
-          }
+    const truncateOutput = (output: string) => {
+      if (maxLines && typeof maxLines === 'number') {
+        const lines = output.split('\n');
+        if (lines.length > maxLines) {
+          return lines.slice(0, maxLines).join('\n') + '\n... (diff truncated)';
         }
-        
-        return output;
-      } catch (error) {
-        // If that fails, try with --root for initial commits
-        args = ['diff', '--no-color', '--root', commitHash, '--', filePath];
       }
-    } else {
-      args.push('--', filePath);
+
+      return output;
+    };
+
+    if (commitHash) {
+      const attempts: string[][] = [
+        ['show', '--format=', '--no-color', '--find-renames', '--find-copies', commitHash, '--', filePath],
+        ['diff-tree', '--no-commit-id', '--patch', '-r', '-m', '--root', '--no-color', commitHash, '--', filePath],
+        ['diff', '--no-color', `${commitHash}^!`, '--', filePath],
+      ];
+
+      let lastError: unknown;
+
+      for (const args of attempts) {
+        try {
+          const output = await git.raw(args);
+          if (output.trim().length > 0) {
+            return truncateOutput(output);
+          }
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (lastError) {
+        throw lastError;
+      }
+
+      return '';
     }
 
-    const output = await git.raw(args);
-    
-    // If maxLines is specified, truncate the output
-    if (maxLines && typeof maxLines === 'number') {
-      const lines = output.split('\n');
-      if (lines.length > maxLines) {
-        return lines.slice(0, maxLines).join('\n') + '\n... (diff truncated)';
-      }
-    }
-
-    return output;
+    const output = await git.raw(['diff', '--no-color', '--', filePath]);
+    return truncateOutput(output);
   }
 
   /**
