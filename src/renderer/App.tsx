@@ -22,7 +22,6 @@ import {
   FileStatus,
   ReflogEntry,
   RepositoryInfo,
-  SearchResult,
   StashEntry,
 } from "./types";
 
@@ -38,8 +37,6 @@ type NavigationSnapshot = {
   showingCommitFiles: boolean;
   selectedExplorerFile: string | null;
   selectedHistoryFile: string | null;
-  selectedSearchCommit: SearchResult | null;
-  searchCommitFiles: CommitFile[];
   selectedStash: StashEntry | null;
 };
 
@@ -109,11 +106,6 @@ const App: React.FC = () => {
   const [loadingStash, setLoadingStash] = useState(false);
   const [loadingConflicts, setLoadingConflicts] = useState(false);
 
-  // Search view state
-  const [selectedSearchCommit, setSelectedSearchCommit] =
-    useState<SearchResult | null>(null);
-  const [searchCommitFiles, setSearchCommitFiles] = useState<CommitFile[]>([]);
-
   // Load saved panel width
   useEffect(() => {
     const savedWidth = localStorage.getItem("middlePanelWidth");
@@ -138,8 +130,6 @@ const App: React.FC = () => {
     showingCommitFiles,
     selectedExplorerFile,
     selectedHistoryFile,
-    selectedSearchCommit,
-    searchCommitFiles,
     selectedStash,
   });
 
@@ -153,8 +143,6 @@ const App: React.FC = () => {
     setShowingCommitFiles(snapshot.showingCommitFiles);
     setSelectedExplorerFile(snapshot.selectedExplorerFile);
     setSelectedHistoryFile(snapshot.selectedHistoryFile);
-    setSelectedSearchCommit(snapshot.selectedSearchCommit);
-    setSearchCommitFiles(snapshot.searchCommitFiles);
     setSelectedStash(snapshot.selectedStash);
   };
 
@@ -208,8 +196,6 @@ const App: React.FC = () => {
         return "Stash";
       case "conflicts":
         return "Conflicts";
-      case "search":
-        return "Search";
       case "rebase":
         return "Rebase";
       case "remotes":
@@ -514,9 +500,6 @@ const App: React.FC = () => {
     setLoadingReflog(false);
     setLoadingStash(false);
     setLoadingConflicts(false);
-    setSelectedSearchCommit(null);
-    setSearchCommitFiles([]);
-
     try {
       const repo = repositories.get(repoPath);
       if (!repo) return;
@@ -841,12 +824,6 @@ const App: React.FC = () => {
     // Reset stash selection when leaving stash view
     if (view !== "stash") {
       setSelectedStash(null);
-    }
-
-    // Reset search state when leaving search view
-    if (view !== "search") {
-      setSelectedSearchCommit(null);
-      setSearchCommitFiles([]);
     }
 
     // Reset right panel state and show appropriate view for the mode
@@ -1205,24 +1182,6 @@ const App: React.FC = () => {
     setSelectedStash(stash);
   };
 
-  const handleSearchCommitClick = async (commit: SearchResult) => {
-    if (!selectedRepo) return;
-
-    pushNavigationSnapshot();
-    setSelectedSearchCommit(commit);
-
-    try {
-      const files = await window.electronAPI.getCommitFiles(
-        selectedRepo,
-        commit.hash,
-      );
-      setSearchCommitFiles(files);
-    } catch (error) {
-      console.error("Error loading search commit files:", error);
-      message.error("Failed to load commit files");
-    }
-  };
-
   const handleBlameCommitClick = async (commitHash: string) => {
     if (!selectedRepo) return;
 
@@ -1253,53 +1212,6 @@ const App: React.FC = () => {
         console.error("Error loading commit from blame:", error);
         message.error("Failed to load commit details");
       }
-    }
-  };
-
-  const handleSearchFileClick = async (file: CommitFile) => {
-    if (!selectedRepo || !selectedSearchCommit) return;
-
-    pushNavigationSnapshot();
-    setSelectedFile(file);
-    setLoadingFileDiff(true);
-    setMainPanelView("diff");
-
-    try {
-      const diff = await window.electronAPI.getFileDiff(
-        selectedRepo,
-        selectedSearchCommit.hash,
-        file.path,
-      );
-
-      console.log("Loaded diff for search:", {
-        path: file.path,
-        commitHash: selectedSearchCommit.hash,
-        diffLength: diff.diff?.length,
-        diffPreview: diff.diff?.substring(0, 200),
-        additions: diff.additions,
-        deletions: diff.deletions,
-      });
-
-      // Always set the diff, even if it appears empty
-      setFileDiff(diff);
-
-      // Report degraded cases without claiming the file is actually empty.
-      if (!diff.diff || diff.diff.trim() === "") {
-        console.warn("Empty diff for file:", file.path);
-        if (file.status === "added") {
-          message.warning("Patch unavailable for the added file");
-        } else if (file.status === "deleted") {
-          message.info("Patch unavailable for the deleted file");
-        } else {
-          message.warning("Patch unavailable for this file");
-        }
-      }
-    } catch (error) {
-      console.error("Error loading file diff:", error);
-      message.error("Failed to load file diff");
-      setFileDiff(null);
-    } finally {
-      setLoadingFileDiff(false);
     }
   };
 
@@ -1585,11 +1497,6 @@ const App: React.FC = () => {
             onBackToCommitsLabel={getBackLabels().commitFiles}
             width={middlePanelWidth}
             onResize={handleMiddlePanelResize}
-            repositories={repositories}
-            onSearchCommitClick={handleSearchCommitClick}
-            onSearchFileClick={handleSearchFileClick}
-            selectedSearchCommit={selectedSearchCommit}
-            searchCommitFiles={searchCommitFiles}
           />
 
           <div className="main-panel">{renderMainPanel()}</div>

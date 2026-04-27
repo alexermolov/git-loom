@@ -7,7 +7,6 @@ import {
   HistoryOutlined,
   MergeCellsOutlined,
   SaveOutlined,
-  SearchOutlined,
   TagsOutlined,
   WarningOutlined,
 } from "@ant-design/icons";
@@ -23,7 +22,6 @@ export type ViewType =
   | "reflog"
   | "stash"
   | "conflicts"
-  | "search"
   | "remotes"
   | "tags"
   | "rebase";
@@ -40,11 +38,6 @@ const IconSidebar: React.FC<IconSidebarProps> = ({
   conflictCount = 0,
 }) => {
   const icons = [
-    {
-      key: "search" as ViewType,
-      icon: <SearchOutlined />,
-      tooltip: "Search Commits",
-    },
     {
       key: "changes" as ViewType,
       icon: <FileTextOutlined />,

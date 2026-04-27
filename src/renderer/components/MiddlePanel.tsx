@@ -9,7 +9,6 @@ import FileTreePanel from "./FileTreePanel";
 import ReflogPanel from "./ReflogPanel";
 import StashListPanel from "./StashListPanel";
 import ConflictResolutionPanel from "./ConflictResolutionPanel";
-import SearchCommitsPanel from "./SearchCommitsPanel";
 import {
   CommitInfo,
   BranchInfo,
@@ -17,7 +16,6 @@ import {
   FileStatus,
   ReflogEntry,
   StashEntry,
-  SearchResult,
 } from "../types";
 import { ViewType } from "./IconSidebar";
 
@@ -135,12 +133,6 @@ interface MiddlePanelProps {
   width?: number;
   onResize?: (width: number) => void;
 
-  // Search view
-  repositories?: Map<string, any>;
-  onSearchCommitClick?: (commit: SearchResult) => void;
-  onSearchFileClick?: (file: CommitFile) => void;
-  selectedSearchCommit?: SearchResult | null;
-  searchCommitFiles?: CommitFile[];
 }
 
 const MiddlePanel: React.FC<MiddlePanelProps> = ({
@@ -182,11 +174,6 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   loadingConflicts = false,
   width = 350,
   onResize,
-  repositories,
-  onSearchCommitClick,
-  onSearchFileClick,
-  selectedSearchCommit,
-  searchCommitFiles = [],
 }) => {
   const resizeRef = React.useRef<HTMLDivElement>(null);
   const isResizingRef = React.useRef(false);
@@ -276,6 +263,7 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               <div className="middle-panel-title">Commits History</div>
             </div>
             <CommitsPanel
+              repoPath={repoPath}
               commits={commits}
               onCommitClick={onCommitClick}
               onLoadMore={onLoadMoreCommits}
@@ -740,25 +728,6 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               diff views
             </li>
           </ul>,
-        );
-
-      case "search":
-        return (
-          <div
-            className="middle-panel-content"
-            style={{ height: "100%", display: "flex", flexDirection: "column" }}
-          >
-            <SearchCommitsPanel
-              selectedRepo={repoPath}
-              repositories={repositories || new Map()}
-              onCommitClick={onSearchCommitClick || (() => {})}
-              onFileClick={onSearchFileClick || (() => {})}
-              selectedCommit={selectedSearchCommit}
-              commitFiles={searchCommitFiles}
-              selectedFile={selectedFile}
-              loadingFile={loadingFile}
-            />
-          </div>
         );
 
       default:
