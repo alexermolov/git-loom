@@ -82,6 +82,8 @@ interface MiddlePanelProps {
   onChangesRefresh?: () => void;
   onHistoryChanged?: () => void;
   onChangedFileClick?: (file: FileStatus) => void;
+  onPushRepo?: (repoPath: string) => void;
+  pushing?: boolean;
 
   // File Explorer view
   onFileExplorerFileClick?: (filePath: string) => void;
@@ -145,6 +147,8 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
   onChangesRefresh,
   onHistoryChanged,
   onChangedFileClick,
+  onPushRepo,
+  pushing = false,
   onFileExplorerFileClick,
   branches = [],
   currentBranch = "",
@@ -251,6 +255,8 @@ const MiddlePanel: React.FC<MiddlePanelProps> = ({
               onRefresh={onChangesRefresh}
               onHistoryChanged={onHistoryChanged}
               onFileClick={onChangedFileClick}
+              onPushRepo={onPushRepo}
+              pushing={pushing}
               isActive={view === "changes"}
             />
           </div>

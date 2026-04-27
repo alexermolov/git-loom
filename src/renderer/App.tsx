@@ -1469,6 +1469,8 @@ const App: React.FC = () => {
             onChangesRefresh={handleChangesRefresh}
             onHistoryChanged={handleHistoryChanged}
             onChangedFileClick={handleChangedFileClick}
+            onPushRepo={handlePushRepository}
+            pushing={repoOps[selectedRepo] === "push"}
             onFileExplorerFileClick={handleFileExplorerFileClick}
             branches={branches}
             currentBranch={currentBranch}

@@ -6,11 +6,11 @@ import {
   Checkbox,
   Tag,
   Space,
-  Divider,
   message,
-  Modal,
   App,
   Tooltip,
+  Collapse,
+  type CollapseProps,
 } from "antd";
 import {
   PlusOutlined,
@@ -28,13 +28,13 @@ import {
 } from "@ant-design/icons";
 import { FileStatus, CommitInfo } from "../types";
 
-const { TextArea } = Input;
-
 interface ChangesPanelProps {
   repoPath: string | null;
   onRefresh?: () => void;
   onFileClick?: (file: FileStatus) => void;
   onHistoryChanged?: () => void;
+  onPushRepo?: (repoPath: string) => void;
+  pushing?: boolean;
   isActive?: boolean;
 }
 
@@ -43,6 +43,8 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
   onRefresh,
   onFileClick,
   onHistoryChanged,
+  onPushRepo,
+  pushing = false,
   isActive = true,
 }) => {
   const { modal } = App.useApp();
@@ -260,6 +262,338 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
   );
   const stagedSelected = stagedFiles.filter((f) => selectedFiles.has(f.path));
 
+  const sourceControlKeys = ["changes", "unpushed"];
+  const changeGroupKeys = ["staged", "unstaged"];
+
+  const renderChangeGroupLabel = (
+    title: string,
+    groupFiles: FileStatus[],
+    groupSelected: FileStatus[],
+    staged: boolean,
+  ) => (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "8px",
+        width: "100%",
+      }}
+    >
+      <Space size="small">
+        <span onClick={(e) => e.stopPropagation()}>
+          <Checkbox
+            checked={
+              groupFiles.length > 0 && groupSelected.length === groupFiles.length
+            }
+            indeterminate={
+              groupSelected.length > 0 && groupSelected.length < groupFiles.length
+            }
+            onChange={(e) => handleSelectAll(staged, e.target.checked)}
+          />
+        </span>
+        <strong style={{ fontSize: "13px" }}>
+          {title} ({groupFiles.length})
+        </strong>
+      </Space>
+      {groupSelected.length > 0 && (
+        <span onClick={(e) => e.stopPropagation()}>
+          {staged ? (
+            <Button
+              size="small"
+              icon={<MinusOutlined />}
+              onClick={() =>
+                handleUnstageFiles(groupSelected.map((f) => f.path))
+              }
+            >
+              Unstage Selected ({groupSelected.length})
+            </Button>
+          ) : (
+            <Space size="small">
+              <Button
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={() =>
+                  handleStageFiles(groupSelected.map((f) => f.path))
+                }
+              >
+                Stage ({groupSelected.length})
+              </Button>
+              <Button
+                size="small"
+                danger
+                icon={<RollbackOutlined />}
+                onClick={() =>
+                  handleDiscardChanges(groupSelected.map((f) => f.path))
+                }
+              >
+                Discard ({groupSelected.length})
+              </Button>
+            </Space>
+          )}
+        </span>
+      )}
+    </div>
+  );
+
+  const renderFilesList = (groupFiles: FileStatus[], staged: boolean) => (
+    <List
+      size="small"
+      bordered
+      className="changes-list"
+      dataSource={groupFiles}
+      renderItem={(file) => (
+        <List.Item
+          className="changes-list-item"
+          style={{
+            padding: "6px 10px",
+            cursor: onFileClick ? "pointer" : "default",
+          }}
+          onClick={() => onFileClick && onFileClick(file)}
+          actions={
+            staged
+              ? [
+                  <Button
+                    size="small"
+                    icon={<MinusOutlined />}
+                    title="Unstage"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUnstageFiles([file.path]);
+                    }}
+                  />,
+                ]
+              : [
+                  <Button
+                    size="small"
+                    icon={<PlusOutlined />}
+                    title="Stage"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStageFiles([file.path]);
+                    }}
+                  />,
+                  <Button
+                    size="small"
+                    danger
+                    icon={<RollbackOutlined />}
+                    title="Discard changes"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDiscardChanges([file.path]);
+                    }}
+                  />,
+                ]
+          }
+        >
+          <Space size="small">
+            <Checkbox
+              checked={selectedFiles.has(file.path)}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => handleSelectFile(file.path, e.target.checked)}
+            />
+            {getStatusIcon(file.status)}
+            <span style={{ fontSize: "13px" }}>{file.path}</span>
+            {getStatusTag(file.status)}
+            {file.oldPath && (
+              <span
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                (from {file.oldPath})
+              </span>
+            )}
+          </Space>
+        </List.Item>
+      )}
+      locale={{ emptyText: staged ? "No staged files" : "No changes" }}
+    />
+  );
+
+  const changesItems: CollapseProps["items"] = [
+    {
+      key: "staged",
+      label: renderChangeGroupLabel(
+        "Staged",
+        stagedFiles,
+        stagedSelected,
+        true,
+      ),
+      children: renderFilesList(stagedFiles, true),
+    },
+    {
+      key: "unstaged",
+      label: renderChangeGroupLabel(
+        "Changes",
+        unstagedFiles,
+        unstagedSelected,
+        false,
+      ),
+      children: renderFilesList(unstagedFiles, false),
+    },
+  ];
+
+  const sourceControlItems: CollapseProps["items"] = [
+    {
+      key: "changes",
+      label: (
+        <Space size="small">
+          <span>Changes</span>
+          <Tag>{stagedFiles.length + unstagedFiles.length}</Tag>
+        </Space>
+      ),
+      extra: (
+        <Tooltip title="Refresh changes">
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={(e) => {
+              e.stopPropagation();
+              loadStatus();
+            }}
+            loading={loading}
+            size="small"
+          />
+        </Tooltip>
+      ),
+      children: (
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <Input
+            placeholder="Filter files..."
+            prefix={<SearchOutlined />}
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            allowClear
+            size="small"
+          />
+          <Collapse
+            className="changes-nested-collapse"
+            defaultActiveKey={changeGroupKeys}
+            items={changesItems}
+            size="small"
+          />
+          <div
+            className="commit-section"
+            style={{
+              borderTop: "1px solid var(--border-color)",
+              borderBottom: "1px solid var(--border-color)",
+              padding: "12px",
+              borderRadius: "4px",
+              backgroundColor: "var(--bg-hover)",
+            }}
+          >
+            <Input
+              placeholder="Commit message..."
+              value={commitMessage}
+              onChange={(e) => setCommitMessage(e.target.value)}
+              style={{ marginBottom: "8px" }}
+              onPressEnter={handleCommit}
+            />
+            <Button
+              type="primary"
+              icon={<CheckOutlined />}
+              onClick={handleCommit}
+              disabled={stagedFiles.length === 0 || !commitMessage.trim()}
+              size="small"
+              block
+            >
+              Commit ({stagedFiles.length} file
+              {stagedFiles.length !== 1 ? "s" : ""})
+            </Button>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "unpushed",
+      label: (
+        <Space size="small">
+          <CloudUploadOutlined />
+          <span>Unpushed Commits</span>
+          <Tag>{unpushedCommits.length}</Tag>
+        </Space>
+      ),
+      extra: (
+        <Space size="small" onClick={(e) => e.stopPropagation()}>
+          {onPushRepo && (
+            <Tooltip title="Push unpushed commits">
+              <Button
+                type="primary"
+                size="small"
+                icon={<CloudUploadOutlined />}
+                onClick={() => repoPath && onPushRepo(repoPath)}
+                loading={pushing}
+                disabled={!repoPath || unpushedCommits.length === 0 || pushing}
+              >
+                Push
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip title="Refresh unpushed commits">
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadUnpushedCommits}
+              loading={loadingUnpushed}
+              size="small"
+            />
+          </Tooltip>
+        </Space>
+      ),
+      children: (
+        <List
+          size="small"
+          bordered
+          dataSource={unpushedCommits}
+          loading={loadingUnpushed}
+          renderItem={(commit) => (
+            <List.Item
+              style={{
+                padding: "8px 12px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "flex-start",
+              }}
+            >
+              <div style={{ width: "100%" }}>
+                <Tooltip title={commit.hash}>
+                  <Tag
+                    color="orange"
+                    style={{ fontSize: "11px", fontFamily: "monospace" }}
+                  >
+                    {commit.hash.substring(0, 7)}
+                  </Tag>
+                </Tooltip>
+                <span
+                  style={{
+                    fontSize: "13px",
+                    fontWeight: 500,
+                    marginLeft: "8px",
+                  }}
+                >
+                  {commit.message}
+                </span>
+              </div>
+              <div
+                style={{
+                  fontSize: "11px",
+                  color: "var(--text-tertiary)",
+                  marginTop: "4px",
+                  display: "flex",
+                  gap: "12px",
+                }}
+              >
+                <span>{commit.author}</span>
+                <span>{new Date(commit.date).toLocaleString()}</span>
+              </div>
+            </List.Item>
+          )}
+          locale={{ emptyText: "No unpushed commits" }}
+        />
+      ),
+    },
+  ];
+
   return (
     <div
       className="changes-panel"
@@ -270,367 +604,12 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
         flexDirection: "column",
       }}
     >
-      {/* Top Half - Changes Section */}
-      <div
-        style={{
-          flex: "1 1 50%",
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
-          marginBottom: "8px",
-        }}
-      >
-        <div
-          style={{
-            marginBottom: "12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: "16px" }}>Changes</h3>
-          <Tooltip title="Refresh changes">
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={loadStatus}
-              loading={loading}
-              size="small"
-            />
-          </Tooltip>
-        </div>
-
-        <Input
-          placeholder="Filter files..."
-          prefix={<SearchOutlined />}
-          value={filterText}
-          onChange={(e) => setFilterText(e.target.value)}
-          allowClear
-          size="small"
-          style={{ marginBottom: 12 }}
-        />
-
-        <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-          {/* Staged Files */}
-          <div style={{ marginBottom: "12px" }}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-                padding: "4px 8px",
-                backgroundColor: "var(--bg-hover)",
-                borderRadius: "4px",
-              }}
-            >
-              <Space size="small">
-                <Checkbox
-                  checked={
-                    stagedFiles.length > 0 &&
-                    stagedSelected.length === stagedFiles.length
-                  }
-                  indeterminate={
-                    stagedSelected.length > 0 &&
-                    stagedSelected.length < stagedFiles.length
-                  }
-                  onChange={(e) => handleSelectAll(true, e.target.checked)}
-                />
-                <strong style={{ fontSize: "13px" }}>
-                  Staged Changes ({stagedFiles.length})
-                </strong>
-              </Space>
-              {stagedSelected.length > 0 && (
-                <Button
-                  size="small"
-                  icon={<MinusOutlined />}
-                  onClick={() =>
-                    handleUnstageFiles(stagedSelected.map((f) => f.path))
-                  }
-                >
-                  Unstage Selected ({stagedSelected.length})
-                </Button>
-              )}
-            </div>
-            <List
-              size="small"
-              bordered
-              className="changes-list"
-              dataSource={stagedFiles}
-              renderItem={(file) => (
-                <List.Item
-                  className="changes-list-item"
-                  style={{
-                    padding: "6px 10px",
-                    cursor: onFileClick ? "pointer" : "default",
-                  }}
-                  onClick={() => onFileClick && onFileClick(file)}
-                  actions={[
-                    <Button
-                      size="small"
-                      icon={<MinusOutlined />}
-                      title="Unstage"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleUnstageFiles([file.path]);
-                      }}
-                    />,
-                  ]}
-                >
-                  <Space size="small">
-                    <Checkbox
-                      checked={selectedFiles.has(file.path)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleSelectFile(file.path, e.target.checked);
-                      }}
-                    />
-                    {getStatusIcon(file.status)}
-                    <span style={{ fontSize: "13px" }}>{file.path}</span>
-                    {getStatusTag(file.status)}
-                    {file.oldPath && (
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "var(--text-tertiary)",
-                        }}
-                      >
-                        (from {file.oldPath})
-                      </span>
-                    )}
-                  </Space>
-                </List.Item>
-              )}
-              locale={{ emptyText: "No staged files" }}
-            />
-          </div>
-
-          <Divider style={{ margin: "12px 0" }} />
-
-          {/* Unstaged Files */}
-          <div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "8px",
-                padding: "4px 8px",
-                backgroundColor: "var(--bg-hover)",
-                borderRadius: "4px",
-              }}
-            >
-              <Space size="small">
-                <Checkbox
-                  checked={
-                    unstagedFiles.length > 0 &&
-                    unstagedSelected.length === unstagedFiles.length
-                  }
-                  indeterminate={
-                    unstagedSelected.length > 0 &&
-                    unstagedSelected.length < unstagedFiles.length
-                  }
-                  onChange={(e) => handleSelectAll(false, e.target.checked)}
-                />
-                <strong style={{ fontSize: "13px" }}>
-                  Changes ({unstagedFiles.length})
-                </strong>
-              </Space>
-              {unstagedSelected.length > 0 && (
-                <Space size="small">
-                  <Button
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={() =>
-                      handleStageFiles(unstagedSelected.map((f) => f.path))
-                    }
-                  >
-                    Stage ({unstagedSelected.length})
-                  </Button>
-                  <Button
-                    size="small"
-                    danger
-                    icon={<RollbackOutlined />}
-                    onClick={() =>
-                      handleDiscardChanges(unstagedSelected.map((f) => f.path))
-                    }
-                  >
-                    Discard ({unstagedSelected.length})
-                  </Button>
-                </Space>
-              )}
-            </div>
-            <List
-              size="small"
-              bordered
-              className="changes-list"
-              dataSource={unstagedFiles}
-              renderItem={(file) => (
-                <List.Item
-                  className="changes-list-item"
-                  style={{
-                    padding: "6px 10px",
-                    cursor: onFileClick ? "pointer" : "default",
-                  }}
-                  onClick={() => onFileClick && onFileClick(file)}
-                  actions={[
-                    <Button
-                      size="small"
-                      icon={<PlusOutlined />}
-                      title="Stage"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleStageFiles([file.path]);
-                      }}
-                    />,
-                    <Button
-                      size="small"
-                      danger
-                      icon={<RollbackOutlined />}
-                      title="Discard changes"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDiscardChanges([file.path]);
-                      }}
-                    />,
-                  ]}
-                >
-                  <Space size="small">
-                    <Checkbox
-                      checked={selectedFiles.has(file.path)}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleSelectFile(file.path, e.target.checked);
-                      }}
-                    />
-                    {getStatusIcon(file.status)}
-                    <span style={{ fontSize: "13px" }}>{file.path}</span>
-                    {getStatusTag(file.status)}
-                  </Space>
-                </List.Item>
-              )}
-              locale={{ emptyText: "No changes" }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Commit Section */}
-      <div
-        className="commit-section"
-        style={{
-          borderTop: "1px solid var(--border-color)",
-          borderBottom: "1px solid var(--border-color)",
-          padding: "12px",
-          borderRadius: "4px",
-          backgroundColor: "var(--bg-hover)",
-        }}
-      >
-        <Input
-          placeholder="Commit message..."
-          value={commitMessage}
-          onChange={(e) => setCommitMessage(e.target.value)}
-          style={{
-            marginBottom: "8px",
-          }}
-          onPressEnter={handleCommit}
-        />
-        <Button
-          type="primary"
-          icon={<CheckOutlined />}
-          onClick={handleCommit}
-          disabled={stagedFiles.length === 0 || !commitMessage.trim()}
-          size="small"
-          block
-        >
-          Commit ({stagedFiles.length} file{stagedFiles.length !== 1 ? "s" : ""}
-          )
-        </Button>
-      </div>
-
-      {/* Bottom Half - Unpushed Commits Section */}
-      <div
-        style={{
-          flex: "1 1 50%",
-          display: "flex",
-          flexDirection: "column",
-          minHeight: 0,
-          marginTop: "8px",
-        }}
-      >
-        <div
-          style={{
-            marginBottom: "12px",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <h3 style={{ margin: 0, fontSize: "16px" }}>
-            <CloudUploadOutlined style={{ marginRight: "6px" }} />
-            Unpushed Commits ({unpushedCommits.length})
-          </h3>
-          <Tooltip title="Refresh unpushed commits">
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={loadUnpushedCommits}
-              loading={loadingUnpushed}
-              size="small"
-            />
-          </Tooltip>
-        </div>
-
-        <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-          <List
-            size="small"
-            bordered
-            dataSource={unpushedCommits}
-            loading={loadingUnpushed}
-            renderItem={(commit) => (
-              <List.Item
-                style={{
-                  padding: "8px 12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "flex-start",
-                }}
-              >
-                <div style={{ width: "100%" }}>
-                  <Tooltip title={commit.hash}>
-                    <Tag
-                      color="orange"
-                      style={{ fontSize: "11px", fontFamily: "monospace" }}
-                    >
-                      {commit.hash.substring(0, 7)}
-                    </Tag>
-                  </Tooltip>
-                  <span
-                    style={{
-                      fontSize: "13px",
-                      fontWeight: 500,
-                      marginLeft: "8px",
-                    }}
-                  >
-                    {commit.message}
-                  </span>
-                </div>
-                <div
-                  style={{
-                    fontSize: "11px",
-                    color: "var(--text-tertiary)",
-                    marginTop: "4px",
-                    display: "flex",
-                    gap: "12px",
-                  }}
-                >
-                  <span>{commit.author}</span>
-                  <span>{new Date(commit.date).toLocaleString()}</span>
-                </div>
-              </List.Item>
-            )}
-            locale={{ emptyText: "No unpushed commits" }}
-          />
-        </div>
-      </div>
+      <Collapse
+        className="source-control-collapse"
+        defaultActiveKey={sourceControlKeys}
+        items={sourceControlItems}
+        size="small"
+      />
     </div>
   );
 };
