@@ -98,16 +98,28 @@ export async function getRepositoryInfo(
 
     try {
       if (currentBranch) {
-        const upstream = status.tracking || `origin/${currentBranch}`;
-        const revList = await git.raw([
-          "rev-list",
-          "--left-right",
-          "--count",
-          `${currentBranch}...${upstream}`,
-        ]);
-        const [outgoing, incoming] = revList.trim().split("\t").map(Number);
-        outgoingCommits = outgoing || 0;
-        incomingCommits = incoming || 0;
+        const upstream =
+          status.tracking ||
+          (preferredRemote ? `${preferredRemote}/${currentBranch}` : null);
+
+        if (upstream) {
+          const revList = await git.raw([
+            "rev-list",
+            "--left-right",
+            "--count",
+            `${currentBranch}...${upstream}`,
+          ]);
+          const [outgoing, incoming] = revList.trim().split("\t").map(Number);
+          outgoingCommits = outgoing || 0;
+          incomingCommits = incoming || 0;
+        } else {
+          const revList = await git.raw([
+            "rev-list",
+            "--count",
+            currentBranch,
+          ]);
+          outgoingCommits = Number(revList.trim()) || 0;
+        }
       }
     } catch (error) {
       console.log("No remote tracking branch found");

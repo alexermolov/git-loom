@@ -55,6 +55,10 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
   const [filterText, setFilterText] = useState("");
   const [unpushedCommits, setUnpushedCommits] = useState<CommitInfo[]>([]);
   const [loadingUnpushed, setLoadingUnpushed] = useState(false);
+  const [sourceControlActiveKeys, setSourceControlActiveKeys] =
+    useState<string[]>(["changes", "unpushed"]);
+  const [changeGroupActiveKeys, setChangeGroupActiveKeys] =
+    useState<string[]>(["staged", "unstaged"]);
 
   // Initial load when repoPath changes
   useEffect(() => {
@@ -262,8 +266,8 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
   );
   const stagedSelected = stagedFiles.filter((f) => selectedFiles.has(f.path));
 
-  const sourceControlKeys = ["changes", "unpushed"];
-  const changeGroupKeys = ["staged", "unstaged"];
+  const normalizeActiveKeys = (keys: string | string[]) =>
+    Array.isArray(keys) ? keys : [keys];
 
   const renderChangeGroupLabel = (
     title: string,
@@ -458,7 +462,7 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
         </Tooltip>
       ),
       children: (
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <div className="source-control-section-content source-control-changes-content">
           <Input
             placeholder="Filter files..."
             prefix={<SearchOutlined />}
@@ -469,7 +473,10 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
           />
           <Collapse
             className="changes-nested-collapse"
-            defaultActiveKey={changeGroupKeys}
+            activeKey={changeGroupActiveKeys}
+            onChange={(keys) =>
+              setChangeGroupActiveKeys(normalizeActiveKeys(keys))
+            }
             items={changesItems}
             size="small"
           />
@@ -541,55 +548,57 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
         </Space>
       ),
       children: (
-        <List
-          size="small"
-          bordered
-          dataSource={unpushedCommits}
-          loading={loadingUnpushed}
-          renderItem={(commit) => (
-            <List.Item
-              style={{
-                padding: "8px 12px",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "flex-start",
-              }}
-            >
-              <div style={{ width: "100%" }}>
-                <Tooltip title={commit.hash}>
-                  <Tag
-                    color="orange"
-                    style={{ fontSize: "11px", fontFamily: "monospace" }}
-                  >
-                    {commit.hash.substring(0, 7)}
-                  </Tag>
-                </Tooltip>
-                <span
-                  style={{
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    marginLeft: "8px",
-                  }}
-                >
-                  {commit.message}
-                </span>
-              </div>
-              <div
+        <div className="source-control-section-content">
+          <List
+            size="small"
+            bordered
+            dataSource={unpushedCommits}
+            loading={loadingUnpushed}
+            renderItem={(commit) => (
+              <List.Item
                 style={{
-                  fontSize: "11px",
-                  color: "var(--text-tertiary)",
-                  marginTop: "4px",
                   display: "flex",
-                  gap: "12px",
+                  flexDirection: "column",
+                  alignItems: "flex-start",
+                  padding: "8px 12px",
                 }}
               >
-                <span>{commit.author}</span>
-                <span>{new Date(commit.date).toLocaleString()}</span>
-              </div>
-            </List.Item>
-          )}
-          locale={{ emptyText: "No unpushed commits" }}
-        />
+                <div style={{ width: "100%" }}>
+                  <Tooltip title={commit.hash}>
+                    <Tag
+                      color="orange"
+                      style={{ fontSize: "11px", fontFamily: "monospace" }}
+                    >
+                      {commit.hash.substring(0, 7)}
+                    </Tag>
+                  </Tooltip>
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      marginLeft: "8px",
+                    }}
+                  >
+                    {commit.message}
+                  </span>
+                </div>
+                <div
+                  style={{
+                    fontSize: "11px",
+                    color: "var(--text-tertiary)",
+                    marginTop: "4px",
+                    display: "flex",
+                    gap: "12px",
+                  }}
+                >
+                  <span>{commit.author}</span>
+                  <span>{new Date(commit.date).toLocaleString()}</span>
+                </div>
+              </List.Item>
+            )}
+            locale={{ emptyText: "No unpushed commits" }}
+          />
+        </div>
       ),
     },
   ];
@@ -606,7 +615,10 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
     >
       <Collapse
         className="source-control-collapse"
-        defaultActiveKey={sourceControlKeys}
+        activeKey={sourceControlActiveKeys}
+        onChange={(keys) =>
+          setSourceControlActiveKeys(normalizeActiveKeys(keys))
+        }
         items={sourceControlItems}
         size="small"
       />

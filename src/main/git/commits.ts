@@ -1,6 +1,7 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import { gitCache } from "../cache";
 import { gitWorkerPool } from "../gitWorker";
+import { hasCommits } from "./utils";
 import {
   CommitInfo,
   CommitDetail,
@@ -65,6 +66,10 @@ export async function getCommits(
   const git: SimpleGit = simpleGit(repoPath);
 
   try {
+    if (!(await hasCommits(git))) {
+      return [];
+    }
+
     const logOptions: any = {
       maxCount: limit,
     };
@@ -106,19 +111,33 @@ export async function getUnpushedCommits(
 
   try {
     const status = await git.status();
+    if (!(await hasCommits(git))) {
+      return [];
+    }
 
     const currentBranch = status.current;
     if (!currentBranch) {
       return [];
     }
 
-    const upstream = status.tracking || `origin/${currentBranch}`;
+    const remotes = await git.getRemotes(true);
+    const hasRemotes = remotes.length > 0;
+    const preferredRemote =
+      remotes.find((remote) => remote.name === "origin")?.name ||
+      remotes[0]?.name;
+    const upstream =
+      status.tracking ||
+      (preferredRemote ? `${preferredRemote}/${currentBranch}` : null);
 
     try {
-      const log = await git.log({
-        from: upstream,
-        to: currentBranch,
-      });
+      const log = upstream
+        ? await git.log({
+            from: upstream,
+            to: currentBranch,
+          })
+        : await git.log({
+            from: currentBranch,
+          });
 
       const commits = log.all.map((commit) => ({
         hash: commit.hash,
@@ -130,6 +149,10 @@ export async function getUnpushedCommits(
 
       return commits;
     } catch (error) {
+      if (!hasRemotes) {
+        throw error;
+      }
+
       return [];
     }
   } catch (error) {

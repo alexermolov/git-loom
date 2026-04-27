@@ -6,6 +6,7 @@
 import { Worker } from 'worker_threads';
 import * as path from 'path';
 import simpleGit, { SimpleGit } from 'simple-git';
+import { hasCommits } from './git/utils';
 
 export interface GitWorkerTask {
   id: string;
@@ -78,6 +79,9 @@ export class GitWorkerPool {
    */
   private async executeLog(git: SimpleGit, params: any) {
     const { maxCount = 50, skip = 0, branch } = params || {};
+    if (!(await hasCommits(git))) {
+      return [];
+    }
     
     const args = [
       'log',

@@ -1,5 +1,6 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import { ReflogEntry } from "./types";
+import { hasCommits } from "./utils";
 
 /**
  * Get reflog entries
@@ -12,6 +13,10 @@ export async function getReflog(
   const git: SimpleGit = simpleGit(repoPath);
 
   try {
+    if (!(await hasCommits(git))) {
+      return [];
+    }
+
     // Format: %gD|%H|%gn|%gs|%ci|%cn
     // %gD - reflog selector (HEAD@{0})
     // %H - commit hash

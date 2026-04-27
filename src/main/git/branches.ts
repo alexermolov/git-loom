@@ -1,6 +1,7 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import { gitCache } from "../cache";
 import { BranchInfo, CommitInfo } from "./types";
+import { hasCommits } from "./utils";
 
 /**
  * Get list of branches with commit information
@@ -13,6 +14,9 @@ export async function getBranches(repoPath: string): Promise<BranchInfo[]> {
 
   try {
     const branchSummary = await git.branch();
+    if (!(await hasCommits(git))) {
+      return [];
+    }
 
     // Get commit info for all branches in one go
     const logResult = await git.raw([

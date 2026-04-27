@@ -1,5 +1,6 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import { GitGraphRow } from "./types";
+import { hasCommits } from "./utils";
 
 /**
  * Get git graph visualization
@@ -9,6 +10,9 @@ export async function getGitGraph(
   branch?: string,
 ): Promise<GitGraphRow[]> {
   const git: SimpleGit = simpleGit(repoPath);
+  if (!(await hasCommits(git))) {
+    return [];
+  }
 
   const normalizedBranch = branch?.startsWith("remotes/")
     ? branch.replace("remotes/", "")
