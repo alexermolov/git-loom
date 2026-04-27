@@ -146,6 +146,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
   };
 
+  const canPublishBranch = (repo: RepositoryInfo) =>
+    Boolean(repo.currentBranch && !repo.status?.tracking && repo.hasRemotes);
+
+  const getPublishRemote = (repo: RepositoryInfo) =>
+    repo.preferredRemote || "remote";
+
   return (
     <div
       className="sidebar"
@@ -505,7 +511,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                     >
                       <Tooltip
                         title={
-                          repo.outgoingCommits > 0
+                          canPublishBranch(repo)
+                            ? `Branch is not published. Publish it to ${getPublishRemote(repo)} and set upstream tracking.`
+                            : repo.outgoingCommits > 0
                             ? `${repo.outgoingCommits} outgoing commit${repo.outgoingCommits > 1 ? "s" : ""} (need push)`
                             : "No outgoing commits"
                         }
@@ -513,15 +521,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div
                           style={statPillStyle(
                             "outgoing",
-                            repo.outgoingCommits > 0,
+                            repo.outgoingCommits > 0 || canPublishBranch(repo),
                           )}
                         >
                           <ArrowUpOutlined style={{ fontSize: 10 }} />
                           {repo.outgoingCommits}
                         </div>
                       </Tooltip>
-                      {repo.outgoingCommits > 0 && onPushRepo ? (
-                        <Tooltip title="Push">
+                      {(repo.outgoingCommits > 0 || canPublishBranch(repo)) &&
+                      onPushRepo ? (
+                        <Tooltip
+                          title={
+                            canPublishBranch(repo)
+                              ? `Publish branch to ${getPublishRemote(repo)}`
+                              : "Push"
+                          }
+                        >
                           <Button
                             size="small"
                             type="primary"
@@ -542,7 +557,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                                   : undefined,
                             }}
                           >
-                            Push
+                            {canPublishBranch(repo) ? "Publish" : "Push"}
                           </Button>
                         </Tooltip>
                       ) : null}

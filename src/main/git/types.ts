@@ -7,6 +7,8 @@ export interface RepositoryInfo {
   branches: string[];
   incomingCommits: number;
   outgoingCommits: number;
+  hasRemotes: boolean;
+  preferredRemote: string | null;
   isRebasing?: boolean;
   status: {
     modified: string[];

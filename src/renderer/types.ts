@@ -320,6 +320,8 @@ export interface RepositoryInfo {
   branches: string[];
   incomingCommits: number;
   outgoingCommits: number;
+  hasRemotes: boolean;
+  preferredRemote: string | null;
   status: any;
   isRebasing?: boolean;
 }

@@ -61,14 +61,17 @@ export async function pushRepository(
     }
   } else {
     const remotes = await git.getRemotes(true);
-    const hasOrigin = remotes.some((r) => r.name === "origin");
-    if (!hasOrigin) {
-      throw new Error("Cannot push: no tracking branch and no origin remote");
+    const targetRemote =
+      remotes.find((remote) => remote.name === "origin")?.name ||
+      remotes[0]?.name;
+
+    if (!targetRemote) {
+      throw new Error("Cannot publish branch: no remote configured");
     }
     if (forceFlag) {
-      await git.raw(["push", forceFlag, "-u", "origin", currentBranch]);
+      await git.raw(["push", forceFlag, "-u", targetRemote, currentBranch]);
     } else {
-      await git.push(["-u", "origin", currentBranch]);
+      await git.push(["-u", targetRemote, currentBranch]);
     }
   }
 

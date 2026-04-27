@@ -87,6 +87,11 @@ export async function getRepositoryInfo(
 
     const branches = Object.keys(branchSummary.branches);
     const status: StatusResult = await git.status();
+    const remotes = await git.getRemotes(true);
+    const preferredRemote =
+      remotes.find((remote) => remote.name === "origin")?.name ||
+      remotes[0]?.name ||
+      null;
 
     let incomingCommits = 0;
     let outgoingCommits = 0;
@@ -115,6 +120,8 @@ export async function getRepositoryInfo(
       branches,
       incomingCommits,
       outgoingCommits,
+      hasRemotes: remotes.length > 0,
+      preferredRemote,
       isRebasing,
       status: {
         modified: status.modified,
