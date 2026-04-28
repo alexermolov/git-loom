@@ -663,7 +663,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             borderRadius: 4,
             backgroundColor: "var(--bg-secondary)",
             overflow: "hidden",
-            maxHeight: "calc(100vh - 300px)",
             position: "relative",
           }}
         >
@@ -766,7 +765,6 @@ const FileDiffPanel: React.FC<FileDiffPanelProps> = ({
             border: "1px solid var(--border-color)",
             borderRadius: 4,
             overflow: "auto",
-            maxHeight: "calc(100vh - 300px)",
           }}
         >
           {isDiff ? (
