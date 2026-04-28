@@ -31,10 +31,6 @@ const CommitsPanel: React.FC<CommitsPanelProps> = ({ repoPath, commits, onCommit
   const observerRef = useRef<IntersectionObserver | null>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Virtual scrolling state
-  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 50 });
-  const itemHeight = 80; // Estimated height of each commit item
-  const overscan = 5; // Number of items to render outside visible area
   const displayedCommits = isSearchActive ? searchResults : commits;
   const canLoadMore = !isSearchActive && hasMore;
 
@@ -78,58 +74,7 @@ const CommitsPanel: React.FC<CommitsPanelProps> = ({ repoPath, commits, onCommit
     return hash.substring(0, 7);
   };
 
-  // Handle infinite scroll
-  useEffect(() => {
-    if (!onLoadMore || !canLoadMore || !sentinelRef.current) return;
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        const first = entries[0];
-        if (first.isIntersecting && !loading && canLoadMore) {
-          handleLoadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observerRef.current.observe(sentinelRef.current);
-
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, [onLoadMore, canLoadMore, loading]);
-
-  // Handle virtual scrolling
-  const handleScroll = useCallback(() => {
-    if (!scrollContainerRef.current) return;
-
-    const scrollTop = scrollContainerRef.current.scrollTop;
-    const containerHeight = scrollContainerRef.current.clientHeight;
-
-    const start = Math.max(0, Math.floor(scrollTop / itemHeight) - overscan);
-    const end = Math.min(
-      displayedCommits.length,
-      Math.ceil((scrollTop + containerHeight) / itemHeight) + overscan
-    );
-
-    setVisibleRange({ start, end });
-  }, [displayedCommits.length, itemHeight, overscan]);
-
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    container.addEventListener('scroll', handleScroll);
-    handleScroll(); // Initial calculation
-
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-    };
-  }, [handleScroll]);
-
-  const handleLoadMore = async () => {
+  const handleLoadMore = useCallback(async () => {
     if (!onLoadMore || loading || !canLoadMore) return;
 
     setLoading(true);
@@ -141,7 +86,30 @@ const CommitsPanel: React.FC<CommitsPanelProps> = ({ repoPath, commits, onCommit
     } finally {
       setLoading(false);
     }
-  };
+  }, [canLoadMore, loading, onLoadMore]);
+
+  // Handle infinite scroll
+  useEffect(() => {
+    if (!onLoadMore || !canLoadMore || !sentinelRef.current || !scrollContainerRef.current) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first.isIntersecting && !loading && canLoadMore) {
+          handleLoadMore();
+        }
+      },
+      { root: scrollContainerRef.current, threshold: 0.1 }
+    );
+
+    observerRef.current.observe(sentinelRef.current);
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, [onLoadMore, canLoadMore, loading, handleLoadMore]);
 
   const hasSearchCriteria = () => (
     Boolean(searchQuery.trim() || selectedAuthor || selectedBranch || dateRange)
@@ -167,7 +135,6 @@ const CommitsPanel: React.FC<CommitsPanelProps> = ({ repoPath, commits, onCommit
 
       const results = await window.electronAPI.searchCommits(repoPath, filter, 100);
       setSearchResults(results);
-      setVisibleRange({ start: 0, end: 50 });
       scrollContainerRef.current?.scrollTo({ top: 0 });
     } catch (error) {
       console.error('Error searching commits:', error);
@@ -184,13 +151,7 @@ const CommitsPanel: React.FC<CommitsPanelProps> = ({ repoPath, commits, onCommit
     setDateRange(null);
     setSearchResults([]);
     setIsSearchActive(false);
-    setVisibleRange({ start: 0, end: 50 });
   };
-
-  // Get visible commits for virtual scrolling
-  const visibleCommits = displayedCommits.slice(visibleRange.start, visibleRange.end);
-  const offsetY = visibleRange.start * itemHeight;
-  const totalHeight = displayedCommits.length * itemHeight;
 
   return (
     <div className="commits-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -271,44 +232,37 @@ const CommitsPanel: React.FC<CommitsPanelProps> = ({ repoPath, commits, onCommit
           ref={scrollContainerRef}
           style={{ flex: 1, overflowY: 'auto', position: 'relative' }}
         >
-          <div style={{ height: totalHeight, position: 'relative' }}>
-            <div style={{ transform: `translateY(${offsetY}px)` }}>
-              {visibleCommits.map((commit) => (
-                  <div 
-                    key={commit.hash} 
-                    className="commit-item"
-                    onClick={() => onCommitClick && onCommitClick(commit)}
-                    style={{ 
-                      cursor: onCommitClick ? 'pointer' : 'default',
-                      minHeight: itemHeight,
-                    }}
-                  >
-                    <div className="commit-message">{commit.message}</div>
-                    <div className="commit-meta">
-                      <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Tooltip title="Click to copy full hash">
-                          <span 
-                            className="commit-hash" 
-                            onClick={(e) => copyHashToClipboard(commit.hash, e)}
-                            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-                          >
-                            {formatHash(commit.hash)}
-                            <CopyOutlined style={{ fontSize: 11, opacity: 0.6 }} />
-                          </span>
-                        </Tooltip>
-                        {commit.refs && (
-                          <span style={{ marginLeft: 8, color: '#52c41a' }}>
-                            {commit.refs}
-                          </span>
-                        )}
-                      </div>
-                      <div>{commit.author}</div>
-                      <div>{formatDate(commit.date)}</div>
-                    </div>
-                  </div>
-              ))}
+          {displayedCommits.map((commit) => (
+            <div
+              key={commit.hash}
+              className="commit-item"
+              onClick={() => onCommitClick && onCommitClick(commit)}
+              style={{ cursor: onCommitClick ? 'pointer' : 'default' }}
+            >
+              <div className="commit-message">{commit.message}</div>
+              <div className="commit-meta">
+                <div style={{ marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Tooltip title="Click to copy full hash">
+                    <span
+                      className="commit-hash"
+                      onClick={(e) => copyHashToClipboard(commit.hash, e)}
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                    >
+                      {formatHash(commit.hash)}
+                      <CopyOutlined style={{ fontSize: 11, opacity: 0.6 }} />
+                    </span>
+                  </Tooltip>
+                  {commit.refs && (
+                    <span style={{ marginLeft: 8, color: '#52c41a' }}>
+                      {commit.refs}
+                    </span>
+                  )}
+                </div>
+                <div>{commit.author}</div>
+                <div>{formatDate(commit.date)}</div>
+              </div>
             </div>
-          </div>
+          ))}
 
           {/* Infinite scroll sentinel */}
           {canLoadMore && (

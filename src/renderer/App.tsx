@@ -592,7 +592,16 @@ const App: React.FC = () => {
       );
 
       if (newCommits.length > 0) {
-        setCommits((prevCommits) => [...prevCommits, ...newCommits]);
+        setCommits((prevCommits) => {
+          const existingHashes = new Set(
+            prevCommits.map((commit) => commit.hash),
+          );
+          const uniqueNewCommits = newCommits.filter(
+            (commit) => !existingHashes.has(commit.hash),
+          );
+
+          return [...prevCommits, ...uniqueNewCommits];
+        });
         // If we got fewer than 25 commits, we've reached the end
         setHasMoreCommits(newCommits.length === 25);
       } else {
