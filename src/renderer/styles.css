@@ -385,19 +385,106 @@ body {
   overflow-y: auto;
 }
 
+.changes-group-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.changes-group-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.changes-group-actions {
+  display: flex;
+  flex: 0 1 auto;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.changes-group-actions .ant-space {
+  justify-content: flex-end;
+}
+
+.changes-group-actions .ant-btn {
+  max-width: 132px;
+  padding-inline: 7px;
+}
+
+.changes-group-actions .ant-btn > span:not(.anticon) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .changes-list {
   background-color: var(--bg-primary);
   border-color: var(--border-color);
+  overflow: hidden;
 }
 
 .changes-list-item {
   background-color: var(--bg-primary);
   border-color: var(--border-light);
   color: var(--text-primary);
+  min-width: 0;
 }
 
 .changes-list-item:hover {
   background-color: var(--bg-hover);
+}
+
+.changes-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.changes-file-main {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.changes-file-main .ant-checkbox-wrapper,
+.changes-file-main .anticon,
+.changes-file-main .ant-tag {
+  flex: 0 0 auto;
+}
+
+.changes-file-main .ant-tag {
+  margin-inline-end: 0;
+}
+
+.changes-file-path,
+.changes-file-old-path {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.changes-file-path {
+  flex: 1 1 auto;
+  font-size: 13px;
+}
+
+.changes-file-old-path {
+  flex: 0 1 32%;
+  color: var(--text-tertiary);
+  font-size: 11px;
+}
+
+.changes-file-actions {
+  flex: 0 0 auto;
 }
 
 .commit-section {

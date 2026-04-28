@@ -1,7 +1,7 @@
 import simpleGit, { SimpleGit } from "simple-git";
 import { gitCache } from "../cache";
 import { gitWorkerPool } from "../gitWorker";
-import { hasCommits } from "./utils";
+import { getExistingUpstreamRef, hasCommits } from "./utils";
 import {
   CommitInfo,
   CommitDetail,
@@ -124,20 +124,28 @@ export async function getUnpushedCommits(
     const hasRemotes = remotes.length > 0;
     const preferredRemote =
       remotes.find((remote) => remote.name === "origin")?.name ||
-      remotes[0]?.name;
-    const upstream =
-      status.tracking ||
-      (preferredRemote ? `${preferredRemote}/${currentBranch}` : null);
+      remotes[0]?.name ||
+      null;
+    const upstream = await getExistingUpstreamRef(
+      git,
+      currentBranch,
+      status.tracking,
+      preferredRemote,
+    );
 
     try {
-      const log = upstream
-        ? await git.log({
-            from: upstream,
-            to: currentBranch,
-          })
-        : await git.log({
-            from: currentBranch,
-          });
+      const log = await git.log(
+        upstream
+          ? {
+              from: upstream,
+              to: currentBranch,
+            }
+          : hasRemotes
+            ? ([currentBranch, "--not", "--remotes"] as any)
+            : {
+                from: currentBranch,
+              },
+      );
 
       const commits = log.all.map((commit) => ({
         hash: commit.hash,

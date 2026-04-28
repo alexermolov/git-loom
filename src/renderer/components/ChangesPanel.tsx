@@ -276,15 +276,9 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
     staged: boolean,
   ) => (
     <div
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        gap: "8px",
-        width: "100%",
-      }}
+      className="changes-group-label"
     >
-      <Space size="small">
+      <Space className="changes-group-title" size="small">
         <span onClick={(e) => e.stopPropagation()}>
           <Checkbox
             checked={
@@ -301,7 +295,10 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
         </strong>
       </Space>
       {groupSelected.length > 0 && (
-        <span onClick={(e) => e.stopPropagation()}>
+        <span
+          className="changes-group-actions"
+          onClick={(e) => e.stopPropagation()}
+        >
           {staged ? (
             <Button
               size="small"
@@ -310,10 +307,10 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
                 handleUnstageFiles(groupSelected.map((f) => f.path))
               }
             >
-              Unstage Selected ({groupSelected.length})
+              Unstage ({groupSelected.length})
             </Button>
           ) : (
-            <Space size="small">
+            <Space size="small" wrap>
               <Button
                 size="small"
                 icon={<PlusOutlined />}
@@ -354,62 +351,58 @@ const ChangesPanel: React.FC<ChangesPanelProps> = ({
             cursor: onFileClick ? "pointer" : "default",
           }}
           onClick={() => onFileClick && onFileClick(file)}
-          actions={
-            staged
-              ? [
-                  <Button
-                    size="small"
-                    icon={<MinusOutlined />}
-                    title="Unstage"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUnstageFiles([file.path]);
-                    }}
-                  />,
-                ]
-              : [
+        >
+          <div className="changes-file-row">
+            <div className="changes-file-main">
+              <Checkbox
+                checked={selectedFiles.has(file.path)}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => handleSelectFile(file.path, e.target.checked)}
+              />
+              {getStatusIcon(file.status)}
+              <Tooltip title={file.path}>
+                <span className="changes-file-path">{file.path}</span>
+              </Tooltip>
+              {getStatusTag(file.status)}
+              {file.oldPath && (
+                <Tooltip title={file.oldPath}>
+                  <span className="changes-file-old-path">
+                    (from {file.oldPath})
+                  </span>
+                </Tooltip>
+              )}
+            </div>
+            <Space
+              className="changes-file-actions"
+              size={4}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {staged ? (
+                <Button
+                  size="small"
+                  icon={<MinusOutlined />}
+                  title="Unstage"
+                  onClick={() => handleUnstageFiles([file.path])}
+                />
+              ) : (
+                <>
                   <Button
                     size="small"
                     icon={<PlusOutlined />}
                     title="Stage"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleStageFiles([file.path]);
-                    }}
-                  />,
+                    onClick={() => handleStageFiles([file.path])}
+                  />
                   <Button
                     size="small"
                     danger
                     icon={<RollbackOutlined />}
                     title="Discard changes"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDiscardChanges([file.path]);
-                    }}
-                  />,
-                ]
-          }
-        >
-          <Space size="small">
-            <Checkbox
-              checked={selectedFiles.has(file.path)}
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => handleSelectFile(file.path, e.target.checked)}
-            />
-            {getStatusIcon(file.status)}
-            <span style={{ fontSize: "13px" }}>{file.path}</span>
-            {getStatusTag(file.status)}
-            {file.oldPath && (
-              <span
-                style={{
-                  fontSize: "11px",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                (from {file.oldPath})
-              </span>
-            )}
-          </Space>
+                    onClick={() => handleDiscardChanges([file.path])}
+                  />
+                </>
+              )}
+            </Space>
+          </div>
         </List.Item>
       )}
       locale={{ emptyText: staged ? "No staged files" : "No changes" }}

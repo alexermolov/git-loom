@@ -3,6 +3,7 @@ import * as fs from "fs";
 import * as path from "path";
 import { gitCache } from "../cache";
 import { RepositoryInfo } from "./types";
+import { getExistingUpstreamRef } from "./utils";
 
 /**
  * Scan a directory recursively for Git repositories
@@ -98,9 +99,12 @@ export async function getRepositoryInfo(
 
     try {
       if (currentBranch) {
-        const upstream =
-          status.tracking ||
-          (preferredRemote ? `${preferredRemote}/${currentBranch}` : null);
+        const upstream = await getExistingUpstreamRef(
+          git,
+          currentBranch,
+          status.tracking,
+          preferredRemote,
+        );
 
         if (upstream) {
           const revList = await git.raw([
@@ -112,6 +116,15 @@ export async function getRepositoryInfo(
           const [outgoing, incoming] = revList.trim().split("\t").map(Number);
           outgoingCommits = outgoing || 0;
           incomingCommits = incoming || 0;
+        } else if (remotes.length > 0) {
+          const revList = await git.raw([
+            "rev-list",
+            "--count",
+            currentBranch,
+            "--not",
+            "--remotes",
+          ]);
+          outgoingCommits = Number(revList.trim()) || 0;
         } else {
           const revList = await git.raw([
             "rev-list",
