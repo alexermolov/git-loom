@@ -3,48 +3,74 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
+    name: Package ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     
     strategy:
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - name: Windows
+            os: windows-latest
+            builder_args: --win
+            files: |
+              release/*.exe
+              release/*.blockmap
+              release/*.yml
+          - name: macOS
+            os: macos-latest
+            builder_args: --mac
+            files: |
+              release/*.dmg
+          - name: Linux
+            os: ubuntu-latest
+            builder_args: --linux
+            files: |
+              release/*.AppImage
     
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout
+      uses: actions/checkout@v4
     
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '20.x'
-        cache: 'npm'
+        node-version: 20.x
+        cache: npm
+        cache-dependency-path: package-lock.json
     
     - name: Install dependencies
       run: npm ci
     
-    - name: Build
-      run: npm run build
-    
-    - name: Package (Windows)
-      if: matrix.os == 'windows-latest'
-      run: npm run build:win
-    
-    - name: Package (macOS)
-      if: matrix.os == 'macos-latest'
-      run: npm run build:mac
-    
-    - name: Package (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      run: npm run build:linux
-    
-    - name: Upload Release Assets
-      uses: softprops/action-gh-release@v1
-      with:
-        files: release/*
-        draft: false
-        prerelease: false
+    - name: Package app
+      run: |
+        npm run build
+        npx electron-builder ${{ matrix.builder_args }} --publish never
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+    
+    - name: Upload package artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: gitloom-${{ matrix.name }}
+        path: ${{ matrix.files }}
+        if-no-files-found: error
+
+    - name: Publish GitHub release assets
+      uses: softprops/action-gh-release@v2
+      with:
+        generate_release_notes: true
+        fail_on_unmatched_files: true
+        files: ${{ matrix.files }}
